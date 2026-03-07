@@ -1,9 +1,9 @@
 <template>
-  <div>
+  <section id="header">
     <h1>logo que tenho em casa</h1>
     <p>peça uma demonstração</p>
-    <p>Login</p>
-  </div>
+    <button>Login</button>
+  </section>
 
   <Section id="home">
     <h2>PROTEJA.</h2>
