@@ -18,16 +18,26 @@
     </p>
   </Section>
 
-  <section class="apresentação">
-    <h3>Software completo e intuitivo</h3>
+  <section class="apresentacao">
+    <h1>Software completo e intuitivo</h1>
     <p>A evolução digital que sua gestão precisa</p>
-    <button>Começar agora</button>
-    <div>video ira aqui</div>
+    <div class="video_container">
+      <button>Começar agora</button>
+      <div>video ira aqui</div>
+    </div>
   </section>
 
   <section class="funcionalidades">
-    <card>
-      <h4>Rastreamento de estoque</h4>
+    <div class="header funcionalidades">
+    <h2>FUNCIONALIDADES</h2>
+    <h1>Tudo o que você precisa para gestão de EPIs</h1>
+    <p>Centralize o controle de estoque, entregas e conformidade em uma interface intuitiva e poderosa.</p>
+    </div>
+
+  <div class = cards_section>
+    <card class = "cards_func">
+      <icon> calma </icon>
+      <h1>Rastreamento de estoque</h1>
       <span>
         Controle total do inventário em tempo real. Saiba exatamente quantos
         EPIs estão em uso, em estoque e quando reabastecer.
@@ -35,7 +45,8 @@
     </card>
 
     <card class = "cards_func">
-      <h4>Alertas Automáticos</h4>
+      <icon> calma </icon>
+      <h1>Alertas Automáticos</h1>
       <span>
         Receba notificações antes do vencimento do CA (Certificado de Aprovação)
         ou da vida útil do equipamento entregue ao colaborador.
@@ -43,34 +54,37 @@
     </card>
 
     <card class = "cards_func">
-      <h4>Assinatura Digital</h4>
+      <icon> calma </icon>
+      <h1>Assinatura Digital</h1>
       <span>
         Elimine o papel. Registre a entrega de EPIs com assinatura biométrica ou
         digital, garantindo validade jurídica e organização.
       </span>
     </card>
+    </div>
+
   </section>
 
   <section class="entrega">
-    <h5>Entrega e retirada registrados pelo app</h5>
+
+    <img src = "../assets/prancheta.svg" alt="entrega" />
+    
+    <div class = "textos_entrega"> 
+    <h1>Entrega e retirada registrados pelo app</h1>
     <p>
       Nossa tecnologia exclusiva utiliza reconhecimento facial para validar a
       identidade do colaborador no momento da retirada do equipamento, gerando
       uma ficha de EPI digital à prova de fraudes.
     </p>
+    
 
-    <div>
+    <div class="check_section">
       <p>Confirmação instantânea</p>
-    </div>
-
-    <div>
       <p>Localização da entrega</p>
-    </div>
-
-    <div>
       <p>Atualização de estoque automática</p>
     </div>
-    <p>saiba mais sobre a tecnologia</p>
+    <span>saiba mais sobre a tecnologia</span>
+    </div> 
   </section>
 
   <section class="saiba_mais">
@@ -169,23 +183,186 @@ background-attachment: fixed;
 } */  
 
 .home {
+position: relative;
 background-image:url("../assets/Operarios.svg");
 background-repeat: no-repeat;
-background-size: contain;
-height: 60rem;
-width: max-width;
+background-size: 100%;
+height: 75rem;
+box-sizing: border-box;
+display: flex;
+flex-direction: column;
+justify-content: flex-end;
+padding-left: 4rem;
+}
+
+.home::after{
+  z-index:0;
+  content:"";
+  position:absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 20rem;
+  bottom:-300px;
+  background: linear-gradient(to top, #1A1612 50%,#000)
+   /*rgb(32, 27, 22)?*/
 }
 
 
 .home h2 {
+position:relative;
+z-index: 1;
 display: flex;
 flex-direction: column;
-font-size: 5rem;
+font-size: 6rem;
 color: #ffffff;
 margin: 0%;
+bottom:-18rem;
+margin-bottom: 1rem;
 }
 
 .home p {
-  font-size: 1rem;
+  position:relative;
+  z-index:1;
+  font-size: 2rem;
+  color: #ffffff;
+  bottom: -17rem;
 }
+
+.apresentacao {
+  position: relative;
+  display: flex;
+  margin-top: 18rem;
+  flex-direction: column;
+
+}
+.apresentacao h1{
+  position: relative;
+  display: flex;
+  justify-content: center;
+  color: #ffffff;
+  font-size:5rem ;
+}
+.apresentacao p {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  color: #F49D25;
+  font-size: 3rem;
+}
+
+.video_container {
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+  width: 60%;
+}
+
+.apresentacao button {
+  background-color: #F49D25;
+  width: fit-content;
+  padding: 0.7rem 0.7rem;
+  font-size: 0.7rem;
+  color: white;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.video_container div {
+  color: #ffffff;
+  width: 100%;
+  height: 20rem;
+  background-color: #000;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  margin-bottom: 2rem;
+}
+
+.funcionalidades{
+display: flex;
+flex-direction: column;
+align-items:center ;
+margin-bottom: 1rem;
+}
+
+.funcionalidades h2{
+color: #F49D25;
+}
+
+.funcionalidades h1{
+color: #ffffff;
+}
+
+.funcionalidades p {
+color: #9CA3AF;
+}
+
+.cards_section {
+  display:flex ;
+  flex-direction: row;
+  gap:1.5rem;
+  justify-content: center;
+  margin-left: 4rem;
+  margin-right: 4rem;
+}
+
+.cards_func {
+  background-color: #26201A ;
+  border-radius: 1rem;
+  padding: 2rem;
+}
+
+.cards_func h1 {
+  color:#ffffff;
+  font-size: 1.2rem;
+  margin-top: 0.6rem;
+  margin-bottom: 0.3rem;
+}
+
+.cards_func span {
+  color: #55595f;
+}
+
+.entrega {
+  display:flex;
+  flex-direction:row;
+  align-items: stretch;
+  gap:2rem;
+  background-color: rgba(39, 36, 36, 0.7);
+  border-radius: 1.5rem;
+  height: 20rem;
+  margin-left: 2rem;
+  margin-right: 2rem;
+}
+
+.entrega img{
+  width: 40%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 1rem;
+  overflow: hidden;
+
+}
+
+
+.textos_entrega {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem
+}
+
+.check section{
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem
+}
+
+.textos_entrega span {
+color: #F49D25;
+}
+
 </style>
