@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+#arquivos sensiveis
+.env
+.env.local
