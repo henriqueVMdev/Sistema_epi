@@ -1,11 +1,27 @@
 <template>
-  <div>
-    <h1>Cadastro de Usuário</h1>
-    <p>Cadastre-se</p>
+  <div class="container">
+    <H1>cadastro</H1>
+    <p>Insira suas credenciais</p>
+    <!--@submit.prevent impede de carregar a pagina -->
+    <form @submit.prevent = "fazerLogin">
+      <div class = "campo">
+        <label> email</label>
+        <input
+        id = "email"
+        v-model= "email"
+        type= "email"
+        placeholder= "Digite seu email"
+        />
+
+  
+        <label> senha </label>
+        <button type="submit">cadastrar</button>
+    </form>
   </div>
 </template>
 
 <script>
+
 export default {
   name: "CadastroUser",
 };
