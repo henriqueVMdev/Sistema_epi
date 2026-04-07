@@ -362,7 +362,7 @@ color: #9CA3AF;
 }
 
 .textos_entrega span {
-color: #F49D25;
+color: #f7a533;
 }
 
 </style>
