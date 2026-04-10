@@ -2,7 +2,9 @@
   <section class="header">
     <h1>logo que tenho em casa</h1>
     <p>peça uma demonstração</p>
+  <RouterLink to="/login">
     <button>Login</button>
+  </RouterLink>
   </section>
 
   <Section class="home">
