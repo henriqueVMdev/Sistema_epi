@@ -350,7 +350,6 @@ color: #9CA3AF;
 
 }
 
-
 .textos_entrega {
   display: flex;
   flex-direction: column;
