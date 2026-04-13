@@ -17,7 +17,7 @@ async function login() {
  if (authError) {
   error.value = authError.message;
  } else {
-   router.push('/');
+   router.push('/cadastro_epi');
  }
 }
 </script>
@@ -80,7 +80,9 @@ async function login() {
 form {
   width: 90%;
   max-width: 25rem;
+  max-height: 35rem;
   min-height: 35rem;
+  min-width: 25rem;
   background-color: #131314 !important;
   background-position: center;
   display:flex;  
