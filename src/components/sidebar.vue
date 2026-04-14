@@ -13,9 +13,14 @@
       <!-- Menu de navegação -->
       <!-- RouterLink: links especiais do Vue Router que navegam sem recarregar a página -->
       <nav class="menu">
-  <RouterLink to="/app/cadastro_epi" class="menu-item" active-class="active">
+  <RouterLink to="/cadastro_epi" class="menu-item" active-class="active">
     <i class="fas fa-users"></i>
     <span>Cadastro de EPI</span>
+  </RouterLink>
+
+  <RouterLink to="/controle_EPI" class="menu-item" active-class="active">
+    <i class="fas fa-users"></i>
+    <span>Controle de EPI</span>
   </RouterLink>
 
 </nav>

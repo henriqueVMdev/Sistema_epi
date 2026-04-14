@@ -17,5 +17,6 @@ import router from "./router";
 
 
 <template>
-  <router-view />
-</template>
+  <sidebar.vue />
+    <router-view />
+    </template>
