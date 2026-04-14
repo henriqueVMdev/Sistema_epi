@@ -115,7 +115,7 @@ async function sair() {
   /* flex = coloca os elementos lado a lado */
   height: 100vh;
   /* 100vh = ocupa toda a altura da tela */
-  background-color: #79772d;
+  background-color: #F49D25;
 }
 
 /* ===== SIDEBAR: Menu lateral fixo ===== */
@@ -123,7 +123,7 @@ async function sair() {
 .sidebar {
   width: 250px;
   /* Largura fixa de 250px */
-  background-color: #003D99;
+  background-color: #614f02;
   /* Azul escuro como fundo */
   color: #FFFFFF;
   /* Texto branco */

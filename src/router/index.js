@@ -11,10 +11,8 @@ const routes = [
   { path: "/", component: home },
   { path: "/login", component: login },
   { path: "/cadastro_user", component: cadastro_user },
-  { path: "/cadastro_epi", component: cadastro_epi },
-  { path: "/controle_EPI", component: Controle_EPI },
 
-  { path: "/sidebar",
+  { path: "/",
      component: Sidebar,
     children: [
       {path: "cadastro_epi", component: cadastro_epi},
