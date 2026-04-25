@@ -123,7 +123,7 @@ async function sair() {
 .sidebar {
   width: 250px;
   /* Largura fixa de 250px */
-  background-color: #614f02;
+  background-color: #020200;
   /* Azul escuro como fundo */
   color: #FFFFFF;
   /* Texto branco */
@@ -207,7 +207,7 @@ async function sair() {
 
 /* Quando o item está ativo (a página atual) */
 .menu-item.active {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(184, 165, 165, 0.2);
   /* Fundo branco mais opaco */
   font-weight: 600;
   /* Texto em negrito */
@@ -231,7 +231,7 @@ async function sair() {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(121, 29, 29, 0.1);
   /* Fundo branco translúcido */
   color: #FFFFFF;
   border: none;

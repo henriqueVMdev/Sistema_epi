@@ -3,13 +3,15 @@ import { ref } from 'vue'
 import { useRouter }  from 'vue-router'
 import { useSupabase } from '../composables/useSupabase' 
 
-const nome = ref('')
-const email = ref('')
-const senha = ref('')
-const cpf = ref('')
-const error = ref('')
+const funcionarios = ref([])
+const editandoid = ref(null)
 const router = useRouter()
 const { supabase } = useSupabase()
+
+const carregar = async () => {
+  const { data } = await supabase.from('funcionarios').select('*').order('nome')
+  funcionarios.value = data || [];
+};
 
 async function cadastrar(){
   
@@ -27,6 +29,7 @@ async function cadastrar(){
 
 </script>
  
+
 <template>
 <div class="container">
   <div class="caixa">
