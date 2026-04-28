@@ -1,3 +1,5 @@
 <template>
-    <div>Dashboard</div>
+    <section class="title">
+        <div>Dashboard</div>
+    </section>
 </template>

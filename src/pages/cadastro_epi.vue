@@ -1,52 +1,5 @@
 <!--        
-<script setup>
-import { ref, reactive, onMounted } from 'vue';
-import { useSupabase } from '@/composables/useSupabase';
 
-const { supabase } = useSupabase();
-const epis = ref([]);
-const editandoId = ref(null);
-const form = reactive({ nome: '', numero_ca: '', descricao: '', data_validade: '' });
-
-// Busca os EPIs no banco
-const carregar = async () => {
-  const { data } = await supabase.from('epis').select('*').order('nome');
-  epis.value = data || [];
-};
-
-// Salva ou Atualiza
-const salvar = async () => {
-  if (editandoId.value) {
-    await supabase.from('epis').update(form).eq('id', editandoId.value);
-  } else {
-    const { error } = await supabase.from('epis').insert(form);
-    if (error) {
-      console.error('erro ao cadastrar:', error);
-    }
-  }
-  cancelarEdicao();
-  carregar();
-};
-
-const prepararEdicao = (e) => {
-  editandoId.value = e.id;
-  Object.assign(form, { nome: e.nome, numero_ca: e.numero_ca, descricao: e.descricao, data_validade: e.data_validade });
-};
-
-const excluir = async (id) => {
-  if (confirm('Deseja excluir este equipamento?')) {
-    await supabase.from('epis').delete().eq('id', id);
-    carregar();
-  }
-};
-
-const cancelarEdicao = () => {
-  editandoId.value = null;
-  Object.assign(form, { nome: '', numero_ca: '', descricao: '', data_validade: '' });
-};
-
-onMounted(carregar);
-</script>
 
 
 
@@ -130,8 +83,147 @@ onMounted(carregar);
   </div>
 </template>
 
+<script setup>
+import { ref, reactive, onMounted } from 'vue';
+import { useSupabase } from '@/composables/useSupabase';
+
+const { supabase } = useSupabase();
+const epis = ref([]);
+const editandoId = ref(null);
+const form = reactive({ nome: '', numero_ca: '', descricao: '', data_validade: '' });
+
+// Busca os EPIs no banco
+const carregar = async () => {
+  const { data } = await supabase.from('epis').select('*').order('nome');
+  epis.value = data || [];
+};
+
+// Salva ou Atualiza
+const salvar = async () => {
+  if (editandoId.value) {
+    await supabase.from('epis').update(form).eq('id', editandoId.value);
+  } else {
+    const { error } = await supabase.from('epis').insert(form);
+    if (error) {
+      console.error('erro ao cadastrar:', error);
+    }
+  }
+  cancelarEdicao();
+  carregar();
+};
+
+const prepararEdicao = (e) => {
+  editandoId.value = e.id;
+  Object.assign(form, { nome: e.nome, numero_ca: e.numero_ca, descricao: e.descricao, data_validade: e.data_validade });
+};
+
+const excluir = async (id) => {
+  if (confirm('Deseja excluir este equipamento?')) {
+    await supabase.from('epis').delete().eq('id', id);
+    carregar();
+  }
+};
+
+const cancelarEdicao = () => {
+  editandoId.value = null;
+  Object.assign(form, { nome: '', numero_ca: '', descricao: '', data_validade: '' });
+};
+
+onMounted(carregar);
+</script>
+
  -->
 
- <template>
- <h1>Novo<span>EPI</span></h1>
- </template>
+<script setup>
+import { reactive, ref, onMounted } from 'vue';
+import { useSupabase } from '@/composables/useSupabase';
+import { useRouter } from 'vue-router';
+
+const { supabase } = useSupabase();
+const epis = ref([]);
+const editandoId = ref(null);
+const form = reactive({ nome: '', numero_ca: '', descricao: '', data_validade: '', fabricante: '', setor: '', quantidade: '', estoque_atual: 0 });
+const router = useRouter();
+
+const carregar = async () => {
+  const { data } = await supabase.from('epis').select('*').order('nome');
+  epis.value = data || [];
+};
+
+const salvar = async () => {
+  if (editandoId.value) {
+    await supabase.from('epis').update(form).eq('id', editandoId.value);
+  } else {
+    const { error } = await supabase.from('epis').insert(form);
+    if (error) {
+      console.error('erro ao cadastrar:', error);
+    }
+  }
+  cancelarEdicao();
+  carregar();
+};
+
+const prepararEdicao = (e) => {
+  editandoId.value = e.id;
+  Object.assign(form, { nome: e.nome, numero_ca: e.numero_ca, descricao: e.descricao, data_validade: e.data_validade, fabricante: e.fabricante, setor: e.setor, quantidade: e.quantidade, estoque_atual: e.estoque_atual });
+};
+
+const excluir = async (id) => {
+  if (confirm('Deseja excluir este equipamento?')) {
+    await supabase.from('epis').delete().eq('id', id);
+    carregar();
+  }
+};
+
+const cancelarEdicao = () => {
+  editandoId.value = null;
+  Object.assign(form, { nome: '', numero_ca: '', descricao: '', data_validade: '', fabricante: '', setor: '', quantidade: '', estoque_atual: 0 });
+};
+
+onMounted(carregar);
+</script>
+
+<template>
+  <header class="title">
+    <p class = "path"> Home > estoque > <span class = "white">cadastro de EPI</span> </p>
+    <h1>Novo<span class ="yellow-title">EPI</span></h1>
+    <p>Preencha os dados abaixo para registrar um novo equipamento de proteção.</p>
+    <button class = "cancelar">Cancelar</button>
+    <button class = "cadastrar">Salvar cadastro</button>
+  </header>
+  
+  <card class = "informações">
+    <h1>Informações Básicas</h1> 
+    <label for="id">ID do EPI</label>
+    <input v-model = form.id type="ID" placeholder="EX: 123456">
+
+    <label for="nome">Nome do EPI</label>
+    <input v-model = form.nome type= "text" placeholder="Ex: Capacete de Segurança">
+
+    <label for="fabricante">Fabricante</label>
+    <input v-model = form.fabricante type="text" placeholder="Ex: Segurança Ltda">
+
+    <label for="data_validade">Setor de uso</label>
+    <input v-model = form.setor type="text" placeholder="Ex: Setor de Manutenção">
+  </card>
+
+  <card class = "ca">
+    <h1>Certificação de Aprovação (C.A.)</h1>
+    <label for ="numero_ca">Número do C.A.</label>
+    <input v-model = form.numero_ca type="text" placeholder="Ex: 12345">
+
+    <label  for="data_validade">Data de Validade</label>
+    <input v-model = form.data_validade type="date" placeholder="Ex: 12/31/2027">
+  </card>
+
+<card class = "controle_estoque">
+  <h1>Controle de Estoque</h1>
+
+  <label for="quantidade">Quantidade em Estoque</label>
+  <input v-model = form.quantidade type="number" placeholder="Ex: 0">
+
+  <label for="estoque_atual">Estoque Atual</label>
+  <input v-model = form.estoque_atual type="number" default = 0>
+</card>
+
+</template>
