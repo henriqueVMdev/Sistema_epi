@@ -4,7 +4,8 @@ import home from "../pages/home.vue";
 import login from "../pages/login.vue";
 import cadastro_epi from "../pages/cadastro_epi.vue";
 import cadastro_user from "../pages/cadastro_user.vue";
-import Controle_EPI from "../pages/controle_EPI.vue";
+import retirada_epi from "../pages/retirada_epi.vue";
+import Dashboard from "../pages/dashboard.vue";
 
 const routes = [
   
@@ -16,7 +17,8 @@ const routes = [
      component: Sidebar,
     children: [
       {path: "cadastro_epi", component: cadastro_epi},
-      {path: "controle_EPI", component: Controle_EPI},
+      {path: "retirada_epi", component: retirada_epi},
+      {path: "dashboard", component: Dashboard}
     ]
   }, 
 ];
