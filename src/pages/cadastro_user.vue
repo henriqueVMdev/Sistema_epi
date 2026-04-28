@@ -29,7 +29,6 @@ async function cadastrar(){
 
 </script>
  
-
 <template>
 <div class="container">
   <div class="caixa">
@@ -191,5 +190,4 @@ h1 {
   margin-top: 1.5rem;
   font-size: 1.2rem;
 }
-
 </style>

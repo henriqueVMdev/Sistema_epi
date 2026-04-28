@@ -115,13 +115,6 @@ async function sair() {
 
 /* ===== CONTAINER PRINCIPAL: SHELL ===== */
 /* Divide a tela em duas colunas: Sidebar (esquerda) + Conteúdo (direita) */
-.shell {
-  display: flex;
-  /* flex = coloca os elementos lado a lado */
-  height: 100vh;
-  /* 100vh = ocupa toda a altura da tela */
-  background-color: #F49D25;
-}
 
 /* ===== SIDEBAR: Menu lateral fixo ===== */
 /* A Sidebar fica presa no lugar enquanto o conteúdo rola */
@@ -130,7 +123,6 @@ async function sair() {
   /* Largura fixa de 250px */
   background-color: #020200;
   /* Azul escuro como fundo */
-  color: #FFFFFF;
   /* Texto branco */
   padding: 30px 20px;
   /* Espaço interno */
@@ -274,11 +266,9 @@ async function sair() {
   /* Ocupa todo o espaço restante */
   margin-left: 250px;
   /* Deixa espaço para a Sidebar fixa (250px) */
-  padding: 30px;
   /* Espaço interno */
   overflow-y: auto;
   /* Permite rolar o conteúdo se necessário */
-  background-color: #FFFFFF;
 }
 
 /* ===== RESPONSIVIDADE: Telas pequenas (celulares) ===== */
