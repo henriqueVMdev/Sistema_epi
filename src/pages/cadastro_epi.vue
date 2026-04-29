@@ -195,8 +195,6 @@ onMounted(carregar);
   
     <card class = "informações">
       <h1>Informações Básicas</h1> 
-      <label for="id">ID do EPI</label>
-      <input v-model = form.id type="ID" placeholder="EX: 123456">
 
       <label for="nome">Nome do EPI</label>
       <input v-model = form.nome type= "text" placeholder="Ex: Capacete de Segurança">
