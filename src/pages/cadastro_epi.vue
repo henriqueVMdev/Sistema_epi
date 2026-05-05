@@ -184,7 +184,7 @@ onMounted(carregar);
 </script>
 
 <template>
-  <div class = "pagina">
+  <section class = "pagina">
     <header class="title">
       <p class = "path"> Home > estoque > <span class = "white"> Cadastro de EPI</span> </p>
       <h1>Novo<span class ="yellow-title">EPI</span></h1>
@@ -192,30 +192,44 @@ onMounted(carregar);
       <button class = "cancelar">Cancelar</button>
       <button class = "cadastrar">Salvar cadastro</button>
     </header>
-  
-    <card class = "informações">
+
+  </section>
+
+    <section class = "informações">
       <h1>Informações Básicas</h1> 
 
-      <label for="nome">Nome do EPI</label>
-      <input v-model = form.nome type= "text" placeholder="Ex: Capacete de Segurança">
+      <div class = "campo">
+        <label for="nome">Nome do EPI</label>
+        <input v-model = form.nome type= "text" placeholder="Ex: Capacete de Segurança">
+      </div>
 
-      <label for="fabricante">Fabricante</label>
-      <input v-model = form.fabricante type="text" placeholder="Ex: Segurança Ltda">
+      <div class = "campo">
+        <label for="Setor">Setor de uso</label>
+        <input v-model = form.setor type="text" placeholder="Ex: Setor de Manutenção">
+      </div>
 
-      <label for="data_validade">Setor de uso</label>
-      <input v-model = form.setor type="text" placeholder="Ex: Setor de Manutenção">
-    </card>
+      <div class = "campo">
+        <label for="fabricante">Fabricante</label>
+        <input v-model = form.fabricante type="text" placeholder="Ex: Segurança Ltda">
+      </div>
 
-    <card class = "ca">
+      <div class = "campo">
+        <label for="Custo">Custo</label>
+        <input v-model = form.setor type="Double" placeholder="Ex: 19,90">
+      </div>
+
+  </section>
+
+  <section class = "ca">
       <h1>Certificação de Aprovação (C.A.)</h1>
       <label for ="numero_ca">Número do C.A.</label>
       <input v-model = form.numero_ca type="text" placeholder="Ex: 12345">
 
       <label  for="data_validade">Data de Validade</label>
       <input v-model = form.data_validade type="date" placeholder="Ex: 12/31/2027">
-    </card>
+  </section>
 
-    <card class = "controle_estoque">
+  <section class = "controle_estoque">
       <h1>Controle de Estoque</h1>
 
       <label for="quantidade">Quantidade em Estoque</label>
@@ -223,8 +237,7 @@ onMounted(carregar);
 
       <label for="estoque_atual">Estoque Atual</label>
       <input v-model = form.estoque_atual type="number" default = 0>
-    </card>
-  </div>
+  </section>
 </template>
 
 <style scoped>
@@ -232,7 +245,6 @@ onMounted(carregar);
 .pagina {
   background: #181511;
   min-height: 100vh;
-  padding: 0px;
 }
 
 .title h1{
@@ -246,4 +258,24 @@ onMounted(carregar);
   h1 .yellow-title {
     color: #F49D25;
   }
+
+  .informações{
+    display: flex;
+    flex-direction: row;
+    background: #221E18;
+    position: center;
+    border-radius: 20px;
+  }
+
+  input{
+    background: #131314;
+    border: none;
+    border-radius: 8px;
+    padding: 0.8rem;
+    color: #fff;
+    display:flex;
+    flex-direction: row;
+    margin:0.5rem;
+  }
+
 </style>

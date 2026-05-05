@@ -1,24 +1,42 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter }  from 'vue-router'
 import { useSupabase } from '../composables/useSupabase' 
 
-const funcionarios = ref([])
-const editandoid = ref(null)
-const router = useRouter()
-const { supabase } = useSupabase()
+const funcionarios = ref([]);
+const editandoId = ref(null);
+const router = useRouter();
+const { supabase } = useSupabase();
+const form = reactive({ nome: '', email: '', cpf: '', setor: ''});
+const error = ref('');
+const senha = ref('');
 
 const carregar = async () => {
   const { data } = await supabase.from('funcionarios').select('*').order('nome')
   funcionarios.value = data || [];
 };
 
+const cadastrar = async () => {
+  if (editandoId.value) {
+    await supabase.from('funcionarios').update(form).eq('id', editandoId.value);
+  } else {
+    const { error:insertError } = await supabase.from('funcionarios').insert(form);
+    if (insertError) {
+      console.error('erro ao cadastrar:', insertError);
+      error.value = 'Erro ao cadastrar funcionário.';
+    } else {
+      router.push('/login');
+      }
+    }
+  }
+  
+/*
 async function cadastrar(){
   
   const{error:authError} = await supabase.auth.signUp({
   email: email.value,
   password: senha.value,
-  options: {data: {nome: nome.value, CPF: cpf.value}}
+  options: {data: {nome: nome.value, CPF: cpf.value, setor: setor.value}}
   })
   if(authError){
     error.value = authError.message
@@ -26,9 +44,11 @@ async function cadastrar(){
     router.push('/login')
   }
 }
+*/
 
 </script>
- 
+
+
 <template>
 <div class="container">
   <div class="caixa">
@@ -42,22 +62,27 @@ async function cadastrar(){
       
       <div class = "campo">
         <label>Email:</label>
-        <input v-model = "email">
+        <input v-model = "form.email" type="email" placeholder="seuemail@exemplo.com">
       </div>
 
       <div class = "campo">
         <label>Senha:</label>
-        <input v-model = "senha" type="password">
+        <input v-model = "senha" type="password" placeholder="Digite sua senha">
       </div>
 
       <div class = "campo">
         <label>nome:</label>
-        <input v-model = "nome">
+        <input v-model = "form.nome" type="text" placeholder="Ex: João Silva">
       </div>
 
       <div class = "campo">
         <label>CPF:</label>
-        <input v-model = "cpf">
+        <input v-model = "form.cpf" type="text" placeholder="Ex: 123.456.789-00">
+      </div>
+
+      <div class = "campo">
+        <label>Setor:</label>
+        <input v-model = "form.setor" type="text" placeholder="Ex: RH">
       </div>
 
       <p class = "error" v-if = "error"> {{ error }} </p>
@@ -89,7 +114,7 @@ async function cadastrar(){
 form {
   width: 90%;
   max-width: 25rem;
-  min-height: 35rem;
+  min-height: 40rem;
   background-color: #131314 !important;
   background-position: center;
   display:flex;  
