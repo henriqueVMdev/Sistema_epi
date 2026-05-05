@@ -197,7 +197,7 @@ onMounted(carregar);
 
     <section class = "informações">
       <h1>Informações Básicas</h1> 
-
+      <div class = "campos-grid">
       <div class = "campo">
         <label for="nome">Nome do EPI</label>
         <input v-model = form.nome type= "text" placeholder="Ex: Capacete de Segurança">
@@ -217,7 +217,7 @@ onMounted(carregar);
         <label for="Custo">Custo</label>
         <input v-model = form.setor type="Double" placeholder="Ex: 19,90">
       </div>
-
+      </div>
   </section>
 
   <section class = "ca">
@@ -278,4 +278,20 @@ onMounted(carregar);
     margin:0.5rem;
   }
 
+.informações h1{
+  color: #fff;
+  padding: 1rem;
+}
+
+.campos-grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.campo{
+  display: flex;
+  flex-direction: column;
+  
+}
 </style>
