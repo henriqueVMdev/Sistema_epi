@@ -29,23 +29,6 @@ const cadastrar = async () => {
       }
     }
   }
-  
-/*
-async function cadastrar(){
-  
-  const{error:authError} = await supabase.auth.signUp({
-  email: email.value,
-  password: senha.value,
-  options: {data: {nome: nome.value, CPF: cpf.value, setor: setor.value}}
-  })
-  if(authError){
-    error.value = authError.message
-  } else {
-    router.push('/login')
-  }
-}
-*/
-
 </script>
 
 
