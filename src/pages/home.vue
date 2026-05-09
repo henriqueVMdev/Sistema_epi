@@ -1,16 +1,18 @@
 <template>
-  <!-- NAVBAR -->
-  <nav class="navbar">
+  <header class="navbar">
     <div class="navbar-logo">
       <span class="logo-name">Omni<span class="logo-accent">Seg</span></span>
     </div>
     <div class="navbar-right">
+      <a href="#funcionalidades" class="nav-link">Funcionalidades</a>
+      <a href="#vantagens" class="nav-link">Vantagens</a>
+      <a href="#empresas" class="nav-link">Empresas que trabalham conosco</a>
       <a href="#" class="nav-link">Peça uma demonstração</a>
       <RouterLink to="/login">
         <button class="btn-login">Login</button>
       </RouterLink>
     </div>
-  </nav>
+  </header>
 
   <!-- HERO -->
   <section class="hero">
@@ -26,7 +28,7 @@
     </div>
   </section>
 
-  <!-- SOFTWARE COMPLETO -->
+  
   <section class="software">
     <h2 class="software-title">Software completo e intuitivo</h2>
     <p class="software-sub">a evolução digital que sua gestão estava precisando</p>
@@ -40,8 +42,8 @@
     </div>
   </section>
 
-  <!-- FUNCIONALIDADES -->
-  <section class="features">
+
+  <section id="funcionalidades" class="funcionalidades">
     <span class="section-tag">FUNCIONALIDADES</span>
     <h2 class="section-title">Tudo o que você precisa para gestão de EPIs</h2>
     <p class="section-sub">Centralize o controle de estoque, entregas e conformidade em uma interface intuitiva e poderosa.</p>
@@ -81,18 +83,17 @@
     </div>
   </section>
 
-  <!-- BIOMETRIA -->
-  <section class="biometria-wrap">
+  <section class="assinatura-wrap">
     <div class="bio-card">
       <div class="bio-img-side">
         <img src="../assets/prancheta.svg" alt="Entrega de EPI" />
         <span class="bio-badge">✓ Entrega Confirmada</span>
       </div>
       <div class="bio-text-side">
-        <h2>Biometria Facial na Entrega</h2>
+        <h2>Assinatura digital </h2>
         <p>
-          Nossa tecnologia exclusiva utiliza reconhecimento facial para validar a
-          identidade do colaborador no momento da retirada do equipamento,
+          Nossa tecnologia exclusiva utiliza assinatura digital validando a
+          identidade do colaborador no momento do pedido de retirada do equipamento,
           gerando uma ficha de EPI digital à prova de fraudes.
         </p>
         <ul class="bio-checks">
@@ -126,8 +127,7 @@
     </div>
   </section>
 
-  <!-- VANTAGENS -->
-  <section class="vantagens">
+  <section id="vantagens" class="vantagens">
     <div class="van-left">
       <span class="section-tag">VANTAGENS</span>
       <h2 class="section-title" style="text-align:left; margin-bottom: 2rem;">Por que escolher OmniSeg?</h2>
@@ -186,8 +186,8 @@
     </div>
   </section>
 
-  <!-- EMPRESAS -->
-  <section class="empresas">
+
+  <section id="empresas" class="empresas">
     <h2>Empresas que confiam no nosso projeto</h2>
     <p>venha fazer parte você também</p>
     <div class="logos-row">
@@ -195,7 +195,7 @@
     </div>
   </section>
 
-  <!-- CTA -->
+
   <section class="cta">
     <h2>Pronto para modernizar sua gestão?</h2>
     <p>Junte-se ao software que transformou a segurança no trabalho com tecnologia e automação. Teste grátis por 14 dias.</p>
@@ -205,7 +205,6 @@
     </div>
   </section>
 
-  <!-- FOOTER -->
   <footer class="footer">
     <div class="footer-brand">
       <span class="logo-name footer-logo-name">Omni<span class="logo-accent">Seg</span></span>
@@ -213,7 +212,7 @@
     </div>
     <div class="footer-col">
       <h4>Produto</h4>
-      <a href="#">Funcionalidades</a>
+      <a href="#funcionalidades">Funcionalidades</a>
       <a href="#">Integrações</a>
       <a href="#">Preços</a>
       <a href="#">Atualizações</a>
@@ -263,15 +262,19 @@ export default {
 </script>
 
 
+<style>
+html {
+  scroll-behavior: smooth;
+}
+</style>
+
 <style scoped>
-/* ── BASE ─────────────────────────────────── */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* ── NAVBAR ───────────────────────────────── */
 .navbar {
   position: fixed;
   top: 0;
@@ -331,7 +334,6 @@ export default {
   background-color: #e08c18;
 }
 
-/* ── HERO ─────────────────────────────────── */
 .hero {
   position: relative;
   height: 100vh;
@@ -378,7 +380,6 @@ export default {
   line-height: 1.7;
 }
 
-/* ── SOFTWARE ─────────────────────────────── */
 .software {
   background: #1A1612;
   padding: 6rem 4rem 4rem;
@@ -441,8 +442,7 @@ export default {
   box-shadow: 0 0 40px rgba(244, 157, 37, 0.08), inset 0 0 60px rgba(0,0,0,0.6);
 }
 
-/* ── FEATURES ─────────────────────────────── */
-.features {
+.funcionalidades {
   background: #1A1612;
   padding: 5rem 4rem;
   display: flex;
@@ -517,8 +517,7 @@ export default {
   line-height: 1.65;
 }
 
-/* ── BIOMETRIA ────────────────────────────── */
-.biometria-wrap {
+.assinatura-wrap {
   background: #1A1612;
   padding: 2rem 4rem 4rem;
 }
@@ -617,7 +616,6 @@ export default {
   opacity: 0.8;
 }
 
-/* ── VANTAGENS ────────────────────────────── */
 .vantagens {
   background: #1A1612;
   padding: 5rem 4rem;
@@ -690,7 +688,6 @@ export default {
   line-height: 1.55;
 }
 
-/* ── EMPRESAS ─────────────────────────────── */
 .empresas {
   background: #100e0b;
   padding: 5rem 4rem;
@@ -723,7 +720,6 @@ export default {
   opacity: 0.85;
 }
 
-/* ── CTA ──────────────────────────────────── */
 .cta {
   background: #1A1612;
   padding: 6rem 4rem;
@@ -771,7 +767,6 @@ export default {
   color: #6b7280;
 }
 
-/* ── FOOTER ───────────────────────────────── */
 .footer {
   background: #0d0b08;
   padding: 3.5rem 4rem;

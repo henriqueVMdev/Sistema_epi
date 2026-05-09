@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
-import Sidebar from "../components/sidebar.vue" 
+import Sidebar from "../components/sidebar.vue"
 import home from "../pages/home.vue";
 import login from "../pages/login.vue";
 import cadastro_epi from "../pages/cadastro_epi.vue";
@@ -8,7 +8,7 @@ import retirada_epi from "../pages/retirada_epi.vue";
 import Dashboard from "../pages/dashboard.vue";
 
 const routes = [
-  
+
   { path: "/", component: home },
   { path: "/login", component: login },
   { path: "/cadastro_user", component: cadastro_user },
@@ -20,7 +20,7 @@ const routes = [
       {path: "retirada_epi", component: retirada_epi},
       {path: "dashboard", component: Dashboard}
     ]
-  }, 
+  },
 ];
 
 const router = createRouter({
