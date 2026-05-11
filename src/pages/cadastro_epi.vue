@@ -6,17 +6,22 @@ import { useRouter } from 'vue-router';
 const { supabase } = useSupabase();
 const epis = ref([]);
 const editandoId = ref(null);
+const funcionarios = ref([]);
 const form = reactive({
   nome: '',
-  numero_ca: '',
-  descricao: '',
-  data_validade: '',
-  fabricante: '',
   setor: '',
+  fabricante: '',
   custo: '',
+  
+  //descricao: '',
+  
+  numero_ca: '',
+  data_validade: '',
+  
   quantidade: '',
-  estoque_atual: 0,
+  estoque_minimo: '',
 });
+
 const router = useRouter();
 
 const carregar = async () => {
@@ -29,25 +34,55 @@ const salvar = async () => {
     await supabase.from('epis').update(form).eq('id', editandoId.value);
   } else {
     const { error } = await supabase.from('epis').insert(form);
-    if (error) console.error('erro ao cadastrar:', error);
+    if (error) console.error('erro ao cadastrar:', error); 
   }
   cancelarEdicao();
   carregar();
 };
 
+// reseta o formulário e sai do modo edição
 const cancelarEdicao = () => {
+  // volta o id para null (modo "novo cadastro")
   editandoId.value = null;
+  // Object.assign sobrescreve as chaves do form mantendo a MESMA referência reativa
+  // (não dá pra reatribuir um const reactive — perderia a reatividade)
   Object.assign(form, {
-    nome: '', numero_ca: '', descricao: '', data_validade: '',
-    fabricante: '', setor: '', custo: '', quantidade: '', estoque_atual: 0,
+   nome: '',
+   setor: '',
+   fabricante: '',
+   custo: '',
+   numero_ca: '',
+   data_validade: '',
+   quantidade: '',
+   estoque_minimo: '',
   });
 };
 
+// volta uma página no histórico (botão Cancelar do cabeçalho)
 const voltar = () => {
   router.back();
 };
 
-onMounted(carregar);
+// busca os setores existentes na tabela funcionarios para popular o <select> de setor
+const carregarSetor = async () => {
+  // SELECT id, setor FROM funcionarios ORDER BY setor
+  const { data, error } = await supabase
+    .from('funcionarios')
+    .select('id, setor')
+    .order('setor');
+  // loga eventual erro de query (permissões, tabela inexistente, etc.)
+  if (error) console.error(error);
+  // popula o array reativo; o template faz v-for sobre ele
+  // ATENÇÃO: pode vir setor duplicado (vários funcionários no mesmo setor).
+  // Pra deduplicar: funcionarios.value = [...new Map((data||[]).map(f => [f.setor, f])).values()];
+  funcionarios.value = data || [];
+};
+
+// onMounted roda uma única vez, logo após o componente entrar no DOM
+onMounted(() => {
+  carregar();        // carrega a lista de EPIs
+  carregarSetor();   // carrega os setores pro select
+});
 </script>
 
 <template>
@@ -93,27 +128,41 @@ onMounted(carregar);
               <input id="nome" v-model="form.nome" type="text" placeholder="Ex: Bota bico de ferro">
             </div>
 
+            <!-- campo "Setor de uso": select populado dinamicamente a partir da tabela funcionarios -->
             <div class="campo">
+              <!-- label clicável; o atributo "for" precisa bater com o id do <select> abaixo -->
               <label for="setor">Setor de uso</label>
+              <!-- wrapper só pra estilizar o select (seta customizada, padding etc.) -->
               <div class="select-wrapper">
+                <!-- v-model faz two-way binding: o valor escolhido é gravado em form.funcionarios
+                     ⚠ provavelmente deveria ser form.setor, já que a coluna no banco se chama "setor" -->
                 <select id="setor" v-model="form.setor">
-                  <option value="" disabled selected>Selecione um setor</option>
-                  <option value="manutencao">Manutenção</option>
-                  <option value="producao">Produção</option>
-                  <option value="logistica">Logística</option>
-                  <option value="administrativo">Administrativo</option>
+                  <!-- opção placeholder: value vazio + disabled impede que seja escolhida de novo;
+                       selected deixa ela como padrão ao abrir o form; o atributo placeholder em <option>
+                       não tem efeito real no HTML (pode remover) -->
+                  <option value="" disabled selected placeholder="selecione um setor">Selecione um setor</option>
+                  <!-- v-for itera sobre o array funcionarios carregado pelo carregarSetor() -->
+                  <option
+                    v-for = "f in funcionarios"
+                    :key="f.id"
+                    :value="f.setor">{{  f.setor }}
+                    <!-- :key="f.id" → identificador único exigido pelo Vue para reconciliação eficiente da lista
+                         :value="f.id" → valor que vai pra form.funcionarios quando esse option for selecionado
+                                         ⚠ se quer salvar o NOME do setor no EPI, troque por :value="f.setor"
+                         {{ f.setor }} → texto exibido ao usuário no dropdown -->
+                  </option>
                 </select>
               </div>
             </div>
 
             <div class="campo">
-              <label for="fabricante">Fabricante</label>
-              <input id="fabricante" v-model="form.fabricante" type="text" placeholder="Ex: MSA Safety">
+              <label>Fabricante</label>
+              <input v-model="form.fabricante" type="text" placeholder="Ex: MSA Safety">
             </div>
 
             <div class="campo">
-              <label for="custo">Custo</label>
-              <input id="custo" v-model="form.custo" type="text" placeholder="Ex: 123456">
+              <label>Custo</label>
+              <input v-model="form.custo" type="text" placeholder="Ex: 123456">
             </div>
           </div>
         </section>
@@ -131,7 +180,7 @@ onMounted(carregar);
               <label for="numero_ca">Número do CA</label>
               <div class="input-com-icone">
                 <span class="prefixo">#</span>
-                <input id="numero_ca" v-model="form.numero_ca" type="text" placeholder="00000">
+                <input v-model="form.numero_ca" type="int" placeholder="00000">
               </div>
             </div>
 
@@ -140,7 +189,7 @@ onMounted(carregar);
               <div class="input-com-icone">
                 <span class="prefixo">
                 </span>
-                <input id="data_validade" v-model="form.data_validade" type="date">
+                <input v-model="form.data_validade" type="date">
               </div>
             </div>
           </div>
@@ -161,25 +210,17 @@ onMounted(carregar);
             </div>
 
             <div class="campo">
-              <label for="estoque_atual">Estoque Atual</label>
+              <label for="estoque_minimo">Estoque Minimo</label>
               <div class="select-wrapper">
-                <select id="estoque_atual" v-model="form.estoque_atual">
-                  <option value="" disabled selected>Selecione o item</option>
-                  <option value="0">0</option>
-                  <option value="10">10</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                </select>
+                <input id = "estoque_minimo" v-model="form.estoque_minimo" type="number" default ="0">
               </div>
             </div>
           </div>
         </section>
       </div>
 
-      <!-- COLUNA DIREITA -->
       <aside class="coluna-direita">
 
-        <!-- cartão: imagem do produto -->
         <section class="cartao">
           <h2 class="titulo-lateral">Imagem do Produto</h2>
 
@@ -197,7 +238,6 @@ onMounted(carregar);
       </aside>
     </form>
 
-    <!-- rodapé -->
     <footer class="rodape">
       <div class="rodape-marca">
         <span class="logo-nome">
@@ -235,7 +275,6 @@ onMounted(carregar);
 </template>
 
 <style scoped>
-/* ---------- base da pagina ---------- */
 .pagina-cadastro {
   background: #181511;
   min-height: 100vh;
