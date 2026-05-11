@@ -115,34 +115,25 @@ async function sair() {
 
 /* ===== CONTAINER PRINCIPAL: SHELL ===== */
 /* Divide a tela em duas colunas: Sidebar (esquerda) + Conteúdo (direita) */
+.shell {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  min-height: 100vh;
+  width: 100%;
+}
 
-/* ===== SIDEBAR: Menu lateral fixo ===== */
-/* A Sidebar fica presa no lugar enquanto o conteúdo rola */
 .sidebar {
-  width: 250px;
-  /* Largura fixa de 250px */
   background-color: #020200;
-  /* Azul escuro como fundo */
-  /* Texto branco */
   padding: 30px 20px;
-  /* Espaço interno */
   display: flex;
-  /* Coloca os itens em coluna */
   flex-direction: column;
-  position: fixed;
-  /* Fica fixo enquanto o conteúdo rola */
-  height: 100vh;
-  /* Ocupa toda a altura da tela */
-  left: 0;
-  /* Posição na esquerda */
+  position: sticky;
   top: 0;
-  /* Posição no topo */
+  height: 100vh;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-  /* Sombra suave na direita da Sidebar */
   z-index: 1000;
-  /* Fica acima de outros elementos */
   overflow-y: auto;
-  /* Permite rolar se o conteúdo for muito grande */
+  align-self: start;
 }
 
 /* ===== LOGO ===== */
@@ -262,53 +253,34 @@ async function sair() {
 /* ===== CONTEÚDO CENTRAL ===== */
 /* Área principal onde as páginas aparecem */
 .conteudo {
-  flex-grow: 1;
-  /* Ocupa todo o espaço restante */
-  margin-left: 250px;
-  /* Deixa espaço para a Sidebar fixa (250px) */
-  /* Espaço interno */
-  overflow-y: auto;
-  /* Permite rolar o conteúdo se necessário */
+  min-width: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 /* ===== RESPONSIVIDADE: Telas pequenas (celulares) ===== */
 @media (max-width: 768px) {
-  /* Em telas pequenas, a Sidebar fica escondida ou reduzida */
-  .sidebar {
-    width: 200px;
-    /* Reduz a largura da Sidebar */
+  .shell {
+    grid-template-columns: 200px 1fr;
   }
-
-  .conteudo {
-    margin-left: 200px;
-    /* Ajusta o espaço para a nova largura */
-    padding: 20px;
-    /* Reduz o padding */
-  }
-
   .logo {
     font-size: 20px;
     margin-bottom: 30px;
   }
-
   .menu-item {
     padding: 12px 15px;
     font-size: 14px;
   }
 }
 
-/* ===== RESPONSIVIDADE: Telas muito pequenas (celulares pequenos) ===== */
 @media (max-width: 480px) {
-  /* Em telas muito pequenas, a Sidebar pode ser ocultada com JavaScript */
-  .sidebar {
-    width: 100%;
-    position: absolute;
-    height: auto;
+  .shell {
+    grid-template-columns: 1fr;
   }
-
-  .conteudo {
-    margin-left: 0;
-    padding: 15px;
+  .sidebar {
+    position: static;
+    height: auto;
+    width: 100%;
   }
 }
 </style>

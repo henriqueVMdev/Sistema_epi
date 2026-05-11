@@ -79,7 +79,7 @@ const cadastrar = async () => {
 </div>
 </template>
 
-<style>
+<style scoped>
 .container{
   background-image: url(../assets/background.png);
   background-size: 100%;

@@ -62,7 +62,7 @@ async function login() {
 </div>
 </template>
 
-<style>
+<style scoped>
 .container{
   background-image: url(../assets/background.png);
   background-size: 100%;
