@@ -68,11 +68,6 @@ onMounted(carregar);
       <div class="botoes-acao">
         <button type="button" class="botao botao-cancelar" @click="voltar">Cancelar</button>
         <button type="button" class="botao botao-salvar" @click="salvar">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-            <polyline points="17 21 17 13 7 13 7 21"/>
-            <polyline points="7 3 7 8 15 8"/>
-          </svg>
           Salvar Cadastro
         </button>
       </div>
@@ -88,11 +83,6 @@ onMounted(carregar);
         <section class="cartao">
           <div class="cartao-cabecalho">
             <span class="icone-cartao">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="16" x2="12" y2="12"/>
-                <line x1="12" y1="8" x2="12.01" y2="8"/>
-              </svg>
             </span>
             <h2>Informações Básicas</h2>
           </div>
@@ -113,9 +103,6 @@ onMounted(carregar);
                   <option value="logistica">Logística</option>
                   <option value="administrativo">Administrativo</option>
                 </select>
-                <svg class="icone-seta" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
               </div>
             </div>
 
@@ -135,9 +122,6 @@ onMounted(carregar);
         <section class="cartao">
           <div class="cartao-cabecalho">
             <span class="icone-cartao">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
             </span>
             <h2>Certificado de Aprovação (CA)</h2>
           </div>
@@ -155,12 +139,6 @@ onMounted(carregar);
               <label for="data_validade">Data de Validade</label>
               <div class="input-com-icone">
                 <span class="prefixo">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/>
-                    <line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/>
-                  </svg>
                 </span>
                 <input id="data_validade" v-model="form.data_validade" type="date">
               </div>
@@ -172,10 +150,6 @@ onMounted(carregar);
         <section class="cartao">
           <div class="cartao-cabecalho">
             <span class="icone-cartao">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
             </span>
             <h2>Controle de Estoque</h2>
           </div>
@@ -184,7 +158,6 @@ onMounted(carregar);
             <div class="campo">
               <label for="quantidade">Quantidade a adicionar ao estoque</label>
               <input id="quantidade" v-model="form.quantidade" type="number" placeholder="0">
-              <small class="ajuda">Alerta será enviado ao atingir este valor.</small>
             </div>
 
             <div class="campo">
@@ -197,9 +170,6 @@ onMounted(carregar);
                   <option value="50">50</option>
                   <option value="100">100</option>
                 </select>
-                <svg class="icone-seta" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
               </div>
             </div>
           </div>
@@ -215,32 +185,14 @@ onMounted(carregar);
 
           <label class="area-upload">
             <div class="icone-upload">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
             </div>
             <p class="upload-titulo">Clique para enviar</p>
             <p class="upload-sub">ou arraste e solte</p>
             <p class="upload-formatos">PNG, JPG ou WEBP (Max. 5MB)</p>
             <input type="file" accept="image/png, image/jpeg, image/webp" hidden>
+            
           </label>
-        </section>
-
-        <!-- cartão: dica importante -->
-        <section class="cartao-dica">
-          <div class="dica-cabecalho">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F49D25" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 18h6"/>
-              <path d="M10 22h4"/>
-              <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>
-            </svg>
-            <h3>Dica Importante</h3>
-          </div>
-          <p>
-            Mantenha o número do CA atualizado. O sistema notificará automaticamente 30 dias antes do vencimento do certificado.
-          </p>
+          
         </section>
       </aside>
     </form>
@@ -250,9 +202,6 @@ onMounted(carregar);
       <div class="rodape-marca">
         <span class="logo-nome">
           <span class="logo-icone">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
           </span>
           Omni<span class="logo-destaque">Seg</span>
         </span>
@@ -280,18 +229,6 @@ onMounted(carregar);
         <a href="#">Privacidade</a>
         <a href="#">Termos de Uso</a>
         <a href="#">Segurança</a>
-      </div>
-
-      <div class="rodape-redes">
-        <a href="#" aria-label="Facebook">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.6 9.87v-6.98H7.9V12h2.5V9.8c0-2.46 1.46-3.82 3.7-3.82 1.07 0 2.2.19 2.2.19v2.42h-1.24c-1.22 0-1.6.76-1.6 1.54V12h2.72l-.43 2.89h-2.29v6.98A10 10 0 0 0 22 12z"/></svg>
-        </a>
-        <a href="#" aria-label="YouTube">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.6 15.6V8.4l6.3 3.6-6.3 3.6z"/></svg>
-        </a>
-        <a href="#" aria-label="Maleta">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zm-6 0h-4V5h4z"/></svg>
-        </a>
       </div>
     </footer>
   </div>
