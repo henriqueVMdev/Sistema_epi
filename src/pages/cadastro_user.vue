@@ -65,7 +65,7 @@ const cadastrar = async () => {
 
       <div class = "campo">
         <label>Setor:</label>
-        <input v-model = "form.setor" type="text" placeholder="Ex: RH">
+        <input v-model = "form.setor" type="text" placeholder="Ex: Solda">
       </div>
 
       <p class = "error" v-if = "error"> {{ error }} </p>
@@ -105,6 +105,8 @@ form {
   justify-content: center;
   gap: 5px;
   border-radius: 20px;
+  border: 2px solid #f49e2554;
+  
   padding: 32px;
 }
 
