@@ -225,19 +225,29 @@ onMounted(() => {
           <h2 class="titulo-lateral">Imagem do Produto</h2>
 
           <label class="area-upload">
-            <div class="icone-upload">
-            </div>
             <p class="upload-titulo">Clique para enviar</p>
             <p class="upload-sub">ou arraste e solte</p>
             <p class="upload-formatos">PNG, JPG ou WEBP (Max. 5MB)</p>
             <input type="file" accept="image/png, image/jpeg, image/webp" hidden>
-            
-          </label>
-          
+          </label>          
         </section>
-      </aside>
+      
+    
+    
+      
+        <section class = "cartao">
+          <div class="campo">
+            <h2 class ="titulo-lateral">Descrição</h2>
+            <label for="descricao">insira a descrição do Produto</label>
+            <div class="select-wrapper">
+            <textarea id = "descricao" v-model="form.descricao" type="text" placeholder="Descreva o epi" rows = 5></textarea>
+            </div>
+          </div>
+        </section>
+      </aside>  
     </form>
-
+          
+       
     <footer class="rodape">
       <div class="rodape-marca">
         <span class="logo-nome">
@@ -630,6 +640,21 @@ onMounted(() => {
 }
 .rodape-redes a:hover { color: #F49D25; }
 
+.campo textarea { 
+  background: #131110;
+  border: 1px solid #2a241e;
+  border-radius: 0.5rem;
+  padding: 0.75rem 0.9rem;
+  color: #fff;
+  font-size: 0.9rem;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.2s;
+  appearance: none;
+  font-family: inherit;
+  resize: none;
+}
+
 /* ---------- responsivo ---------- */
 @media (max-width: 960px) {
   .grade-principal { flex-direction: column; }
@@ -637,5 +662,6 @@ onMounted(() => {
   .grade-campos { grid-template-columns: 1fr; }
   .cabecalho { flex-direction: column; }
   .rodape { grid-template-columns: 1fr 1fr; }
+
 }
 </style>
