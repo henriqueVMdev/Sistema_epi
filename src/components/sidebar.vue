@@ -18,6 +18,11 @@
     <span>Cadastro de EPI</span>
   </RouterLink>
 
+  <RouterLink to="/estoque" class="menu-item" active-class="active">
+    <i class="fas fa-users"></i>
+    <span>Estoque</span>
+  </RouterLink>
+
   <RouterLink to="/retirada_epi" class="menu-item" active-class="active">
     <i class="fas fa-users"></i>
     <span>Retirada de EPIs</span>

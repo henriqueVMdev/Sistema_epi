@@ -5,7 +5,8 @@ import login from "../pages/login.vue";
 import cadastro_epi from "../pages/cadastro_epi.vue";
 import cadastro_user from "../pages/cadastro_user.vue";
 import retirada_epi from "../pages/retirada_epi.vue";
-import Dashboard from "../pages/dashboard.vue";
+import dashboard from "../pages/dashboard.vue";
+import estoque from "../pages/estoque.vue";
 
 const routes = [
 
@@ -18,7 +19,8 @@ const routes = [
     children: [
       {path: "cadastro_epi", component: cadastro_epi},
       {path: "retirada_epi", component: retirada_epi},
-      {path: "dashboard", component: Dashboard}
+      {path: "dashboard", component: dashboard},
+      {path: "estoque", component: estoque}
     ]
   },
 ];
