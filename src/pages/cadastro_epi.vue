@@ -12,14 +12,11 @@ const form = reactive({
   setor: '',
   fabricante: '',
   custo: '',
-  
-  //descricao: '',
-  
   numero_ca: '',
   data_validade: '',
-  
   quantidade: '',
   estoque_minimo: '',
+  descricao: '',
 });
 
 const router = useRouter();
