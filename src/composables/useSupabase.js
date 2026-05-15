@@ -12,9 +12,6 @@ const session = ref(null)
 
 const loadingSession = ref(true) 
 
- 
-
-// pega sessão inicial 
 
 supabase.auth.getSession().then(({ data }) => { 
 
