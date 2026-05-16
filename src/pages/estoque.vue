@@ -30,6 +30,18 @@ const estoquebaixo = (epi) => {
   return !isNaN(qtd) && !isNaN(min) && min > 0 && qtd <= min;
 };
 
+const excluir = async(id) =>{
+  const confirmado = confirm('Deseja realmente excluir este cadastro?');
+  if (!confirmado) return;
+
+  const { error } = await supabase.from('epis').delete().eq('id', id);
+  if (error){
+    console.error(error);
+    return;
+  }
+  await carregar();
+};
+
 </script>
 
 <template>
@@ -118,33 +130,18 @@ const estoquebaixo = (epi) => {
 
             <div class="detalhe-acoes">
               <button class="btn-acao btn-editar" title="Editar">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                </svg>
                 Editar
               </button>
-              <button class="btn-acao btn-excluir" title="Excluir">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                  <path d="M10 11v6M14 11v6"/>
-                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                </svg>
+              <button class="btn-acao btn-excluir" title="Excluir" @click = "excluir(epi.id)">
                 Excluir
               </button>
             </div>
           </div>
 
           <div class="detalhe-notificacao">
-            <div class="notificacao-texto">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-              <div>
+            <div class="notificacao-texto"><div>
                 <p class="notificacao-titulo">Notificação de estoque mínimo</p>
-                <p class="notificacao-sub">Receber alerta quando o estoque atingir {{ epi.estoque_minimo }} unidades</p>
+                <p class="notificacao-sub">Receber alerta quando o estoque atingir {{ epi.estoque_minimo }} unidades em estoque.</p>
               </div>
             </div>
             <button class="toggle">
@@ -323,8 +320,8 @@ const estoquebaixo = (epi) => {
 }
 
 .epi-nome {
-  color: #F49D25;
-  font-size: 1rem;
+  color: #ebe8e4;
+  font-size: 1.2rem;
   font-weight: 700;
   margin-bottom: 0.15rem;
 }
@@ -545,6 +542,7 @@ const estoquebaixo = (epi) => {
   border: 1px solid rgba(244, 157, 37, 0.2);
   border-radius: 0.65rem;
   padding: 0.55rem 1rem;
+  width: 30%;
 }
 
 .notificacao-texto {
@@ -553,7 +551,6 @@ const estoquebaixo = (epi) => {
   gap: 0.7rem;
   color: #F49D25;
 }
-.notificacao-texto svg { flex-shrink: 0; margin-top: 2px; }
 
 .notificacao-titulo {
   color: #fff;
