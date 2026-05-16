@@ -14,12 +14,19 @@ const form = reactive({
   custo: '',
   numero_ca: '',
   data_validade: '',
-  quantidade: '',
+  estoque: '',
   estoque_minimo: '',
   descricao: '',
 });
 
 const router = useRouter();
+
+const mensagem = ref(null);
+
+const mostrarMensagem = (tipo, texto) => {
+  mensagem.value = { tipo, texto };
+  setTimeout(() => { mensagem.value = null; }, 4000);
+};
 
 const carregar = async () => {
   const { data } = await supabase.from('epis').select('*').order('nome');
@@ -28,10 +35,19 @@ const carregar = async () => {
 
 const salvar = async () => {
   if (editandoId.value) {
-    await supabase.from('epis').update(form).eq('id', editandoId.value);
+    const { error } = await supabase.from('epis').update({ ...form }).eq('id', editandoId.value);
+    if (error) {
+      mostrarMensagem('erro', 'Erro ao atualizar o cadastro. Tente novamente.');
+      return;
+    }
+    mostrarMensagem('sucesso', 'EPI atualizado com sucesso!');
   } else {
-    const { error } = await supabase.from('epis').insert(form);
-    if (error) console.error('erro ao cadastrar:', error); 
+    const { error } = await supabase.from('epis').insert({ ...form });
+    if (error) {
+      mostrarMensagem('erro', 'Erro ao cadastrar o EPI. Tente novamente.');
+      return;
+    }
+    mostrarMensagem('sucesso', 'EPI cadastrado com sucesso!');
   }
   cancelarEdicao();
   carregar();
@@ -50,7 +66,7 @@ const cancelarEdicao = () => {
    custo: '',
    numero_ca: '',
    data_validade: '',
-   quantidade: '',
+   estoque: '',
    estoque_minimo: '',
   });
 };
@@ -104,6 +120,10 @@ onMounted(() => {
         </button>
       </div>
     </header>
+
+    <div v-if="mensagem" :class="['toast', 'toast-' + mensagem.tipo]">
+      {{ mensagem.texto }}
+    </div>
 
     <!-- grade principal: coluna esquerda (formularios) + coluna direita (imagem e dica) -->
     <form class="grade-principal" @submit.prevent="salvar">
@@ -202,8 +222,8 @@ onMounted(() => {
 
           <div class="grade-campos">
             <div class="campo">
-              <label for="quantidade">Quantidade a adicionar ao estoque</label>
-              <input id="quantidade" v-model="form.quantidade" type="number" placeholder="0">
+              <label for="estoque">Quantidade a adicionar ao estoque</label>
+              <input id="estoque" v-model="form.estoque" type="number" placeholder="0">
             </div>
 
             <div class="campo">
@@ -237,7 +257,10 @@ onMounted(() => {
             <h2 class ="titulo-lateral">Descrição</h2>
             <label for="descricao">insira a descrição do Produto</label>
             <div class="select-wrapper">
-            <textarea id = "descricao" v-model="form.descricao" type="text" placeholder="Descreva o epi" rows = 5></textarea>
+            <textarea id="descricao" v-model="form.descricao" placeholder="Descreva o epi" rows="5" maxlength="200"></textarea>
+            <span class="contador" :class="{ 'contador-limite': form.descricao.length >= 200 }">
+              {{ form.descricao.length }}/200
+            </span>
             </div>
           </div>
         </section>
@@ -650,6 +673,45 @@ onMounted(() => {
   appearance: none;
   font-family: inherit;
   resize: none;
+}
+
+/* ---------- toast ---------- */
+.toast {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 999;
+  padding: 0.85rem 1.3rem;
+  border-radius: 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  animation: fadeIn 0.2s ease;
+}
+.toast-sucesso {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #4ade80;
+}
+.toast-erro {
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  color: #f87171;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- contador textarea ---------- */
+.contador {
+  display: block;
+  text-align: right;
+  font-size: 0.75rem;
+  color: #6b6359;
+  margin-top: 0.3rem;
+}
+.contador-limite {
+  color: #f87171;
 }
 
 /* ---------- responsivo ---------- */
