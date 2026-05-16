@@ -24,6 +24,12 @@ const toggleCard = (id) => {
   expandido.value = expandido.value === id ? null : id;
 };
 
+const estoquebaixo = (epi) => {
+  const qtd = Number(epi.quantidade);
+  const min = Number(epi.estoque_minimo);
+  return !isNaN(qtd) && !isNaN(min) && min > 0 && qtd <= min;
+};
+
 </script>
 
 <template>
@@ -89,6 +95,8 @@ const toggleCard = (id) => {
             </div>
           </div>
 
+          <span v-if="estoquebaixo(epi)" class="badge-alerta">Estoque baixo</span>
+
           <button class="btn-expandir" @click="toggleCard(epi.id)">
             <svg
               :class="{ rotacionado: expandido === epi.id }"
@@ -102,9 +110,30 @@ const toggleCard = (id) => {
         </div>
 
         <div v-if="expandido === epi.id" class="card-detalhe">
-          <div class="detalhe-descricao">
-            <span class="campo-label">Descrição</span>
-            <p class="descricao-texto">{{ epi.descricao }}</p>
+          <div class="detalhe-topo">
+            <div class="detalhe-descricao">
+              <span class="campo-label">Descrição</span>
+              <p class="descricao-texto">{{ epi.descricao }}</p>
+            </div>
+
+            <div class="detalhe-acoes">
+              <button class="btn-acao btn-editar" title="Editar">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Editar
+              </button>
+              <button class="btn-acao btn-excluir" title="Excluir">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6M14 11v6"/>
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+                Excluir
+              </button>
+            </div>
           </div>
 
           <div class="detalhe-notificacao">
@@ -118,12 +147,7 @@ const toggleCard = (id) => {
                 <p class="notificacao-sub">Receber alerta quando o estoque atingir {{ epi.estoque_minimo }} unidades</p>
               </div>
             </div>
-            <button
-              class="toggle"
-              :class="{ 'toggle-ativo': epi.notificacao }"
-              @click="toggleNotificacao(epi)"
-              :aria-pressed="epi.notificacao"
-            >
+            <button class="toggle">
               <span class="toggle-bolinha"></span>
             </button>
           </div>
@@ -323,6 +347,19 @@ const toggleCard = (id) => {
   font-weight: 500;
 }
 
+/* ---------- badge estoque baixo ---------- */
+.badge-alerta {
+  flex: 0 0 auto;
+  background: rgba(220, 60, 60, 0.15);
+  border: 1px solid rgba(220, 60, 60, 0.4);
+  color: #f87171;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 /* ---------- botão expandir ---------- */
 .btn-expandir {
   flex: 0 0 auto;
@@ -449,17 +486,55 @@ const toggleCard = (id) => {
 .rodape-redes a:hover { color: #F49D25; }
 
 /* ---------- detalhe expandido ---------- */
+.detalhe-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+}
+
 .detalhe-descricao {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  margin-bottom: 1.2rem;
 }
 .descricao-texto {
   color: #c5bfb5;
   font-size: 0.88rem;
   line-height: 1.65;
 }
+
+.detalhe-acoes {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.btn-acao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: none;
+  border-radius: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.btn-editar {
+  background: rgba(244, 157, 37, 0.12);
+  color: #F49D25;
+}
+.btn-editar:hover { background: rgba(244, 157, 37, 0.22); }
+
+.btn-excluir {
+  background: rgba(248, 113, 113, 0.12);
+  color: #f87171;
+}
+.btn-excluir:hover { background: rgba(248, 113, 113, 0.22); }
 
 .detalhe-notificacao {
   display: flex;
@@ -469,7 +544,7 @@ const toggleCard = (id) => {
   background: rgba(244, 157, 37, 0.06);
   border: 1px solid rgba(244, 157, 37, 0.2);
   border-radius: 0.65rem;
-  padding: 0.85rem 1rem;
+  padding: 0.55rem 1rem;
 }
 
 .notificacao-texto {
@@ -482,13 +557,13 @@ const toggleCard = (id) => {
 
 .notificacao-titulo {
   color: #fff;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 600;
 }
 .notificacao-sub {
   color: #8b8680;
-  font-size: 0.78rem;
-  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  margin-top: 0.1rem;
 }
 
 /* toggle switch */
