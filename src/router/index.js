@@ -7,6 +7,7 @@ import cadastro_user from "../pages/cadastro_user.vue";
 import retirada_epi from "../pages/retirada_epi.vue";
 import dashboard from "../pages/dashboard.vue";
 import estoque from "../pages/estoque.vue";
+import detalhes_epi from "../pages/detalhes_epi.vue";
 
 const routes = [
 
@@ -20,7 +21,8 @@ const routes = [
       {path: "cadastro_epi", component: cadastro_epi},
       {path: "retirada_epi", component: retirada_epi},
       {path: "dashboard", component: dashboard},
-      {path: "estoque", component: estoque}
+      {path: "estoque", component: estoque},
+      {path: "epi/:id", component: detalhes_epi}
     ]
   },
 ];

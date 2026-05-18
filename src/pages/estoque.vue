@@ -1,8 +1,18 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useSupabase } from '../composables/useSupabase';
 
 const{supabase} = useSupabase();
+const router = useRouter();
+
+const irParaCadastro = () => {
+  router.push('/cadastro_epi');
+};
+
+const verDetalhes = (id) => {
+  router.push(`/epi/${id}`);
+};
 
 const epis = ref([]);
 const carregando = ref(true);
@@ -24,10 +34,37 @@ const toggleCard = (id) => {
   expandido.value = expandido.value === id ? null : id;
 };
 
+const formatarData = (data) => {
+  if (!data) return '—';
+  const [ano, mes, dia] = String(data).split('T')[0].split('-');
+  if (!ano || !mes || !dia) return data;
+  return `${dia}/${mes}/${ano}`;
+};
+
 const estoquebaixo = (epi) => {
   const qtd = Number(epi.quantidade);
   const min = Number(epi.estoque_minimo);
   return !isNaN(qtd) && !isNaN(min) && min > 0 && qtd <= min;
+};
+
+const quantidadeAdicionar = ref({});
+
+const adicionarEstoque = async (epi) => {
+  const qtd = parseInt(quantidadeAdicionar.value[epi.id], 10);
+  if (isNaN(qtd) || qtd <= 0) return;
+
+  const novoEstoque = (Number(epi.estoque) || 0) + qtd;
+  const { error } = await supabase
+    .from('epis')
+    .update({ estoque: novoEstoque })
+    .eq('id', epi.id);
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+  quantidadeAdicionar.value[epi.id] = '';
+  await carregar();
 };
 
 const excluir = async(id) =>{
@@ -56,6 +93,10 @@ const excluir = async(id) =>{
         <h1 class="titulo-pagina">Controle de <span class="titulo-destaque">Estoque</span></h1>
         <p class="subtitulo">Aqui é onde vai controlar o estoque de EPIs da sua empresa.</p>
       </div>
+
+      <button type="button" class="botao-cadastrar" @click="irParaCadastro">
+        + Cadastrar EPI
+      </button>
     </header>
 
     <p v-if = "carregando">Carregando...</p>
@@ -73,41 +114,41 @@ const excluir = async(id) =>{
           </div>
 
           <div class="card-info">
-            <div class="info-esquerda">
-              <p class="epi-nome">{{ epi.nome }}</p>
-              <p class="epi-campo">
-                <span class="campo-label">Fabricante:</span>
-                <span class="campo-valor">{{ epi.fabricante }}</span>
-              </p>
-              <p class="epi-campo">
-                <span class="campo-label">Custo:</span>
-                <span class="campo-valor">{{ epi.custo }}</span>
-              </p>
+            <div class="card-cabecalho">
+              <div class="card-titulo">
+                <p class="epi-nome">{{ epi.nome }}</p>
+                <p class="epi-fabricante">Fabricante: <span>{{ epi.fabricante || 'não informado' }}</span></p>
+              </div>
+              <span v-if="estoquebaixo(epi)" class="badge-alerta">● Estoque baixo</span>
             </div>
 
-            <div class="info-direita">
-              <div class="estoque-linha">
-                <p class="epi-campo">
-                  <span class="campo-label">Estoque:</span>
-                  <span class="campo-valor">{{ epi.estoque }}</span>
-                </p>
-                <p class="epi-campo">
-                  <span class="campo-label">Estoque mínimo:</span>
-                  <span class="campo-valor">{{ epi.estoque_minimo }}</span>
-                </p>
+            <div class="card-meta">
+              <div class="meta-chip">
+                <span class="meta-label">CA</span>
+                <span class="meta-valor">#{{ epi.numero_ca || '—' }}</span>
               </div>
-              <p class="epi-campo">
-                <span class="campo-label">Data de validade:</span>
-                <span class="campo-valor">{{ epi.data_validade }}</span>
-              </p>
-              <p class="epi-campo">
-                <span class="campo-label">CA:</span>
-                <span class="campo-valor">{{ epi.numero_ca }}</span>
-              </p>
+              <div class="meta-chip">
+                <span class="meta-label">Validade</span>
+                <span class="meta-valor">{{ formatarData(epi.data_validade) }}</span>
+              </div>
+              <div class="meta-chip">
+                <span class="meta-label">Custo</span>
+                <span class="meta-valor">R$ {{ epi.custo || '—' }}</span>
+              </div>
             </div>
           </div>
 
-          <span v-if="estoquebaixo(epi)" class="badge-alerta">Estoque baixo</span>
+          <div class="card-estoque">
+            <span class="estoque-label">Em estoque</span>
+            <span class="estoque-numero" :class="{ 'estoque-numero-alerta': estoquebaixo(epi) }">
+              {{ epi.estoque || 0 }}
+            </span>
+            <span class="estoque-minimo">mín. {{ epi.estoque_minimo || 0 }} un.</span>
+          </div>
+
+          <button class="btn-detalhes" @click.stop="verDetalhes(epi.id)">
+            Ver mais detalhes →
+          </button>
 
           <button class="btn-expandir" @click="toggleCard(epi.id)">
             <svg
@@ -129,24 +170,60 @@ const excluir = async(id) =>{
             </div>
 
             <div class="detalhe-acoes">
-              <button class="btn-acao btn-editar" title="Editar">
-                Editar
-              </button>
-              <button class="btn-acao btn-excluir" title="Excluir" @click = "excluir(epi.id)">
-                Excluir
-              </button>
+              <div class="setor-info">
+                <span class="campo-label">Setor de uso:</span>
+                <span class="campo-valor">{{ epi.setor || '—' }}</span>
+              </div>
+
+              <div class="acoes-secundarias">
+                <button class="btn-acao btn-editar" title="Editar">
+                  Editar
+                </button>
+                <button class="btn-acao btn-excluir" title="Excluir" @click = "excluir(epi.id)">
+                  Excluir
+                </button>
+              </div>
             </div>
           </div>
 
-          <div class="detalhe-notificacao">
-            <div class="notificacao-texto"><div>
-                <p class="notificacao-titulo">Notificação de estoque mínimo</p>
-                <p class="notificacao-sub">Receber alerta quando o estoque atingir {{ epi.estoque_minimo }} unidades em estoque.</p>
+          <div class="detalhe-rodape">
+            <div class="detalhe-notificacao">
+              <div class="notificacao-texto"><div>
+                  <p class="notificacao-titulo">Notificação de estoque mínimo</p>
+                  <p class="notificacao-sub">Receber alerta quando o estoque atingir {{ epi.estoque_minimo }} unidades em estoque.</p>
+                </div>
+              </div>
+              <button class="toggle">
+                <span class="toggle-bolinha"></span>
+              </button>
+            </div>
+
+            <div class="add-estoque-panel">
+              <div class="add-estoque-texto">
+                <p class="notificacao-titulo">Adicionar estoque</p>
+                <p class="notificacao-sub">
+                  Estoque atual: <strong>{{ epi.estoque || 0 }}</strong> unidades. Informe a quantidade a somar ao estoque.
+                </p>
+              </div>
+              <div class="add-estoque-controles">
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Qtd."
+                  class="input-qtd"
+                  v-model="quantidadeAdicionar[epi.id]"
+                  @keyup.enter="adicionarEstoque(epi)"
+                />
+                <button
+                  class="btn-acao btn-adicionar"
+                  title="Adicionar unidades ao estoque"
+                  :disabled="!quantidadeAdicionar[epi.id] || quantidadeAdicionar[epi.id] <= 0"
+                  @click="adicionarEstoque(epi)"
+                >
+                  + Adicionar
+                </button>
               </div>
             </div>
-            <button class="toggle">
-              <span class="toggle-bolinha"></span>
-            </button>
           </div>
         </div>
       </div>
@@ -217,8 +294,28 @@ const excluir = async(id) =>{
 
 /* ---------- cabeçalho ---------- */
 .cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
   margin-bottom: 2.5rem;
 }
+
+.botao-cadastrar {
+  background: #F49D25;
+  color: #1a1410;
+  border: none;
+  padding: 0.75rem 1.3rem;
+  border-radius: 0.55rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  white-space: nowrap;
+  margin-top: 0.5rem;
+}
+.botao-cadastrar:hover { background: #e08c18; }
+.botao-cadastrar:active { transform: scale(0.97); }
 
 .caminho {
   color: #8b8680;
@@ -256,30 +353,39 @@ const excluir = async(id) =>{
 
 /* ---------- card EPI ---------- */
 .card-epi {
-  background: #2a2520;
+  background: linear-gradient(180deg, #2d2823 0%, #28231e 100%);
   border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 0.75rem;
+  border-radius: 0.85rem;
   overflow: hidden;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
 }
-.card-epi:hover { border-color: rgba(244, 157, 37, 0.25); }
-.card-expandido { border-color: rgba(244, 157, 37, 0.4); }
+.card-epi:hover {
+  border-color: rgba(244, 157, 37, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+}
+.card-expandido {
+  border-color: rgba(244, 157, 37, 0.45);
+  box-shadow: 0 4px 14px rgba(244, 157, 37, 0.08);
+}
 
 .card-principal {
   display: flex;
-  align-items: center;
-  gap: 1.2rem;
-  padding: 1.1rem 1.3rem;
+  align-items: stretch;
+  gap: 1.4rem;
+  padding: 1.1rem 1.4rem;
 }
 
 /* ---------- imagem ---------- */
 .card-imagem {
-  flex: 0 0 80px;
-  width: 80px;
-  height: 80px;
-  border-radius: 0.5rem;
+  flex: 0 0 96px;
+  width: 96px;
+  height: 96px;
+  border-radius: 0.65rem;
   overflow: hidden;
   background: #3a332b;
+  border: 1px solid rgba(255,255,255,0.05);
+  align-self: center;
 }
 .card-imagem img {
   width: 100%;
@@ -289,70 +395,141 @@ const excluir = async(id) =>{
 .imagem-placeholder {
   width: 100%;
   height: 100%;
-  background: #3a332b;
+  background:
+    linear-gradient(135deg, rgba(244,157,37,0.08), transparent 60%),
+    #3a332b;
 }
 
 /* ---------- info ---------- */
 .card-info {
   flex: 1;
+  min-width: 0;
   display: flex;
-  gap: 2rem;
+  flex-direction: column;
+  gap: 0.9rem;
+  justify-content: center;
+}
+
+.card-cabecalho {
+  display: flex;
   align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.info-esquerda {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.info-direita {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.estoque-linha {
-  display: flex;
-  gap: 1.5rem;
-}
+.card-titulo { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
 
 .epi-nome {
-  color: #ebe8e4;
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin-bottom: 0.15rem;
-}
-
-.epi-campo {
-  font-size: 0.88rem;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  flex-wrap: wrap;
-}
-
-.campo-label {
-  color: #F49D25;
-  font-weight: 600;
-}
-
-.campo-valor {
   color: #fff;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.epi-fabricante {
+  color: #8b8680;
+  font-size: 0.85rem;
+}
+.epi-fabricante span { color: #c5bfb5; font-weight: 600; }
+
+/* ---------- chips de meta ---------- */
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.meta-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.meta-label {
+  color: #F49D25;
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.meta-valor {
+  color: #ebe8e4;
   font-weight: 500;
+}
+
+/* ---------- bloco de estoque ---------- */
+.card-estoque {
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-width: 110px;
+  padding: 0.6rem 1rem;
+  background: rgba(244, 157, 37, 0.06);
+  border: 1px solid rgba(244, 157, 37, 0.2);
+  border-radius: 0.7rem;
+}
+
+.estoque-label {
+  color: #F49D25;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.estoque-numero {
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.estoque-numero-alerta { color: #f87171; }
+
+.estoque-minimo {
+  color: #8b8680;
+  font-size: 0.72rem;
+}
+
+.btn-detalhes {
+  flex: 0 0 auto;
+  align-self: center;
+  background: transparent;
+  border: 1px solid rgba(244, 157, 37, 0.4);
+  color: #F49D25;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-detalhes:hover {
+  background: rgba(244, 157, 37, 0.12);
+  border-color: #F49D25;
 }
 
 /* ---------- badge estoque baixo ---------- */
 .badge-alerta {
   flex: 0 0 auto;
-  background: rgba(220, 60, 60, 0.15);
+  background: rgba(220, 60, 60, 0.12);
   border: 1px solid rgba(220, 60, 60, 0.4);
   color: #f87171;
   font-size: 0.72rem;
-  font-weight: 600;
-  padding: 0.25rem 0.65rem;
+  font-weight: 700;
+  padding: 0.28rem 0.7rem;
   border-radius: 999px;
   white-space: nowrap;
 }
@@ -504,8 +681,26 @@ const excluir = async(id) =>{
 
 .detalhe-acoes {
   display: flex;
-  gap: 0.5rem;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.7rem;
   flex-shrink: 0;
+}
+
+.setor-info {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  background: rgba(244, 157, 37, 0.08);
+  border: 1px solid rgba(244, 157, 37, 0.25);
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.45rem;
+}
+
+.acoes-secundarias {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .btn-acao {
@@ -521,6 +716,43 @@ const excluir = async(id) =>{
   transition: background 0.15s, opacity 0.15s;
 }
 
+.add-estoque-texto { display: flex; flex-direction: column; gap: 0.1rem; }
+.add-estoque-texto strong { color: #fff; }
+
+.add-estoque-controles {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.input-qtd {
+  width: 80px;
+  background: #2a2520;
+  border: 1px solid rgba(244, 157, 37, 0.3);
+  color: #fff;
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input-qtd::placeholder { color: #6b6359; }
+.input-qtd:focus { border-color: #F49D25; }
+.input-qtd::-webkit-outer-spin-button,
+.input-qtd::-webkit-inner-spin-button { appearance: none; -webkit-appearance: none; margin: 0; }
+.input-qtd[type=number] { appearance: textfield; -moz-appearance: textfield; }
+
+.btn-adicionar {
+  background: rgba(244, 157, 37, 0.15);
+  color: #F49D25;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+.btn-adicionar:hover:not(:disabled) { background: rgba(244, 157, 37, 0.28); }
+.btn-adicionar:disabled { opacity: 0.4; cursor: not-allowed; }
+
 .btn-editar {
   background: rgba(244, 157, 37, 0.12);
   color: #F49D25;
@@ -533,7 +765,15 @@ const excluir = async(id) =>{
 }
 .btn-excluir:hover { background: rgba(248, 113, 113, 0.22); }
 
-.detalhe-notificacao {
+.detalhe-rodape {
+  display: flex;
+  gap: 1rem;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+.detalhe-notificacao,
+.add-estoque-panel {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -542,7 +782,8 @@ const excluir = async(id) =>{
   border: 1px solid rgba(244, 157, 37, 0.2);
   border-radius: 0.65rem;
   padding: 0.55rem 1rem;
-  width: 30%;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .notificacao-texto {
@@ -594,14 +835,15 @@ const excluir = async(id) =>{
 /* ---------- responsivo ---------- */
 @media (max-width: 960px) {
   .pagina-estoque { padding: 1.5rem 1.5rem 0; }
-  .card-info { flex-direction: column; gap: 0.75rem; }
+  .card-principal { flex-wrap: wrap; }
+  .card-estoque { flex: 1 1 100%; flex-direction: row; justify-content: space-between; padding: 0.7rem 1rem; }
+  .estoque-numero { font-size: 1.5rem; }
   .detalhe-grade { grid-template-columns: repeat(2, 1fr); }
   .rodape { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 600px) {
   .titulo-pagina { font-size: 1.8rem; }
-  .estoque-linha { flex-direction: column; gap: 0.2rem; }
   .detalhe-grade { grid-template-columns: 1fr 1fr; }
   .rodape { grid-template-columns: 1fr; gap: 1.5rem; }
 }

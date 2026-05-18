@@ -7,9 +7,10 @@ const { supabase } = useSupabase();
 const epis = ref([]);
 const editandoId = ref(null);
 const funcionarios = ref([]);
+const setorAberto = ref(false);
 const form = reactive({
   nome: '',
-  setor: '',
+  setor: [],
   fabricante: '',
   custo: '',
   numero_ca: '',
@@ -34,15 +35,17 @@ const carregar = async () => {
 };
 
 const salvar = async () => {
+  const payload = { ...form, setor: (form.setor || []).join(', ') };
+
   if (editandoId.value) {
-    const { error } = await supabase.from('epis').update({ ...form }).eq('id', editandoId.value);
+    const { error } = await supabase.from('epis').update(payload).eq('id', editandoId.value);
     if (error) {
       mostrarMensagem('erro', 'Erro ao atualizar o cadastro. Tente novamente.');
       return;
     }
     mostrarMensagem('sucesso', 'EPI atualizado com sucesso!');
   } else {
-    const { error } = await supabase.from('epis').insert({ ...form });
+    const { error } = await supabase.from('epis').insert(payload);
     if (error) {
       mostrarMensagem('erro', 'Erro ao cadastrar o EPI. Tente novamente.');
       return;
@@ -53,6 +56,17 @@ const salvar = async () => {
   carregar();
 };
 
+const toggleSetor = (nome) => {
+  const idx = form.setor.indexOf(nome);
+  if (idx >= 0) form.setor.splice(idx, 1);
+  else form.setor.push(nome);
+};
+
+const setoresUnicos = () => {
+  const nomes = (funcionarios.value || []).map(f => f.setor).filter(Boolean);
+  return [...new Set(nomes)];
+};
+
 // reseta o formulário e sai do modo edição
 const cancelarEdicao = () => {
   // volta o id para null (modo "novo cadastro")
@@ -61,7 +75,7 @@ const cancelarEdicao = () => {
   // (não dá pra reatribuir um const reactive — perderia a reatividade)
   Object.assign(form, {
    nome: '',
-   setor: '',
+   setor: [],
    fabricante: '',
    custo: '',
    numero_ca: '',
@@ -145,30 +159,43 @@ onMounted(() => {
               <input id="nome" v-model="form.nome" type="text" placeholder="Ex: Bota bico de ferro">
             </div>
 
-            <!-- campo "Setor de uso": select populado dinamicamente a partir da tabela funcionarios -->
             <div class="campo">
-              <!-- label clicável; o atributo "for" precisa bater com o id do <select> abaixo -->
-              <label for="setor">Setor de uso</label>
-              <!-- wrapper só pra estilizar o select (seta customizada, padding etc.) -->
-              <div class="select-wrapper">
-                <!-- v-model faz two-way binding: o valor escolhido é gravado em form.funcionarios
-                     ⚠ provavelmente deveria ser form.setor, já que a coluna no banco se chama "setor" -->
-                <select id="setor" v-model="form.setor">
-                  <!-- opção placeholder: value vazio + disabled impede que seja escolhida de novo;
-                       selected deixa ela como padrão ao abrir o form; o atributo placeholder em <option>
-                       não tem efeito real no HTML (pode remover) -->
-                  <option value="" disabled selected placeholder="selecione um setor">Selecione um setor</option>
-                  <!-- v-for itera sobre o array funcionarios carregado pelo carregarSetor() -->
-                  <option
-                    v-for = "f in funcionarios"
-                    :key="f.id"
-                    :value="f.setor">{{  f.setor }}
-                    <!-- :key="f.id" → identificador único exigido pelo Vue para reconciliação eficiente da lista
-                         :value="f.id" → valor que vai pra form.funcionarios quando esse option for selecionado
-                                         ⚠ se quer salvar o NOME do setor no EPI, troque por :value="f.setor"
-                         {{ f.setor }} → texto exibido ao usuário no dropdown -->
-                  </option>
-                </select>
+              <label for="setor">Setores de uso</label>
+              <div class="multi-select" :class="{ aberto: setorAberto }">
+                <button
+                  type="button"
+                  class="multi-select-trigger"
+                  @click="setorAberto = !setorAberto"
+                >
+                  <span v-if="form.setor.length === 0" class="ms-placeholder">
+                    Selecione um ou mais setores
+                  </span>
+                  <span v-else class="ms-tags">
+                    <span class="ms-tag" v-for="s in form.setor" :key="s">
+                      {{ s }}
+                      <span class="ms-tag-x" @click.stop="toggleSetor(s)">×</span>
+                    </span>
+                  </span>
+                  <span class="ms-seta">▾</span>
+                </button>
+
+                <div v-if="setorAberto" class="multi-select-menu">
+                  <label
+                    v-for="nome in setoresUnicos()"
+                    :key="nome"
+                    class="ms-opcao"
+                  >
+                    <input
+                      type="checkbox"
+                      :value="nome"
+                      v-model="form.setor"
+                    />
+                    <span>{{ nome }}</span>
+                  </label>
+                  <p v-if="setoresUnicos().length === 0" class="ms-vazio">
+                    Nenhum setor cadastrado.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -483,6 +510,109 @@ onMounted(() => {
 .ajuda {
   color: #6b6359;
   font-size: 0.75rem;
+}
+
+/* ---------- multi-select de setor ---------- */
+.multi-select { position: relative; width: 100%; }
+
+.multi-select-trigger {
+  width: 100%;
+  min-height: 2.85rem;
+  background: #131110;
+  border: 1px solid #2a241e;
+  border-radius: 0.5rem;
+  padding: 0.4rem 2.2rem 0.4rem 0.7rem;
+  color: #fff;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  position: relative;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+.multi-select.aberto .multi-select-trigger,
+.multi-select-trigger:hover { border-color: #F49D25; }
+
+.ms-placeholder { color: #5c554d; font-size: 0.9rem; }
+
+.ms-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.ms-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(244, 157, 37, 0.15);
+  color: #F49D25;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.4rem;
+}
+.ms-tag-x {
+  cursor: pointer;
+  color: #F49D25;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 0.15rem;
+  border-radius: 0.2rem;
+}
+.ms-tag-x:hover { background: rgba(244, 157, 37, 0.3); }
+
+.ms-seta {
+  position: absolute;
+  right: 0.9rem;
+  color: #8b8680;
+  transition: transform 0.2s;
+}
+.multi-select.aberto .ms-seta { transform: rotate(180deg); }
+
+.multi-select-menu {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  right: 0;
+  background: #1c1814;
+  border: 1px solid #2a241e;
+  border-radius: 0.5rem;
+  padding: 0.4rem;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 50;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+
+.ms-opcao {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  color: #ebe8e4;
+  font-size: 0.88rem;
+  transition: background 0.15s;
+}
+.ms-opcao:hover { background: rgba(244, 157, 37, 0.08); }
+.ms-opcao input[type="checkbox"] {
+  accent-color: #F49D25;
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.ms-vazio {
+  padding: 0.6rem;
+  color: #8b8680;
+  font-size: 0.85rem;
+  text-align: center;
 }
 
 /* ---------- select customizado ---------- */
