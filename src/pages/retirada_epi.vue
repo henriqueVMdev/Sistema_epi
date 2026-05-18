@@ -31,13 +31,20 @@ const funcionario = computed(() =>
 
 const episDisponiveis = computed(() => {
   if (!funcionario.value) return [];
-  const setorFunc = (funcionario.value.setor || '').trim().toLowerCase();
-  return epis.value.filter(e => {
-    if (!e.setor) return false;
-    const setores = String(e.setor).split(',').map(s => s.trim().toLowerCase());
-    return setores.includes(setorFunc) && Number(e.estoque) > 0;
-  });
+  return epis.value.filter(e => Number(e.estoque) > 0);
 });
+
+const epiDoSetor = (epi) => {
+  if (!funcionario.value || !epi.setor) return false;
+  const setorFunc = (funcionario.value.setor || '').trim().toLowerCase();
+  const setores = String(epi.setor).split(',').map(s => s.trim().toLowerCase());
+  return setores.includes(setorFunc);
+};
+
+const precisaAprovacao = (epi) => {
+  const qtd = selecionados.value[epi.id] || 0;
+  return !epiDoSetor(epi) || qtd > 1;
+};
 
 const carregarFuncionarios = async () => {
   const { data, error } = await supabase
@@ -89,6 +96,13 @@ const ajustarQtd = (epi, delta) => {
 
 const totalSelecionados = computed(() => Object.keys(selecionados.value).length);
 
+const totalPendentes = computed(() => {
+  return Object.keys(selecionados.value).filter(id => {
+    const epi = epis.value.find(e => String(e.id) === String(id));
+    return epi && precisaAprovacao(epi);
+  }).length;
+});
+
 const solicitarRetirada = async () => {
   if (!funcionario.value) {
     mostrarMensagem('erro', 'Selecione um funcionário.');
@@ -103,31 +117,45 @@ const solicitarRetirada = async () => {
   carregando.value = true;
   const dataAgora = new Date().toISOString();
 
+  let qtdAprovadas = 0;
+  let qtdPendentes = 0;
+
   for (const id of ids) {
     const epi = epis.value.find(e => String(e.id) === String(id));
     const qtd = selecionados.value[id];
+    const requerAprovacao = precisaAprovacao(epi);
 
     const { error: errInsert } = await supabase.from('entrega_epi').insert({
       data_entrega: dataAgora,
       nome_retirada: funcionario.value.nome,
       setor_retirada: funcionario.value.setor,
+      status: requerAprovacao ? 'pendente' : 'aprovado',
     });
     if (errInsert) {
       console.error(errInsert);
-      mostrarMensagem('erro', 'Erro ao registrar retirada.');
+      mostrarMensagem('erro', 'Erro ao registrar retirada. Verifique se a coluna "status" existe em entrega_epi.');
       carregando.value = false;
       return;
     }
 
-    const novoEstoque = Math.max(0, (Number(epi.estoque) || 0) - qtd);
-    await supabase.from('epis').update({ estoque: novoEstoque }).eq('id', epi.id);
+    if (!requerAprovacao) {
+      const novoEstoque = Math.max(0, (Number(epi.estoque) || 0) - qtd);
+      await supabase.from('epis').update({ estoque: novoEstoque }).eq('id', epi.id);
+      qtdAprovadas++;
+    } else {
+      qtdPendentes++;
+    }
   }
 
   selecionados.value = {};
   await carregarEpis();
   await carregarRetiradas();
   carregando.value = false;
-  mostrarMensagem('sucesso', 'Retirada solicitada com sucesso!');
+
+  const partes = [];
+  if (qtdAprovadas) partes.push(`${qtdAprovadas} retirada(s) aprovada(s)`);
+  if (qtdPendentes) partes.push(`${qtdPendentes} aguardando aprovação`);
+  mostrarMensagem('sucesso', partes.join(' • ') || 'Retirada registrada!');
 };
 
 onMounted(async () => {
@@ -170,12 +198,17 @@ onMounted(async () => {
 
     <section v-if="funcionario" class="cartao">
       <div class="cartao-cabecalho">
-        <h2>EPIs disponíveis para o setor "{{ funcionario.setor }}"</h2>
+        <h2>EPIs disponíveis</h2>
         <span class="contagem">{{ episDisponiveis.length }} item(ns)</span>
       </div>
 
+      <div class="legenda">
+        <span class="legenda-item"><span class="dot dot-setor"></span> Do seu setor (retirada direta, 1 unid.)</span>
+        <span class="legenda-item"><span class="dot dot-outro"></span> Outro setor / mais de 1 unid. (necessita aprovação)</span>
+      </div>
+
       <p v-if="episDisponiveis.length === 0" class="vazio">
-        Nenhum EPI disponível para este setor no momento.
+        Nenhum EPI disponível no momento.
       </p>
 
       <div v-else class="grade-epis">
@@ -183,7 +216,11 @@ onMounted(async () => {
           v-for="epi in episDisponiveis"
           :key="epi.id"
           class="card-epi"
-          :class="{ selecionado: selecionados[epi.id] !== undefined }"
+          :class="{
+            selecionado: selecionados[epi.id] !== undefined,
+            'card-outro-setor': !epiDoSetor(epi),
+            'precisa-aprovacao': selecionados[epi.id] !== undefined && precisaAprovacao(epi)
+          }"
           @click="toggleSelecao(epi)"
         >
           <div class="card-imagem">
@@ -192,7 +229,11 @@ onMounted(async () => {
           </div>
 
           <div class="card-info">
-            <p class="epi-nome">{{ epi.nome }}</p>
+            <div class="info-topo">
+              <p class="epi-nome">{{ epi.nome }}</p>
+              <span v-if="epiDoSetor(epi)" class="badge badge-setor">Seu setor</span>
+              <span v-else class="badge badge-outro">Aprovação</span>
+            </div>
             <p class="epi-meta">{{ epi.fabricante || '—' }} · CA #{{ epi.numero_ca || '—' }}</p>
             <p class="epi-estoque">{{ epi.estoque }} unid. em estoque</p>
           </div>
@@ -210,9 +251,12 @@ onMounted(async () => {
       </div>
 
       <div class="barra-acao" v-if="totalSelecionados > 0">
-        <span class="acao-info">
-          {{ totalSelecionados }} EPI(s) selecionado(s)
-        </span>
+        <div class="acao-resumo">
+          <span class="acao-info">{{ totalSelecionados }} EPI(s) selecionado(s)</span>
+          <span v-if="totalPendentes > 0" class="acao-aviso">
+            ⚠ {{ totalPendentes }} item(ns) precisará(ão) de aprovação
+          </span>
+        </div>
         <button
           class="btn-solicitar"
           :disabled="carregando"
@@ -240,6 +284,9 @@ onMounted(async () => {
             <p class="hist-nome">{{ r.nome_retirada }}</p>
             <p class="hist-setor">Setor: {{ r.setor_retirada }}</p>
           </div>
+          <span v-if="r.status" class="hist-status" :class="'status-' + r.status">
+            {{ r.status }}
+          </span>
           <span class="hist-data">{{ formatarData(r.data_entrega) }}</span>
         </div>
       </div>
@@ -346,6 +393,50 @@ onMounted(async () => {
   border-color: #F49D25;
   background: rgba(244, 157, 37, 0.08);
 }
+.card-epi.card-outro-setor { opacity: 0.85; }
+.card-epi.card-outro-setor:hover { opacity: 1; }
+.card-epi.precisa-aprovacao {
+  border-color: #facc15;
+  background: rgba(250, 204, 21, 0.08);
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  margin-bottom: 1rem;
+  font-size: 0.78rem;
+  color: #8b8680;
+}
+.legenda-item { display: inline-flex; align-items: center; gap: 0.4rem; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot-setor { background: #F49D25; }
+.dot-outro { background: #facc15; }
+
+.info-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+.badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.badge-setor {
+  background: rgba(244, 157, 37, 0.18);
+  color: #F49D25;
+}
+.badge-outro {
+  background: rgba(250, 204, 21, 0.15);
+  color: #facc15;
+}
 
 .card-imagem {
   flex: 0 0 60px;
@@ -420,7 +511,9 @@ onMounted(async () => {
   border: 1px solid rgba(244, 157, 37, 0.25);
   border-radius: 0.7rem;
 }
+.acao-resumo { display: flex; flex-direction: column; gap: 0.2rem; }
 .acao-info { color: #fff; font-weight: 600; font-size: 0.9rem; }
+.acao-aviso { color: #facc15; font-size: 0.78rem; font-weight: 600; }
 .btn-solicitar {
   background: #F49D25;
   color: #1a1410;
@@ -463,6 +556,25 @@ onMounted(async () => {
   font-size: 0.82rem;
   font-weight: 500;
   white-space: nowrap;
+}
+
+.hist-status {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.status-aprovado {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+.status-pendente {
+  background: rgba(250, 204, 21, 0.12);
+  color: #facc15;
+  border: 1px solid rgba(250, 204, 21, 0.35);
 }
 
 .vazio { color: #8b8680; font-size: 0.9rem; padding: 0.5rem 0; }

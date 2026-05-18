@@ -10,25 +10,34 @@ const { supabase } = useSupabase();
 const form = reactive({ nome: '', email: '', cpf: '', setor: ''});
 const error = ref('');
 const senha = ref('');
-
+ 
 const carregar = async () => {
   const { data } = await supabase.from('funcionarios').select('*').order('nome')
   funcionarios.value = data || [];
 };
 
 const cadastrar = async () => {
+  const{ data, error: authError } = await supabase.auth.signUp({
+    email: form.email,
+    password: senha.value,
+  });
+  if (authError) { error.value = authError.message; return;}
+
   if (editandoId.value) {
     await supabase.from('funcionarios').update(form).eq('id', editandoId.value);
+    router.push('/login');
   } else {
-    const { error:insertError } = await supabase.from('funcionarios').insert(form);
+    const { error: insertError } = await supabase
+      .from('funcionarios')
+      .insert({ ...form, user_id: data.user.id });
     if (insertError) {
       console.error('erro ao cadastrar:', insertError);
       error.value = 'Erro ao cadastrar funcionário.';
-    } else {
-      router.push('/login');
-      }
+      return;
     }
+    router.push('/login');
   }
+}
 </script>
 
 
