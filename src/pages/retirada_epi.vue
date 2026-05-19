@@ -129,7 +129,7 @@ const solicitarRetirada = async () => {
       data_entrega: dataAgora,
       nome_retirada: funcionario.value.nome,
       setor_retirada: funcionario.value.setor,
-      epi_nome: epi.nome,
+      nome_epi: epi.nome,
       quantidade: qtd,
       status: requerAprovacao ? 'pendente' : 'aprovado',
     });
@@ -281,9 +281,9 @@ onMounted(async () => {
 
       <div v-else class="lista-historico">
         <div v-for="(r, i) in retiradas" :key="i" class="item-historico">
-          <div class="hist-icone">📦</div>
+          <div class="hist-icone"></div>
           <div class="hist-info">
-            <p class="hist-nome">{{ r.epi_nome || '—' }} <span class="hist-qtd">× {{ r.quantidade || 1 }}</span></p>
+            <p class="hist-nome">{{ r.nome_epi|| '—' }} <span class="hist-qtd">× {{ r.quantidade || 1 }}</span></p>
             <p class="hist-setor">{{ r.nome_retirada }} · Setor: {{ r.setor_retirada }}</p>
           </div>
           <span v-if="r.status" class="hist-status" :class="'status-' + r.status">
