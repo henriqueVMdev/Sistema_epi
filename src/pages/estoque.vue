@@ -124,15 +124,15 @@ const excluir = async(id) =>{
 
             <div class="card-meta">
               <div class="meta-chip">
-                <span class="meta-label">CA</span>
+                <span class="meta-label">CA:</span>
                 <span class="meta-valor">#{{ epi.numero_ca || '—' }}</span>
               </div>
               <div class="meta-chip">
-                <span class="meta-label">Validade</span>
+                <span class="meta-label">Validade:</span>
                 <span class="meta-valor">{{ formatarData(epi.data_validade) }}</span>
               </div>
               <div class="meta-chip">
-                <span class="meta-label">Custo</span>
+                <span class="meta-label">Custo:</span>
                 <span class="meta-valor">R$ {{ epi.custo || '—' }}</span>
               </div>
             </div>
@@ -444,9 +444,6 @@ const excluir = async(id) =>{
   display: inline-flex;
   align-items: baseline;
   gap: 0.4rem;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 999px;
   padding: 0.3rem 0.8rem;
   font-size: 0.85rem;
 }
@@ -475,9 +472,6 @@ const excluir = async(id) =>{
   gap: 0.15rem;
   min-width: 110px;
   padding: 0.6rem 1rem;
-  background: rgba(244, 157, 37, 0.06);
-  border: 1px solid rgba(244, 157, 37, 0.2);
-  border-radius: 0.7rem;
 }
 
 .estoque-label {
@@ -548,8 +542,6 @@ const excluir = async(id) =>{
   border-radius: 0.4rem;
   transition: background 0.15s;
 }
-.btn-expandir:hover { background: rgba(244, 157, 37, 0.1); }
-
 .btn-expandir svg {
   transition: transform 0.25s ease;
 }
@@ -587,6 +579,11 @@ const excluir = async(id) =>{
 .detalhe-campo .campo-valor {
   font-size: 0.9rem;
   color: #fff;
+}
+
+.detalhe-acoes .campo-label{
+  font-size: 0.85rem;
+  color: #F49D25;
 }
 
 /* ---------- rodapé ---------- */
@@ -692,11 +689,11 @@ const excluir = async(id) =>{
   align-items: center;
   gap: 0.4rem;
   font-size: 0.85rem;
-  background: rgba(244, 157, 37, 0.08);
-  border: 1px solid rgba(244, 157, 37, 0.25);
   padding: 0.35rem 0.7rem;
   border-radius: 0.45rem;
 }
+
+
 
 .acoes-secundarias {
   display: flex;

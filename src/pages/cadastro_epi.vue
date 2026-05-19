@@ -90,19 +90,14 @@ const voltar = () => {
   router.back();
 };
 
-// busca os setores existentes na tabela funcionarios para popular o <select> de setor
+// busca os setores cadastrados na tabela setores
 const carregarSetor = async () => {
-  // SELECT id, setor FROM funcionarios ORDER BY setor
   const { data, error } = await supabase
-    .from('funcionarios')
-    .select('id, setor')
-    .order('setor');
-  // loga eventual erro de query (permissões, tabela inexistente, etc.)
+    .from('setores')
+    .select('id, nome')
+    .order('nome');
   if (error) console.error(error);
-  // popula o array reativo; o template faz v-for sobre ele
-  // ATENÇÃO: pode vir setor duplicado (vários funcionários no mesmo setor).
-  // Pra deduplicar: funcionarios.value = [...new Map((data||[]).map(f => [f.setor, f])).values()];
-  funcionarios.value = data || [];
+  funcionarios.value = (data || []).map(s => ({ id: s.id, setor: s.nome }));
 };
 
 // onMounted roda uma única vez, logo após o componente entrar no DOM

@@ -10,30 +10,23 @@
         Sistema EPI
       </h1>
 
-      <!-- Menu de navegação -->
-      <!-- RouterLink: links especiais do Vue Router que navegam sem recarregar a página -->
+      <!-- Menu de navegação (filtrado por role) -->
       <nav class="menu">
-  <RouterLink to="/cadastro_epi" class="menu-item" active-class="active">
-    <i class="fas fa-users"></i>
-    <span>Cadastro de EPI</span>
-  </RouterLink>
+        <RouterLink
+          v-for="item in itensVisiveis"
+          :key="item.to"
+          :to="item.to"
+          class="menu-item"
+          active-class="active"
+        >
+          <i :class="item.icone"></i>
+          <span>{{ item.label }}</span>
+        </RouterLink>
+      </nav>
 
-  <RouterLink to="/estoque" class="menu-item" active-class="active">
-    <i class="fas fa-users"></i>
-    <span>Estoque</span>
-  </RouterLink>
-
-  <RouterLink to="/retirada_epi" class="menu-item" active-class="active">
-    <i class="fas fa-users"></i>
-    <span>Retirada de EPIs</span>
-  </RouterLink>
-
-  <RouterLink to="/dashboard" class="menu-item" active-class="active">
-    <i class="fas fa-users"></i>
-    <span>Dashboard</span>
-  </RouterLink>
-
-</nav>
+      <p v-if="perfil" class="rodape-usuario">
+        {{ perfil.nome }} · <span class="role-tag">{{ perfil.role }}</span>
+      </p>
 
       <!-- Botão de logout -->
       <!-- @click="sair" = quando o usuário clica, chama a função sair() -->
@@ -58,20 +51,26 @@
 // Importar o composable do Supabase que já está configurado no projeto
 // useSupabase() = retorna o cliente Supabase pronto para usar
 import { useSupabase } from '@/composables/useSupabase'
+import { useRouter, RouterLink, RouterView } from 'vue-router'
+import { computed } from 'vue'
 
-// Importar o router do Vue Router para navegar entre páginas
-// useRouter() = permite usar router.push() para ir para outras páginas
-import { useRouter } from 'vue-router'
+const { supabase, perfil } = useSupabase()
 
-// Importar os componentes especiais do Vue Router
-// RouterLink = componente que cria links que navegam sem recarregar
-// RouterView = componente que mostra o conteúdo da rota atual
-import { RouterLink, RouterView } from 'vue-router'
+// Itens de menu com as roles que podem ver cada um
+const MENU = [
+  { to: '/estoque',         label: 'Estoque',           icone: 'fas fa-boxes',     roles: ['admin','almoxarife','professor','aluno'] },
+  { to: '/retirada_epi',    label: 'Retirada de EPIs',  icone: 'fas fa-hand-holding', roles: ['admin','almoxarife','professor','aluno'] },
+  { to: '/cadastro_epi',    label: 'Cadastro de EPI',   icone: 'fas fa-plus-circle', roles: ['admin','almoxarife'] },
+  { to: '/dashboard',       label: 'Dashboard',         icone: 'fas fa-chart-line', roles: ['admin','almoxarife'] },
+  { to: '/admin/usuarios',  label: 'Gerenciar Usuários',icone: 'fas fa-user-shield', roles: ['admin'] },
+  { to: '/admin/permissoes',label: 'Permissões de EPI', icone: 'fas fa-lock',        roles: ['admin'] },
+]
 
-// ===== CONFIGURAÇÃO =====
-// Pegar o cliente Supabase já configurado
-// supabase = objeto que tem os métodos para autenticação, banco de dados, etc
-const { supabase } = useSupabase()
+const itensVisiveis = computed(() => {
+  const role = perfil.value?.role
+  if (!role) return []
+  return MENU.filter(i => i.roles.includes(role))
+})
 
 // Pegar o router para navegar entre páginas
 // router = objeto que permite router.push('/pagina') para navegar
@@ -253,6 +252,21 @@ async function sair() {
 /* Ícone do botão Sair */
 .botao-sair i {
   font-size: 18px;
+}
+
+.rodape-usuario {
+  color: #c5bfb5;
+  font-size: 0.8rem;
+  text-align: center;
+  margin-bottom: 10px;
+  margin-top: 10px;
+}
+.role-tag {
+  color: #F49D25;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
 }
 
 /* ===== CONTEÚDO CENTRAL ===== */

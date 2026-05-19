@@ -14,11 +14,11 @@ async function login() {
     password: senha.value
   })
 
- if (authError) {
-  error.value = authError.message;
- } else {
-   router.push('/cadastro_epi');
- }
+  if (authError) {
+    error.value = authError.message;
+  } else {
+    router.push('/cadastro_epi');
+  }
 }
 </script>
 

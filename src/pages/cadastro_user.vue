@@ -3,40 +3,72 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter }  from 'vue-router'
 import { useSupabase } from '../composables/useSupabase' 
 
-const funcionarios = ref([]);
-const editandoId = ref(null);
 const router = useRouter();
 const { supabase } = useSupabase();
-const form = reactive({ nome: '', email: '', cpf: '', setor: ''});
+const setores = ref([]);
+const form = reactive({ nome: '', email: '', cpf: '', setor_id: null });
 const error = ref('');
 const senha = ref('');
- 
-const carregar = async () => {
-  const { data } = await supabase.from('funcionarios').select('*').order('nome')
-  funcionarios.value = data || [];
+
+const carregarSetores = async () => {
+  const { data } = await supabase.from('setores').select('id, nome').order('nome');
+  setores.value = data || [];
 };
 
+onMounted(carregarSetores);
+
 const cadastrar = async () => {
-  const{ data, error: authError } = await supabase.auth.signUp({
+  error.value = '';
+  if (!form.nome || !form.email || !form.cpf || !senha.value) {
+    error.value = 'Preencha todos os campos.'; return;
+  }
+  if (!form.setor_id) { error.value = 'Selecione um setor.'; return; }
+
+  // 1) Pré-checagem: CPF ou e-mail já existem em funcionarios?
+  const { data: existentes, error: checkError } = await supabase
+    .from('funcionarios')
+    .select('cpf, email')
+    .or(`cpf.eq.${form.cpf},email.eq.${form.email}`);
+  if (checkError) {
+    console.error(checkError);
+    error.value = 'Erro ao validar os dados. Tente novamente.';
+    return;
+  }
+  if (existentes && existentes.length > 0) {
+    const cpfExiste = existentes.some(e => e.cpf === form.cpf);
+    const emailExiste = existentes.some(e => e.email === form.email);
+    if (cpfExiste && emailExiste) error.value = 'CPF e e-mail já cadastrados.';
+    else if (cpfExiste) error.value = 'Este CPF já está cadastrado.';
+    else error.value = 'Este e-mail já está cadastrado.';
+    return;
+  }
+
+  // 2) Cria o usuário no auth
+  const { data, error: authError } = await supabase.auth.signUp({
     email: form.email,
     password: senha.value,
   });
-  if (authError) { error.value = authError.message; return;}
+  if (authError) { error.value = authError.message; return; }
 
-  if (editandoId.value) {
-    await supabase.from('funcionarios').update(form).eq('id', editandoId.value);
-    router.push('/login');
-  } else {
-    const { error: insertError } = await supabase
-      .from('funcionarios')
-      .insert({ ...form, user_id: data.user.id });
-    if (insertError) {
-      console.error('erro ao cadastrar:', insertError);
-      error.value = 'Erro ao cadastrar funcionário.';
-      return;
-    }
-    router.push('/login');
+  // 3) Insere em funcionarios. Se falhar, desloga pra não deixar sessão de usuário órfão.
+  const { error: insertError } = await supabase
+    .from('funcionarios')
+    .insert({
+      nome: form.nome,
+      email: form.email,
+      cpf: form.cpf,
+      setor_id: form.setor_id,
+      user_id: data.user.id,
+    });
+  if (insertError) {
+    console.error('erro ao cadastrar:', insertError);
+    await supabase.auth.signOut();
+    error.value = insertError.code === '23505'
+      ? 'CPF ou e-mail já estão em uso.'
+      : 'Erro ao cadastrar funcionário. Avise o administrador.';
+    return;
   }
+  router.push('/login');
 }
 </script>
 
@@ -74,7 +106,10 @@ const cadastrar = async () => {
 
       <div class = "campo">
         <label>Setor:</label>
-        <input v-model = "form.setor" type="text" placeholder="Ex: Solda">
+        <select v-model="form.setor_id">
+          <option :value="null" disabled>Selecione o setor</option>
+          <option v-for="s in setores" :key="s.id" :value="s.id">{{ s.nome }}</option>
+        </select>
       </div>
 
       <p class = "error" v-if = "error"> {{ error }} </p>
@@ -140,7 +175,7 @@ label {
   font-size: 1rem;
 }
 
-input{
+input, select {
   justify-content: center;
   color: #9CA3AF ;
   background-color: rgba(0, 0, 0, 0.6);

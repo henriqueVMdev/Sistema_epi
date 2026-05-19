@@ -49,10 +49,15 @@ const precisaAprovacao = (epi) => {
 const carregarFuncionarios = async () => {
   const { data, error } = await supabase
     .from('funcionarios')
-    .select('id, nome, setor')
+    .select('id, nome, setor:setores(id, nome)')
     .order('nome');
   if (error) console.error(error);
-  funcionarios.value = data || [];
+  // achata setor.nome em setor (string) pra manter compatibilidade com o resto do componente
+  funcionarios.value = (data || []).map(f => ({
+    id: f.id,
+    nome: f.nome,
+    setor: f.setor?.nome || null,
+  }));
 };
 
 const carregarEpis = async () => {

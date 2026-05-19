@@ -1,50 +1,52 @@
-import { createClient } from '@supabase/supabase-js' 
+import { createClient } from '@supabase/supabase-js'
+import { ref } from 'vue'
 
-import { ref } from 'vue' 
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL 
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // Desativa o navigator.locks (evita LockAcquireTimeoutError em HMR / múltiplas abas)
+    lock: (_name, _acquireTimeout, fn) => fn(),
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  }
+})
 
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY 
+const session = ref(null)
+const loadingSession = ref(true)
+const perfil = ref(null) // { id, nome, email, cpf, role, setor_id, setor: { id, nome } }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey) 
- 
-const session = ref(null) 
+async function carregarPerfil(userId) {
+  if (!userId) { perfil.value = null; return }
+  const { data, error } = await supabase
+    .from('funcionarios')
+    .select('id, nome, email, cpf, role, setor_id, setor:setores(id, nome)')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (error) {
+    console.error('Erro ao carregar perfil:', error)
+    perfil.value = null
+    return
+  }
+  perfil.value = data
+}
 
-const loadingSession = ref(true) 
+// IMPORTANTE: não usar `await` em queries dentro deste callback — trava o cliente Supabase.
+supabase.auth.onAuthStateChange((_event, newSession) => {
+  session.value = newSession
+  carregarPerfil(newSession?.user?.id).finally(() => {
+    loadingSession.value = false
+  })
+})
 
-
-supabase.auth.getSession().then(({ data }) => { 
-
-  session.value = data.session 
-
-  loadingSession.value = false 
-
-}) 
-
- 
-
-// escuta mudanças 
-
-supabase.auth.onAuthStateChange((_event, newSession) => { 
-
-  session.value = newSession 
-
-}) 
-
- 
-
-export function useSupabase() { 
-
-  return { 
-
-    supabase, 
-
-    session, 
-
-    loadingSession 
-
-  } 
-
-} 
-
- 
+export function useSupabase() {
+  return {
+    supabase,
+    session,
+    loadingSession,
+    perfil,
+    recarregarPerfil: () => carregarPerfil(session.value?.user?.id)
+  }
+}
