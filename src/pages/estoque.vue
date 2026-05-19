@@ -1,9 +1,9 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSupabase } from '../composables/useSupabase';
 
-const{supabase} = useSupabase();
+const { supabase, perfil } = useSupabase();
 const router = useRouter();
 
 const irParaCadastro = () => {
@@ -17,16 +17,66 @@ const verDetalhes = (id) => {
 const epis = ref([]);
 const carregando = ref(true);
 
+// Quem é admin/almoxarife enxerga tudo e tem ações administrativas.
+const podeAdministrar = computed(() => ['admin', 'almoxarife'].includes(perfil.value?.role));
+
 const carregar = async () => {
   carregando.value = true;
-  const { data, error } = await supabase.from ('epis').select('*').order('nome');
-  if (error) console.error(error);
-  epis.value = data || [];
+
+  const role = perfil.value?.role;
+  const setorId = perfil.value?.setor_id;
+
+  // Sem perfil resolvido ainda — não tenta carregar pra evitar mostrar tudo erradamente.
+  if (!role) {
+    epis.value = [];
+    carregando.value = false;
+    return;
+  }
+
+  // Admin/almoxarife: vê todos os EPIs (sem limite atrelado).
+  if (podeAdministrar.value) {
+    const { data, error } = await supabase.from('epis').select('*').order('nome');
+    if (error) console.error(error);
+    epis.value = data || [];
+    carregando.value = false;
+    return;
+  }
+
+  // Professor/aluno: só vê EPIs com permissão para sua role + seu setor.
+  if (!setorId) {
+    epis.value = [];
+    carregando.value = false;
+    return;
+  }
+
+  const { data: perms, error: errPerms } = await supabase
+    .from('epi_permissoes')
+    .select('epi_id, limite, epi:epis(*)')
+    .eq('role', role)
+    .eq('setor_id', setorId);
+
+  if (errPerms) {
+    console.error(errPerms);
+    epis.value = [];
+    carregando.value = false;
+    return;
+  }
+
+  // Achata: cada epi vira uma linha com .limite anexo
+  epis.value = (perms || [])
+    .filter(p => p.epi) // segurança caso EPI tenha sido removido
+    .map(p => ({ ...p.epi, limite: p.limite }))
+    .sort((a, b) => a.nome.localeCompare(b.nome));
+
   carregando.value = false;
-}
-onMounted(() =>{
+};
+
+onMounted(() => {
   carregar();
 });
+
+// Recarrega se o perfil mudar (ex.: admin promove o usuário e ele recarrega a tela).
+watch(() => perfil.value?.id, () => { carregar(); });
 
 const expandido = ref(null);
 
@@ -94,12 +144,15 @@ const excluir = async(id) =>{
         <p class="subtitulo">Aqui é onde vai controlar o estoque de EPIs da sua empresa.</p>
       </div>
 
-      <button type="button" class="botao-cadastrar" @click="irParaCadastro">
+      <button v-if="podeAdministrar" type="button" class="botao-cadastrar" @click="irParaCadastro">
         + Cadastrar EPI
       </button>
     </header>
 
-    <p v-if = "carregando">Carregando...</p>
+    <p v-if="carregando">Carregando...</p>
+    <p v-else-if="epis.length === 0 && !podeAdministrar" class="estoque-vazio">
+      Nenhum EPI liberado para o seu setor ainda. Procure o administrador para configurar suas permissões.
+    </p>
     <section v-else class="lista-epis">
       <div
         v-for="epi in epis"
@@ -146,9 +199,12 @@ const excluir = async(id) =>{
             <span class="estoque-minimo">mín. {{ epi.estoque_minimo || 0 }} un.</span>
           </div>
 
-          <button class="btn-detalhes" @click.stop="verDetalhes(epi.id)">
+          <button v-if="podeAdministrar" class="btn-detalhes" @click.stop="verDetalhes(epi.id)">
             Ver mais detalhes →
           </button>
+          <div v-else-if="epi.limite != null" class="badge-limite" title="Limite por pedido sem precisar de aprovação">
+            Limite: <strong>{{ epi.limite }}</strong>
+          </div>
 
           <button class="btn-expandir" @click="toggleCard(epi.id)">
             <svg
@@ -175,7 +231,7 @@ const excluir = async(id) =>{
                 <span class="campo-valor">{{ epi.setor || '—' }}</span>
               </div>
 
-              <div class="acoes-secundarias">
+              <div v-if="podeAdministrar" class="acoes-secundarias">
                 <button class="btn-acao btn-editar" title="Editar">
                   Editar
                 </button>
@@ -186,7 +242,7 @@ const excluir = async(id) =>{
             </div>
           </div>
 
-          <div class="detalhe-rodape">
+          <div v-if="podeAdministrar" class="detalhe-rodape">
             <div class="detalhe-notificacao">
               <div class="notificacao-texto"><div>
                   <p class="notificacao-titulo">Notificação de estoque mínimo</p>
@@ -513,6 +569,30 @@ const excluir = async(id) =>{
 .btn-detalhes:hover {
   background: rgba(244, 157, 37, 0.12);
   border-color: #F49D25;
+}
+
+.badge-limite {
+  align-self: center;
+  background: rgba(244, 157, 37, 0.10);
+  border: 1px solid rgba(244, 157, 37, 0.35);
+  color: #F49D25;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+  border-radius: 0.5rem;
+  white-space: nowrap;
+}
+.badge-limite strong { color: #fff; font-weight: 800; }
+
+.estoque-vazio {
+  background: rgba(244, 157, 37, 0.06);
+  border: 1px dashed rgba(244, 157, 37, 0.35);
+  color: #c5bfb5;
+  text-align: center;
+  padding: 2rem;
+  border-radius: 1rem;
+  margin-bottom: 4rem;
+  font-size: 0.92rem;
 }
 
 /* ---------- badge estoque baixo ---------- */

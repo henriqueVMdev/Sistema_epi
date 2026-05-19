@@ -11,6 +11,7 @@ import estoque from "../pages/estoque.vue";
 import detalhes_epi from "../pages/detalhes_epi.vue";
 import admin_usuarios from "../pages/admin_usuarios.vue";
 import admin_permissoes from "../pages/admin_permissoes.vue";
+import aprovacoes from "../pages/aprovacoes.vue";
 import { useSupabase } from "../composables/useSupabase";
 
 // roles permitidas por rota (meta.roles). Se omitido, libera para qualquer logado.
@@ -30,6 +31,7 @@ const routes = [
       { path: "epi/:id", component: detalhes_epi, meta: { roles: ['admin', 'almoxarife'] } },
       { path: "admin/usuarios", component: admin_usuarios, meta: { roles: ['admin'] } },
       { path: "admin/permissoes", component: admin_permissoes, meta: { roles: ['admin'] } },
+      { path: "aprovacoes", component: aprovacoes, meta: { roles: ['admin', 'almoxarife'] } },
     ],
   },
 ];

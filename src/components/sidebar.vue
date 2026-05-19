@@ -60,6 +60,7 @@ const { supabase, perfil } = useSupabase()
 const MENU = [
   { to: '/estoque',         label: 'Estoque',           icone: 'fas fa-boxes',     roles: ['admin','almoxarife','professor','aluno'] },
   { to: '/retirada_epi',    label: 'Retirada de EPIs',  icone: 'fas fa-hand-holding', roles: ['admin','almoxarife','professor','aluno'] },
+  { to: '/aprovacoes',      label: 'Aprovações',        icone: 'fas fa-clipboard-check', roles: ['admin','almoxarife'] },
   { to: '/cadastro_epi',    label: 'Cadastro de EPI',   icone: 'fas fa-plus-circle', roles: ['admin','almoxarife'] },
   { to: '/dashboard',       label: 'Dashboard',         icone: 'fas fa-chart-line', roles: ['admin','almoxarife'] },
   { to: '/admin/usuarios',  label: 'Gerenciar Usuários',icone: 'fas fa-user-shield', roles: ['admin'] },
