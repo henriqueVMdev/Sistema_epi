@@ -129,6 +129,8 @@ const solicitarRetirada = async () => {
       data_entrega: dataAgora,
       nome_retirada: funcionario.value.nome,
       setor_retirada: funcionario.value.setor,
+      epi_nome: epi.nome,
+      quantidade: qtd,
       status: requerAprovacao ? 'pendente' : 'aprovado',
     });
     if (errInsert) {
@@ -235,7 +237,7 @@ onMounted(async () => {
               <span v-else class="badge badge-outro">Aprovação</span>
             </div>
             <p class="epi-meta">{{ epi.fabricante || '—' }} · CA #{{ epi.numero_ca || '—' }}</p>
-            <p class="epi-estoque">{{ epi.estoque }} unid. em estoque</p>
+            <p class="epi-estoque">{{ epi.estoque }} unidades em estoque</p>
           </div>
 
           <div v-if="selecionados[epi.id] !== undefined" class="card-controles" @click.stop>
@@ -281,8 +283,8 @@ onMounted(async () => {
         <div v-for="(r, i) in retiradas" :key="i" class="item-historico">
           <div class="hist-icone">📦</div>
           <div class="hist-info">
-            <p class="hist-nome">{{ r.nome_retirada }}</p>
-            <p class="hist-setor">Setor: {{ r.setor_retirada }}</p>
+            <p class="hist-nome">{{ r.epi_nome || '—' }} <span class="hist-qtd">× {{ r.quantidade || 1 }}</span></p>
+            <p class="hist-setor">{{ r.nome_retirada }} · Setor: {{ r.setor_retirada }}</p>
           </div>
           <span v-if="r.status" class="hist-status" :class="'status-' + r.status">
             {{ r.status }}
@@ -371,7 +373,7 @@ onMounted(async () => {
 }
 
 .grade-epis {
-  display: grid;
+  display: row;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 0.9rem;
 }
@@ -387,6 +389,7 @@ onMounted(async () => {
   padding: 0.85rem;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
+  margin: 1rem;
 }
 .card-epi:hover { border-color: rgba(244, 157, 37, 0.35); }
 .card-epi.selecionado {
@@ -420,7 +423,7 @@ onMounted(async () => {
   gap: 0.4rem;
 }
 .badge {
-  font-size: 0.65rem;
+  font-size: 0.78rem;
   font-weight: 700;
   padding: 0.15rem 0.45rem;
   border-radius: 999px;
@@ -452,14 +455,14 @@ onMounted(async () => {
 .card-info { flex: 1; min-width: 0; }
 .epi-nome {
   color: #fff;
-  font-size: 0.95rem;
+  font-size: 1.15rem;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.epi-meta { color: #8b8680; font-size: 0.78rem; margin-top: 0.15rem; }
-.epi-estoque { color: #F49D25; font-size: 0.78rem; font-weight: 600; margin-top: 0.2rem; }
+.epi-meta { color: #8b8680; font-size: 0.95rem; margin-top: 0.25rem; }
+.epi-estoque { color: #F49D25; font-size: 0.95rem; font-weight: 600; margin-top: 0.3rem; }
 
 .card-marca { flex: 0 0 auto; }
 .circulo-vazio {
