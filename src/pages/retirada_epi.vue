@@ -552,7 +552,8 @@ onMounted(async () => {
   font-size: 1.1rem;
 }
 .hist-info { flex: 1; min-width: 0; }
-.hist-nome { color: #fff; font-weight: 700; font-size: 0.92rem; }
+.hist-nome { color: #fff; font-weight: 700; font-size: 0.95rem; }
+.hist-qtd { color: #F49D25; font-weight: 600; margin-left: 0.3rem; }
 .hist-setor { color: #8b8680; font-size: 0.78rem; margin-top: 0.1rem; }
 .hist-data {
   color: #c5bfb5;
