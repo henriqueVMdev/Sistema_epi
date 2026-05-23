@@ -325,7 +325,7 @@ onMounted(() => {
             <div class="preview-acoes">
               <label class="btn-trocar">
                 Trocar
-                <input type="file" accept="image/png, image/jpeg, image/webp" hidden @change="selecionarImagem">
+                <input type="file" accept="image/png, image/jpeg, image/svg+xml, image/webp" hidden @change="selecionarImagem">
               </label>
               <button type="button" class="btn-remover" @click="removerImagem">Remover</button>
             </div>
@@ -335,7 +335,7 @@ onMounted(() => {
             <p class="upload-titulo">Clique para enviar</p>
             <p class="upload-sub">ou arraste e solte</p>
             <p class="upload-formatos">PNG, JPG ou WEBP (Max. 5MB)</p>
-            <input type="file" accept="image/png, image/jpeg, image/webp" hidden @change="selecionarImagem">
+            <input type="file" accept="image/png, image/jpeg, image/svg+xml, image/webp" hidden @change="selecionarImagem">
           </label>
         </section>
       
