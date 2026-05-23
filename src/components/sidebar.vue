@@ -24,9 +24,17 @@
         </RouterLink>
       </nav>
 
-      <p v-if="perfil" class="rodape-usuario">
-        {{ perfil.nome }} · <span class="role-tag">{{ perfil.role }}</span>
-      </p>
+      <RouterLink v-if="perfil" to="/perfil" class="perfil-card" active-class="perfil-card-ativo">
+        <div class="perfil-avatar">
+          <img v-if="perfil.avatar_url" :src="perfil.avatar_url" :alt="perfil.nome" />
+          <span v-else class="perfil-iniciais">{{ iniciais(perfil.nome) }}</span>
+        </div>
+        <div class="perfil-texto">
+          <span class="perfil-nome">{{ perfil.nome }}</span>
+          <span class="perfil-role">{{ perfil.role }}</span>
+        </div>
+        <i class="fas fa-pen perfil-editar" title="Editar perfil"></i>
+      </RouterLink>
 
       <!-- Botão de logout -->
       <!-- @click="sair" = quando o usuário clica, chama a função sair() -->
@@ -73,6 +81,9 @@ const itensVisiveis = computed(() => {
   if (!role) return []
   return MENU.filter(i => i.roles.includes(role))
 })
+
+const iniciais = (nome) =>
+  (nome || '?').trim().split(/\s+/).slice(0, 2).map(p => p[0]?.toUpperCase()).join('')
 
 // Pegar o router para navegar entre páginas
 // router = objeto que permite router.push('/pagina') para navegar
@@ -256,20 +267,53 @@ async function sair() {
   font-size: 18px;
 }
 
-.rodape-usuario {
-  color: #c5bfb5;
-  font-size: 0.8rem;
-  text-align: center;
-  margin-bottom: 10px;
-  margin-top: 10px;
+.perfil-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 12px 0 10px;
+  transition: background 0.2s, border-color 0.2s;
 }
-.role-tag {
+.perfil-card:hover { background: rgba(244, 157, 37, 0.1); border-color: rgba(244, 157, 37, 0.4); }
+.perfil-card-ativo { border-color: #F49D25; background: rgba(244, 157, 37, 0.12); }
+
+.perfil-avatar {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #3a332b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.perfil-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.perfil-iniciais { color: #F49D25; font-weight: 800; font-size: 0.95rem; }
+
+.perfil-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.perfil-nome {
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.perfil-role {
   color: #F49D25;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
-  font-size: 0.7rem;
   letter-spacing: 0.05em;
 }
+.perfil-editar { color: #8b8680; font-size: 0.8rem; flex-shrink: 0; }
+.perfil-card:hover .perfil-editar { color: #F49D25; }
 
 /* ===== CONTEÚDO CENTRAL ===== */
 /* Área principal onde as páginas aparecem */

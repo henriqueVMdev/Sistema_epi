@@ -16,13 +16,13 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 const session = ref(null)
 const loadingSession = ref(true)
-const perfil = ref(null) // { id, user_id, nome, email, cpf, role, setor_id, setor: { id, nome } }
+const perfil = ref(null) // { id, user_id, nome, email, cpf, role, setor_id, avatar_url, setor: { id, nome } }
 
 async function carregarPerfil(userId) {
   if (!userId) { perfil.value = null; return }
   const { data, error } = await supabase
     .from('funcionarios')
-    .select('id, user_id, nome, email, cpf, role, setor_id, setor:setores(id, nome)')
+    .select('id, user_id, nome, email, cpf, role, setor_id, avatar_url, setor:setores(id, nome)')
     .eq('user_id', userId)
     .maybeSingle()
   if (error) {

@@ -24,6 +24,46 @@ const router = useRouter();
 
 const mensagem = ref(null);
 
+// imagem do EPI
+const imagemArquivo = ref(null);   // File selecionado
+const imagemPreview = ref(null);   // objectURL local (pré-visualização)
+const imagemExistente = ref(null); // URL já salva (modo edição)
+const enviando = ref(false);
+
+const selecionarImagem = (e) => {
+  const f = e.target.files?.[0];
+  if (!f) return;
+  if (!f.type.startsWith('image/')) {
+    mostrarMensagem('erro', 'Selecione um arquivo de imagem.');
+    return;
+  }
+  if (f.size > 5 * 1024 * 1024) {
+    mostrarMensagem('erro', 'Imagem muito grande (máx. 5 MB).');
+    return;
+  }
+  imagemArquivo.value = f;
+  imagemPreview.value = URL.createObjectURL(f);
+};
+
+const removerImagem = () => {
+  imagemArquivo.value = null;
+  imagemPreview.value = null;
+  imagemExistente.value = null;
+};
+
+// envia a imagem pro Storage e devolve a URL pública (ou mantém a existente)
+async function uploadImagem() {
+  if (!imagemArquivo.value) return imagemExistente.value || null;
+  const ext = imagemArquivo.value.name.split('.').pop().toLowerCase();
+  const caminho = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage
+    .from('epis')
+    .upload(caminho, imagemArquivo.value, { upsert: false });
+  if (error) throw error;
+  const { data } = supabase.storage.from('epis').getPublicUrl(caminho);
+  return data.publicUrl;
+}
+
 const mostrarMensagem = (tipo, texto) => {
   mensagem.value = { tipo, texto };
   setTimeout(() => { mensagem.value = null; }, 4000);
@@ -35,23 +75,38 @@ const carregar = async () => {
 };
 
 const salvar = async () => {
+  enviando.value = true;
+
+  let imagemUrl;
+  try {
+    imagemUrl = await uploadImagem();
+  } catch (e) {
+    enviando.value = false;
+    mostrarMensagem('erro', 'Erro ao enviar a imagem: ' + e.message);
+    return;
+  }
+
   const payload = { ...form, setor: (form.setor || []).join(', ') };
+  if (imagemUrl) payload.imagem = imagemUrl;
 
   if (editandoId.value) {
     const { error } = await supabase.from('epis').update(payload).eq('id', editandoId.value);
     if (error) {
-      mostrarMensagem('erro', 'Erro ao atualizar o cadastro. Tente novamente.');
+      enviando.value = false;
+      mostrarMensagem('erro', 'Erro ao atualizar o cadastro: ' + error.message);
       return;
     }
     mostrarMensagem('sucesso', 'EPI atualizado com sucesso!');
   } else {
     const { error } = await supabase.from('epis').insert(payload);
     if (error) {
-      mostrarMensagem('erro', 'Erro ao cadastrar o EPI. Tente novamente.');
+      enviando.value = false;
+      mostrarMensagem('erro', 'Erro ao cadastrar o EPI: ' + error.message);
       return;
     }
     mostrarMensagem('sucesso', 'EPI cadastrado com sucesso!');
   }
+  enviando.value = false;
   cancelarEdicao();
   carregar();
 };
@@ -82,7 +137,9 @@ const cancelarEdicao = () => {
    data_validade: '',
    estoque: '',
    estoque_minimo: '',
+   descricao: '',
   });
+  removerImagem();
 };
 
 // volta uma página no histórico (botão Cancelar do cabeçalho)
@@ -124,8 +181,8 @@ onMounted(() => {
 
       <div class="botoes-acao">
         <button type="button" class="botao botao-cancelar" @click="voltar">Cancelar</button>
-        <button type="button" class="botao botao-salvar" @click="salvar">
-          Salvar Cadastro
+        <button type="button" class="botao botao-salvar" :disabled="enviando" @click="salvar">
+          {{ enviando ? 'Salvando…' : 'Salvar Cadastro' }}
         </button>
       </div>
     </header>
@@ -263,12 +320,23 @@ onMounted(() => {
         <section class="cartao">
           <h2 class="titulo-lateral">Imagem do Produto</h2>
 
-          <label class="area-upload">
+          <div v-if="imagemPreview || imagemExistente" class="preview-imagem">
+            <img :src="imagemPreview || imagemExistente" alt="Pré-visualização do EPI" />
+            <div class="preview-acoes">
+              <label class="btn-trocar">
+                Trocar
+                <input type="file" accept="image/png, image/jpeg, image/webp" hidden @change="selecionarImagem">
+              </label>
+              <button type="button" class="btn-remover" @click="removerImagem">Remover</button>
+            </div>
+          </div>
+
+          <label v-else class="area-upload">
             <p class="upload-titulo">Clique para enviar</p>
             <p class="upload-sub">ou arraste e solte</p>
             <p class="upload-formatos">PNG, JPG ou WEBP (Max. 5MB)</p>
-            <input type="file" accept="image/png, image/jpeg, image/webp" hidden>
-          </label>          
+            <input type="file" accept="image/png, image/jpeg, image/webp" hidden @change="selecionarImagem">
+          </label>
         </section>
       
     
@@ -663,6 +731,50 @@ onMounted(() => {
   transition: border-color 0.2s;
 }
 .area-upload:hover { border-color: #F49D25; }
+
+/* ---------- pré-visualização da imagem ---------- */
+.preview-imagem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.preview-imagem img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 0.75rem;
+  border: 1px solid #2a241e;
+  background: #1c1814;
+}
+.preview-acoes {
+  display: flex;
+  gap: 0.6rem;
+}
+.btn-trocar,
+.btn-remover {
+  flex: 1;
+  text-align: center;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-trocar {
+  background: rgba(244, 157, 37, 0.12);
+  color: #F49D25;
+  border: 1px solid rgba(244, 157, 37, 0.4);
+}
+.btn-trocar:hover { background: rgba(244, 157, 37, 0.22); }
+.btn-remover {
+  background: rgba(248, 113, 113, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+.btn-remover:hover { background: rgba(248, 113, 113, 0.22); }
+
+.botao-salvar:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .icone-upload {
   width: 3rem;
