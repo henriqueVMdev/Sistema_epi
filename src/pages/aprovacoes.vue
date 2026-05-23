@@ -10,8 +10,6 @@ const mensagem = ref(null);
 const acaoEmAndamento = ref(null);
 const filtro = ref('pendente_aprovacao'); // tabs
 
-const validadeProvisoria = ref({}); // por id, quando vai entregar
-
 const mostrarMensagem = (tipo, texto) => {
   mensagem.value = { tipo, texto };
   setTimeout(() => { mensagem.value = null; }, 3500);
@@ -104,11 +102,8 @@ async function recusar(reg) {
 }
 
 async function registrarEntrega(reg) {
-  const validade = validadeProvisoria.value[reg.id];
-  if (!validade) {
-    mostrarMensagem('erro', 'Informe a data de validade do EPI entregue.');
-    return;
-  }
+  // a validade vem do próprio cadastro do EPI
+  const validade = reg.epi?.data_validade || null;
   const estoqueAtual = Number(reg.epi?.estoque) || 0;
   const qtd = Number(reg.quantidade) || 1;
   if (qtd > estoqueAtual) {
@@ -135,7 +130,6 @@ async function registrarEntrega(reg) {
   if (e2) { console.error(e2); /* segue mesmo assim, mas avisa */ mostrarMensagem('erro', 'Entrega salva, mas falha ao debitar estoque.'); }
 
   acaoEmAndamento.value = null;
-  validadeProvisoria.value[reg.id] = '';
   mostrarMensagem('sucesso', 'Entrega registrada e estoque atualizado.');
   carregar();
 }
@@ -218,10 +212,6 @@ onMounted(carregar);
             </template>
 
             <template v-else-if="r.status === 'pendente_entrega'">
-              <label class="campo-validade">
-                Validade:
-                <input type="date" v-model="validadeProvisoria[r.id]" />
-              </label>
               <button
                 class="btn-aprovar"
                 :disabled="acaoEmAndamento === r.id"
