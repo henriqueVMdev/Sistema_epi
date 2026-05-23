@@ -38,7 +38,7 @@ const carregar = async () => {
     .select(`
       id, status, quantidade, justificativa, data_retirada, data_entrega, data_validade, data_devolucao,
       nome_epi, nome_retirada, setor_retirada,
-      epi:epis(id, nome, estoque, data_validade),
+      epi:epis(id, nome, estoque, data_validade, imagem, numero_ca),
       funcionario:funcionarios(id, nome, setor:setores(id, nome))
     `)
     .order('data_retirada', { ascending: false })
@@ -189,23 +189,50 @@ onMounted(carregar);
 
       <div v-else class="lista">
         <article v-for="r in filtradas" :key="r.id" class="item">
-          <div class="item-topo">
-            <div>
-              <p class="item-nome">{{ r.nome_epi || r.epi?.nome || '—' }} <span class="qtd">× {{ r.quantidade || 1 }}</span></p>
-              <p class="item-sub">
-                {{ r.nome_retirada || r.funcionario?.nome }} ·
-                Setor: {{ r.setor_retirada || r.funcionario?.setor?.nome || '—' }}
-              </p>
-              <p class="item-sub">Pedido em {{ formatarData(r.data_retirada) }}</p>
-              <p v-if="r.data_entrega" class="item-sub">Entregue em {{ formatarData(r.data_entrega) }}</p>
-              <p v-if="r.data_validade" class="item-sub">Validade: {{ formatarData(r.data_validade) }}</p>
-              <p v-if="r.justificativa" class="item-justificativa">"{{ r.justificativa }}"</p>
-            </div>
-            <span class="status" :class="'status-' + r.status">{{ labelStatus(r.status) }}</span>
+          <div class="item-img">
+            <img v-if="r.epi?.imagem" :src="r.epi.imagem" :alt="r.epi?.nome" />
+            <div v-else class="img-placeholder"><i class="fas fa-hard-hat"></i></div>
           </div>
 
-          <!-- Ações por status -->
-          <div class="acoes">
+          <div class="item-corpo">
+            <div class="item-topo">
+              <div class="item-titulo">
+                <h3 class="item-nome">{{ r.nome_epi || r.epi?.nome || '—' }}</h3>
+                <span class="qtd">× {{ r.quantidade || 1 }}</span>
+                <span v-if="r.epi?.numero_ca" class="ca-chip">CA #{{ r.epi.numero_ca }}</span>
+              </div>
+              <span class="status" :class="'status-' + r.status">{{ labelStatus(r.status) }}</span>
+            </div>
+
+            <div class="meta-grade">
+              <div class="meta-item">
+                <span class="meta-label">Solicitante</span>
+                <span class="meta-valor">{{ r.nome_retirada || r.funcionario?.nome || '—' }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Setor</span>
+                <span class="meta-valor">{{ r.setor_retirada || r.funcionario?.setor?.nome || '—' }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Pedido em</span>
+                <span class="meta-valor">{{ formatarData(r.data_retirada) }}</span>
+              </div>
+              <div v-if="r.data_entrega" class="meta-item">
+                <span class="meta-label">Entregue em</span>
+                <span class="meta-valor">{{ formatarData(r.data_entrega) }}</span>
+              </div>
+              <div v-if="r.data_validade" class="meta-item">
+                <span class="meta-label">Validade</span>
+                <span class="meta-valor">{{ formatarData(r.data_validade) }}</span>
+              </div>
+            </div>
+
+            <p v-if="r.justificativa" class="item-justificativa">
+              <i class="fas fa-quote-left"></i> {{ r.justificativa }}
+            </p>
+
+            <!-- Ações por status -->
+            <div class="acoes">
             <template v-if="r.status === 'pendente_aprovacao'">
               <button class="btn-aprovar" :disabled="acaoEmAndamento === r.id" @click="aprovar(r)">Aprovar</button>
               <button class="btn-recusar" :disabled="acaoEmAndamento === r.id" @click="recusar(r)">Recusar</button>
@@ -227,6 +254,7 @@ onMounted(carregar);
                 @click="registrarDevolucao(r)"
               >Marcar devolvido</button>
             </template>
+            </div>
           </div>
         </article>
       </div>
@@ -272,26 +300,66 @@ onMounted(carregar);
 }
 .vazio { text-align: center; color: #8b8680; padding: 2rem; }
 
-.lista { display: flex; flex-direction: column; gap: 0.7rem; }
+.lista { display: flex; flex-direction: column; gap: 1rem; }
 .item {
   background: #2a2520; border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 0.7rem; padding: 1rem 1.1rem;
-  display: flex; flex-direction: column; gap: 0.7rem;
+  border-radius: 0.85rem; padding: 1.3rem 1.4rem;
+  display: flex; align-items: flex-start; gap: 1.3rem;
+  transition: border-color 0.15s;
 }
+.item:hover { border-color: rgba(244,157,37,0.25); }
+
+.item-img {
+  flex: 0 0 84px; width: 84px; height: 84px;
+  border-radius: 0.7rem; overflow: hidden; background: #3a332b;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.item-img img { width: 100%; height: 100%; object-fit: cover; }
+.img-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, rgba(244,157,37,0.1), transparent 60%), #3a332b;
+  color: #F49D25; font-size: 1.6rem;
+}
+
+.item-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.9rem; }
 
 .item-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-.item-nome { color: #fff; font-weight: 700; font-size: 1rem; }
-.qtd { color: #F49D25; font-weight: 700; }
-.item-sub { color: #8b8680; font-size: 0.78rem; margin-top: 0.15rem; }
-.item-justificativa {
-  margin-top: 0.45rem; color: #facc15; font-size: 0.85rem; font-style: italic;
-  background: rgba(250,204,21,0.06); border-left: 3px solid #facc15;
-  padding: 0.4rem 0.7rem; border-radius: 0.3rem;
+.item-titulo { display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem; min-width: 0; }
+.item-nome { color: #fff; font-weight: 700; font-size: 1.3rem; letter-spacing: -0.01em; }
+.qtd {
+  color: #F49D25; font-weight: 700; font-size: 0.95rem;
+  background: rgba(244,157,37,0.12); padding: 0.15rem 0.6rem; border-radius: 999px;
+}
+.ca-chip {
+  color: #c5bfb5; font-weight: 600; font-size: 0.78rem;
+  background: rgba(255,255,255,0.05); padding: 0.18rem 0.6rem; border-radius: 999px;
 }
 
+.meta-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.8rem 1.2rem;
+}
+.meta-item { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.meta-label {
+  color: #8b8680; font-size: 0.68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.meta-valor { color: #ebe8e4; font-size: 0.92rem; font-weight: 500; }
+
+.item-justificativa {
+  color: #facc15; font-size: 0.88rem; font-style: italic;
+  background: rgba(250,204,21,0.06); border-left: 3px solid #facc15;
+  padding: 0.55rem 0.85rem; border-radius: 0.4rem;
+  display: flex; align-items: baseline; gap: 0.5rem;
+}
+.item-justificativa i { font-size: 0.75rem; opacity: 0.7; }
+
 .status {
-  font-size: 0.7rem; font-weight: 700; padding: 0.3rem 0.7rem;
+  font-size: 0.72rem; font-weight: 700; padding: 0.35rem 0.8rem;
   border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+  flex-shrink: 0;
 }
 .status-pendente_aprovacao { background: rgba(250,204,21,0.12); color: #facc15; border: 1px solid rgba(250,204,21,0.35); }
 .status-pendente_entrega   { background: rgba(96,165,250,0.12); color: #60a5fa; border: 1px solid rgba(96,165,250,0.35); }
@@ -300,7 +368,11 @@ onMounted(carregar);
 .status-recusado           { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.35); }
 .status-devolvido          { background: rgba(168,168,168,0.12); color: #a8a8a8; border: 1px solid rgba(168,168,168,0.3); }
 
-.acoes { display: flex; gap: 0.55rem; align-items: center; flex-wrap: wrap; }
+.acoes {
+  display: flex; gap: 0.55rem; align-items: center; flex-wrap: wrap;
+  padding-top: 0.9rem; margin-top: 0.1rem;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
 .btn-aprovar {
   background: #F49D25; color: #1a1410; border: none;
   padding: 0.5rem 1rem; border-radius: 0.45rem; font-weight: 700; cursor: pointer; font-size: 0.85rem;
@@ -315,20 +387,17 @@ onMounted(carregar);
 }
 .btn-recusar:hover:not(:disabled) { background: rgba(248,113,113,0.22); }
 
-.campo-validade {
-  display: inline-flex; align-items: center; gap: 0.4rem;
-  color: #c5bfb5; font-size: 0.82rem;
-}
-.campo-validade input {
-  background: #131110; border: 1px solid #2a241e; color: #fff;
-  padding: 0.4rem 0.55rem; border-radius: 0.4rem; font-size: 0.85rem; outline: none;
-}
-.campo-validade input:focus { border-color: #F49D25; }
-
 .toast {
   position: fixed; top: 1.5rem; right: 1.5rem; z-index: 999;
   padding: 0.85rem 1.3rem; border-radius: 0.6rem; font-weight: 600;
 }
 .toast-sucesso { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.4); color: #4ade80; }
 .toast-erro    { background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.4); color: #f87171; }
+
+@media (max-width: 700px) {
+  .pagina { padding: 1.5rem 1.2rem; }
+  .item { flex-direction: column; padding: 1.1rem; }
+  .item-img { width: 64px; height: 64px; flex-basis: 64px; }
+  .item-nome { font-size: 1.1rem; }
+}
 </style>
