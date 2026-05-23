@@ -31,7 +31,7 @@ const carregar = async () => {
     .select(`
       id, status, quantidade, justificativa,
       data_retirada, data_entrega, data_validade, data_devolucao,
-      nome_epi, epi:epis(id, nome, imagem, numero_ca)
+      nome_epi, epi:epis(*)
     `)
     .eq('funcionario_id', perfil.value.id)
     .order('data_retirada', { ascending: false })

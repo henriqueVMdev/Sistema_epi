@@ -38,12 +38,12 @@ const carregar = async () => {
     .select(`
       id, status, quantidade, justificativa, data_retirada, data_entrega, data_validade, data_devolucao,
       nome_epi, nome_retirada, setor_retirada,
-      epi:epis(id, nome, estoque, data_validade, imagem, numero_ca),
+      epi:epis(*),
       funcionario:funcionarios(id, nome, setor:setores(id, nome))
     `)
     .order('data_retirada', { ascending: false })
     .limit(200);
-  if (error) console.error(error);
+  if (error) { console.error(error); mostrarMensagem('erro', 'Erro ao carregar: ' + error.message, 8000); }
   entregas.value = data || [];
   carregando.value = false;
 };
