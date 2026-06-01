@@ -49,15 +49,13 @@ const salvar = async (u) => {
 };
 
 const excluir = async (u) => {
-  if (!confirm(`Excluir ${u.nome}? Isso apaga o cadastro E o login. Não tem como desfazer.`)) return;
+  if (!confirm(`Excluir ${u.nome}? Isso remove o cadastro da tabela funcionarios.`)) return;
   excluindoId.value = u.id;
-  const { data, error } = await supabase.functions.invoke('excluir-funcionario', {
-    body: { id: u.id },
-  });
+  const { error } = await supabase.from('funcionarios').delete().eq('id', u.id);
   excluindoId.value = null;
-  if (error || data?.error) {
-    console.error(error || data?.error);
-    mostrarMensagem('erro', 'Erro ao excluir: ' + (data?.error || error?.message || ''));
+  if (error) {
+    console.error(error);
+    mostrarMensagem('erro', 'Erro ao excluir: ' + error.message);
     return;
   }
   mostrarMensagem('sucesso', `${u.nome} excluído.`);
