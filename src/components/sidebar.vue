@@ -73,6 +73,7 @@ const MENU = [
   { to: '/cadastro_epi',    label: 'Cadastro de EPI',   icone: 'fas fa-plus-circle', roles: ['admin','almoxarife'] },
   { to: '/dashboard',       label: 'Dashboard',         icone: 'fas fa-chart-line', roles: ['admin','almoxarife'] },
   { to: '/admin/usuarios',  label: 'Gerenciar Usuários',icone: 'fas fa-user-shield', roles: ['admin'] },
+  { to: '/admin/setores',   label: 'Gerenciar Setores', icone: 'fas fa-sitemap',     roles: ['admin'] },
   { to: '/admin/permissoes',label: 'Permissões de EPI', icone: 'fas fa-lock',        roles: ['admin'] },
 ]
 

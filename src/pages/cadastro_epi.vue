@@ -89,7 +89,7 @@ const salvar = async () => {
   const payload = {
     ...form,
     setor: (form.setor || []).join(', '),
-    custo: form.custo === '' ? null : Number(form.custo),
+    custo: form.custo === '' ? null : Number(String(form.custo).replace(',', '.')),
     numero_ca: form.numero_ca === '' ? null : Number(form.numero_ca),
     estoque: form.estoque === '' ? null : Number(form.estoque),
     estoque_minimo: form.estoque_minimo === '' ? null : Number(form.estoque_minimo),
