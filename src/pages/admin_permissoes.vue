@@ -19,6 +19,11 @@ const novo = reactive({
   limite: 1,
 });
 
+// estado pra CRUD de setores
+const novoSetorNome = ref('');
+const editandoSetorId = ref(null);
+const editandoSetorNome = ref('');
+
 const mostrarMensagem = (tipo, texto) => {
   mensagem.value = { tipo, texto };
   setTimeout(() => { mensagem.value = null; }, 3500);
@@ -95,6 +100,57 @@ const remover = async (p) => {
   carregar();
 };
 
+// quantos EPIs estão vinculados a cada setor (via epi_permissoes, ignorando role)
+const epiCountPorSetor = (setorId) => {
+  const ids = new Set(
+    permissoes.value.filter(p => p.setor?.id === setorId).map(p => p.epi?.id)
+  );
+  return ids.size;
+};
+
+const criarSetor = async () => {
+  if (!novoSetorNome.value.trim()) return;
+  const { error } = await supabase.from('setores').insert({ nome: novoSetorNome.value.trim() });
+  if (error) {
+    console.error(error);
+    return mostrarMensagem('erro', 'Erro ao criar setor: ' + error.message);
+  }
+  novoSetorNome.value = '';
+  mostrarMensagem('sucesso', 'Setor criado.');
+  carregar();
+};
+
+const iniciarEdicaoSetor = (s) => {
+  editandoSetorId.value = s.id;
+  editandoSetorNome.value = s.nome;
+};
+
+const salvarSetor = async (s) => {
+  if (!editandoSetorNome.value.trim()) return;
+  const { error } = await supabase
+    .from('setores')
+    .update({ nome: editandoSetorNome.value.trim() })
+    .eq('id', s.id);
+  if (error) {
+    console.error(error);
+    return mostrarMensagem('erro', 'Erro ao salvar setor.');
+  }
+  editandoSetorId.value = null;
+  mostrarMensagem('sucesso', 'Setor atualizado.');
+  carregar();
+};
+
+const removerSetor = async (s) => {
+  if (!confirm(`Excluir o setor "${s.nome}"? Isso pode quebrar permissões existentes.`)) return;
+  const { error } = await supabase.from('setores').delete().eq('id', s.id);
+  if (error) {
+    console.error(error);
+    return mostrarMensagem('erro', 'Erro ao remover: ' + error.message);
+  }
+  mostrarMensagem('sucesso', 'Setor removido.');
+  carregar();
+};
+
 onMounted(carregar);
 </script>
 
@@ -112,6 +168,47 @@ onMounted(carregar);
     </header>
 
     <div v-if="mensagem" :class="['toast', 'toast-' + mensagem.tipo]">{{ mensagem.texto }}</div>
+
+    <!-- CRUD de setores -->
+    <section class="cartao">
+      <h2 class="cartao-titulo">Setores ({{ setores.length }})</h2>
+
+      <form class="form-novo-setor" @submit.prevent="criarSetor">
+        <input v-model="novoSetorNome" type="text" placeholder="Nome do novo setor (ex: Mecatronica)" />
+        <button type="submit" class="btn-add" :disabled="!novoSetorNome.trim()">+ Adicionar setor</button>
+      </form>
+
+      <div v-if="setores.length === 0" class="vazio">Nenhum setor cadastrado.</div>
+      <ul v-else class="lista-setores">
+        <li v-for="s in setores" :key="s.id" class="item-setor">
+          <template v-if="editandoSetorId === s.id">
+            <input
+              v-model="editandoSetorNome"
+              class="input-edit"
+              @keyup.enter="salvarSetor(s)"
+            />
+            <div class="setor-acoes">
+              <button class="btn-salvar" @click="salvarSetor(s)">Salvar</button>
+              <button class="btn-del" @click="editandoSetorId = null">Cancelar</button>
+            </div>
+          </template>
+          <template v-else>
+            <div class="setor-info">
+              <strong>{{ s.nome }}</strong>
+              <span class="setor-tag">{{ epiCountPorSetor(s.id) }} EPI(s) vinculado(s)</span>
+            </div>
+            <div class="setor-acoes">
+              <button class="btn-salvar" @click="iniciarEdicaoSetor(s)">Renomear</button>
+              <button class="btn-del" @click="removerSetor(s)">Excluir</button>
+            </div>
+          </template>
+        </li>
+      </ul>
+
+      <p class="dica">
+        Pra vincular um EPI a um setor com quantidade-limite por role, use o formulário <strong>"Nova permissão"</strong> abaixo.
+      </p>
+    </section>
 
     <!-- Form pra nova permissão -->
     <section class="cartao">
@@ -329,4 +426,75 @@ onMounted(carregar);
 @media (max-width: 900px) {
   .grade-form { grid-template-columns: 1fr 1fr; }
 }
+
+/* ---------- CRUD de setores ---------- */
+.form-novo-setor {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1.2rem;
+}
+.form-novo-setor input {
+  flex: 1;
+  background: #131110;
+  border: 1px solid #2a241e;
+  color: #fff;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.45rem;
+  font-size: 0.88rem;
+  outline: none;
+}
+.form-novo-setor input:focus { border-color: #F49D25; }
+
+.lista-setores {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.item-setor {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+  background: #1c1814;
+  border: 1px solid #2a241e;
+  border-radius: 0.55rem;
+  padding: 0.7rem 0.9rem;
+}
+.setor-info {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: #fff;
+  font-size: 0.92rem;
+}
+.setor-tag {
+  background: rgba(244, 157, 37, 0.12);
+  color: #F49D25;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.18rem 0.5rem;
+  border-radius: 0.35rem;
+}
+.setor-acoes { display: flex; gap: 0.45rem; }
+
+.input-edit {
+  flex: 1;
+  background: #131110;
+  border: 1px solid #F49D25;
+  color: #fff;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.4rem;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.dica {
+  color: #8b8680;
+  font-size: 0.82rem;
+  margin-top: 1rem;
+}
+.dica strong { color: #F49D25; }
 </style>

@@ -8,6 +8,7 @@ const setores = ref([]);
 const carregando = ref(true);
 const mensagem = ref(null);
 const salvandoId = ref(null);
+const excluindoId = ref(null);
 
 const ROLES = ['admin', 'almoxarife', 'professor', 'aluno'];
 
@@ -45,6 +46,22 @@ const salvar = async (u) => {
     return;
   }
   mostrarMensagem('sucesso', `${u.nome} atualizado.`);
+};
+
+const excluir = async (u) => {
+  if (!confirm(`Excluir ${u.nome}? Isso apaga o cadastro E o login. Não tem como desfazer.`)) return;
+  excluindoId.value = u.id;
+  const { data, error } = await supabase.functions.invoke('excluir-funcionario', {
+    body: { id: u.id },
+  });
+  excluindoId.value = null;
+  if (error || data?.error) {
+    console.error(error || data?.error);
+    mostrarMensagem('erro', 'Erro ao excluir: ' + (data?.error || error?.message || ''));
+    return;
+  }
+  mostrarMensagem('sucesso', `${u.nome} excluído.`);
+  carregar();
 };
 
 onMounted(carregar);
@@ -91,9 +108,12 @@ onMounted(carregar);
                 <option v-for="s in setores" :key="s.id" :value="s.id">{{ s.nome }}</option>
               </select>
             </td>
-            <td>
+            <td class="acoes">
               <button class="btn-salvar" :disabled="salvandoId === u.id" @click="salvar(u)">
                 {{ salvandoId === u.id ? 'Salvando…' : 'Salvar' }}
+              </button>
+              <button class="btn-excluir" :disabled="excluindoId === u.id" @click="excluir(u)">
+                {{ excluindoId === u.id ? 'Excluindo…' : 'Excluir' }}
               </button>
             </td>
           </tr>
@@ -172,6 +192,20 @@ onMounted(carregar);
 }
 .btn-salvar:hover { background: #e08c18; }
 .btn-salvar:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.acoes { display: flex; gap: 0.45rem; }
+.btn-excluir {
+  background: rgba(248, 113, 113, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  padding: 0.5rem 0.85rem;
+  border-radius: 0.45rem;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.btn-excluir:hover { background: rgba(248, 113, 113, 0.22); }
+.btn-excluir:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .vazio {
   text-align: center;
