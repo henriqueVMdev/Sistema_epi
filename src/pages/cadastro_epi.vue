@@ -86,7 +86,15 @@ const salvar = async () => {
     return;
   }
 
-  const payload = { ...form, setor: (form.setor || []).join(', ') };
+  const payload = {
+    ...form,
+    setor: (form.setor || []).join(', '),
+    custo: form.custo === '' ? null : Number(form.custo),
+    numero_ca: form.numero_ca === '' ? null : Number(form.numero_ca),
+    estoque: form.estoque === '' ? null : Number(form.estoque),
+    estoque_minimo: form.estoque_minimo === '' ? null : Number(form.estoque_minimo),
+    data_validade: form.data_validade === '' ? null : form.data_validade,
+  };
   if (imagemUrl) payload.imagem = imagemUrl;
 
   if (editandoId.value) {
@@ -276,7 +284,7 @@ onMounted(() => {
               <label for="numero_ca">Número do CA</label>
               <div class="input-com-icone">
                 <span class="prefixo">#</span>
-                <input v-model="form.numero_ca" type="int" placeholder="00000">
+                <input v-model="form.numero_ca" type="number" placeholder="00000">
               </div>
             </div>
 
