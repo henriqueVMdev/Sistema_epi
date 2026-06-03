@@ -8,6 +8,7 @@ const epis = ref([]);
 const editandoId = ref(null);
 const funcionarios = ref([]);
 const setorAberto = ref(false);
+const modalAberto = ref(false);
 const form = reactive({
   nome: '',
   setor: [],
@@ -130,8 +131,29 @@ const setoresUnicos = () => {
   return [...new Set(nomes)];
 };
 
+// abre o modal e preenche o form com os dados do epi clicado
+const iniciarEdicao = (epi) => {
+  editandoId.value = epi.id;
+  Object.assign(form, {
+    nome: epi.nome ?? '',
+    setor: epi.setor ? String(epi.setor).split(',').map(s => s.trim()).filter(Boolean) : [],
+    fabricante: epi.fabricante ?? '',
+    custo: epi.custo ?? '',
+    numero_ca: epi.numero_ca ?? '',
+    data_validade: epi.data_validade ?? '',
+    estoque: epi.estoque ?? '',
+    estoque_minimo: epi.estoque_minimo ?? '',
+    descricao: epi.descricao ?? '',
+  });
+  imagemArquivo.value = null;
+  imagemPreview.value = null;
+  imagemExistente.value = epi.imagem || null;
+  modalAberto.value = true;
+};
+
 // reseta o formulário e sai do modo edição
 const cancelarEdicao = () => {
+  modalAberto.value = false;
   // volta o id para null (modo "novo cadastro")
   editandoId.value = null;
   // Object.assign sobrescreve as chaves do form mantendo a MESMA referência reativa
@@ -362,10 +384,140 @@ onMounted(() => {
             </div>
           </div>
         </section>
-      </aside>  
+      </aside>
     </form>
-          
-       
+
+    <!-- LISTA DE EPIs CADASTRADOS -->
+    <section class="cartao lista-epis">
+      <div class="cartao-cabecalho">
+        <h2>EPIs cadastrados</h2>
+      </div>
+      <div v-if="epis.length === 0" class="vazio-lista">Nenhum EPI cadastrado ainda.</div>
+      <table v-else class="tabela-epis">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Setor</th>
+            <th>Fabricante</th>
+            <th>CA</th>
+            <th>Estoque</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="epi in epis" :key="epi.id">
+            <td>{{ epi.nome }}</td>
+            <td class="muted">{{ epi.setor }}</td>
+            <td class="muted">{{ epi.fabricante }}</td>
+            <td class="muted">{{ epi.numero_ca }}</td>
+            <td class="muted">{{ epi.estoque }}</td>
+            <td><button type="button" class="btn-editar" @click="iniciarEdicao(epi)">Editar</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- MODAL DE EDIÇÃO -->
+    <div v-if="modalAberto" class="modal-overlay" @click.self="cancelarEdicao">
+      <div class="modal">
+        <header class="modal-cabecalho">
+          <h2>Editar <span class="titulo-destaque">EPI</span></h2>
+          <button type="button" class="modal-fechar" @click="cancelarEdicao">×</button>
+        </header>
+
+        <form class="modal-corpo" @submit.prevent="salvar">
+          <div class="modal-grade">
+            <div class="campo">
+              <label>Nome do EPI</label>
+              <input v-model="form.nome" type="text" />
+            </div>
+
+            <div class="campo">
+              <label>Setores de uso</label>
+              <div class="multi-select" :class="{ aberto: setorAberto }">
+                <button type="button" class="multi-select-trigger" @click="setorAberto = !setorAberto">
+                  <span v-if="form.setor.length === 0" class="ms-placeholder">Selecione um ou mais setores</span>
+                  <span v-else class="ms-tags">
+                    <span class="ms-tag" v-for="s in form.setor" :key="s">
+                      {{ s }}
+                      <span class="ms-tag-x" @click.stop="toggleSetor(s)">×</span>
+                    </span>
+                  </span>
+                  <span class="ms-seta">▾</span>
+                </button>
+                <div v-if="setorAberto" class="multi-select-menu">
+                  <label v-for="nome in setoresUnicos()" :key="nome" class="ms-opcao">
+                    <input type="checkbox" :value="nome" v-model="form.setor" />
+                    <span>{{ nome }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="campo">
+              <label>Fabricante</label>
+              <input v-model="form.fabricante" type="text" />
+            </div>
+
+            <div class="campo">
+              <label>Custo</label>
+              <input v-model="form.custo" type="text" />
+            </div>
+
+            <div class="campo">
+              <label>Número do CA</label>
+              <input v-model="form.numero_ca" type="number" />
+            </div>
+
+            <div class="campo">
+              <label>Data de Validade</label>
+              <input v-model="form.data_validade" type="date" />
+            </div>
+
+            <div class="campo">
+              <label>Estoque</label>
+              <input v-model="form.estoque" type="number" />
+            </div>
+
+            <div class="campo">
+              <label>Estoque mínimo</label>
+              <input v-model="form.estoque_minimo" type="number" />
+            </div>
+
+            <div class="campo campo-largo">
+              <label>Descrição</label>
+              <textarea v-model="form.descricao" rows="3" maxlength="200"></textarea>
+            </div>
+
+            <div class="campo campo-largo">
+              <label>Imagem</label>
+              <div v-if="imagemPreview || imagemExistente" class="preview-imagem-modal">
+                <img :src="imagemPreview || imagemExistente" alt="Imagem do EPI" />
+                <div class="preview-acoes">
+                  <label class="btn-trocar">
+                    Trocar
+                    <input type="file" accept="image/png, image/jpeg, image/webp" hidden @change="selecionarImagem" />
+                  </label>
+                  <button type="button" class="btn-remover" @click="removerImagem">Remover</button>
+                </div>
+              </div>
+              <label v-else class="area-upload area-upload-modal">
+                <p class="upload-titulo">Clique para enviar imagem</p>
+                <input type="file" accept="image/png, image/jpeg, image/webp" hidden @change="selecionarImagem" />
+              </label>
+            </div>
+          </div>
+
+          <footer class="modal-rodape">
+            <button type="button" class="botao botao-cancelar" @click="cancelarEdicao">Cancelar</button>
+            <button type="submit" class="botao botao-salvar" :disabled="enviando">
+              {{ enviando ? 'Salvando…' : 'Salvar alterações' }}
+            </button>
+          </footer>
+        </form>
+      </div>
+    </div>
+
     <footer class="rodape">
       <div class="rodape-marca">
         <span class="logo-nome">
@@ -959,8 +1111,111 @@ onMounted(() => {
   color: #f87171;
 }
 
+/* ---------- lista de epis ---------- */
+.lista-epis { margin-top: 1.5rem; }
+.lista-epis .cartao-cabecalho { margin-bottom: 1rem; }
+.tabela-epis { width: 100%; border-collapse: collapse; }
+.tabela-epis th, .tabela-epis td {
+  text-align: left;
+  padding: 0.75rem 0.8rem;
+  border-bottom: 1px solid #2a241e;
+  font-size: 0.88rem;
+}
+.tabela-epis th {
+  color: #8b8680;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.tabela-epis .muted { color: #8b8680; }
+.vazio-lista { color: #8b8680; padding: 1rem; text-align: center; }
+
+.btn-editar {
+  background: rgba(244, 157, 37, 0.12);
+  color: #F49D25;
+  border: 1px solid rgba(244, 157, 37, 0.4);
+  padding: 0.45rem 0.9rem;
+  border-radius: 0.45rem;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-editar:hover { background: rgba(244, 157, 37, 0.22); }
+
+/* ---------- modal ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1.5rem;
+  animation: fadeIn 0.15s ease;
+}
+.modal {
+  background: #221E18;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.modal-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid #2a241e;
+}
+.modal-cabecalho h2 { font-size: 1.25rem; font-weight: 700; color: #fff; }
+.modal-fechar {
+  background: transparent;
+  border: none;
+  color: #8b8680;
+  font-size: 1.6rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 0.3rem;
+}
+.modal-fechar:hover { color: #fff; }
+.modal-corpo {
+  padding: 1.2rem 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+.modal-grade {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.2rem;
+}
+.campo-largo { grid-column: 1 / -1; }
+.modal-rodape {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #2a241e;
+  background: #1c1814;
+}
+.preview-imagem-modal img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 0.6rem;
+  border: 1px solid #2a241e;
+}
+.area-upload-modal { padding: 1.2rem; }
+
 /* ---------- responsivo ---------- */
 @media (max-width: 960px) {
+  .modal-grade { grid-template-columns: 1fr; }
   .grade-principal { flex-direction: column; }
   .coluna-direita { flex: 1 1 auto; width: 100%; }
   .grade-campos { grid-template-columns: 1fr; }

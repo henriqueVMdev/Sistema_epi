@@ -1,291 +1,252 @@
 <template>
-  <!-- Container principal que divide a tela em Sidebar + Conteúdo -->
   <div class="shell">
-    <!-- ===== SIDEBAR: Menu lateral fixo ===== -->
-    <!-- A Sidebar fica fixa na esquerda enquanto o conteúdo rola -->
     <aside class="sidebar">
-      <!-- Logo/Título do sistema -->
-      <h1 class="logo">
-        <i class="fas fa-shield-alt"></i>
-        Sistema EPI
-      </h1>
+      <!-- Header: logo OmniSeg -->
+      <header class="sidebar-header">
+        <div class="logo-icone">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="logo-texto">
+          <span class="logo-nome">Omni<span class="logo-destaque">Seg</span></span>
+          <span class="logo-sub">{{ rotuloPainel }}</span>
+        </div>
+      </header>
 
-      <!-- Menu de navegação (filtrado por role) -->
+      <!-- Menu agrupado por seção -->
       <nav class="menu">
-        <RouterLink
-          v-for="item in itensVisiveis"
-          :key="item.to"
-          :to="item.to"
-          class="menu-item"
-          active-class="active"
-        >
-          <i :class="item.icone"></i>
-          <span>{{ item.label }}</span>
-        </RouterLink>
+        <div v-for="grupo in gruposVisiveis" :key="grupo.titulo" class="grupo">
+          <p class="grupo-titulo">{{ grupo.titulo }}</p>
+          <RouterLink
+            v-for="item in grupo.itens"
+            :key="item.to"
+            :to="item.to"
+            class="menu-item"
+            active-class="active"
+          >
+            <i :class="item.icone"></i>
+            <span>{{ item.label }}</span>
+          </RouterLink>
+        </div>
       </nav>
 
-      <RouterLink v-if="perfil" to="/perfil" class="perfil-card" active-class="perfil-card-ativo">
-        <div class="perfil-avatar">
-          <img v-if="perfil.avatar_url" :src="perfil.avatar_url" :alt="perfil.nome" />
-          <span v-else class="perfil-iniciais">{{ iniciais(perfil.nome) }}</span>
-        </div>
-        <div class="perfil-texto">
-          <span class="perfil-nome">{{ perfil.nome }}</span>
-          <span class="perfil-role">{{ perfil.role }}</span>
-        </div>
-        <i class="fas fa-pen perfil-editar" title="Editar perfil"></i>
-      </RouterLink>
+      <!-- Perfil + sair na base -->
+      <div class="base">
+        <RouterLink v-if="perfil" to="/perfil" class="perfil-card" active-class="perfil-card-ativo">
+          <div class="perfil-avatar">
+            <img v-if="perfil.avatar_url" :src="perfil.avatar_url" :alt="perfil.nome" />
+            <span v-else class="perfil-iniciais">{{ iniciais(perfil.nome) }}</span>
+          </div>
+          <div class="perfil-texto">
+            <span class="perfil-nome">{{ perfil.nome }}</span>
+            <span class="perfil-role">{{ perfil.role }}</span>
+          </div>
+        </RouterLink>
 
-      <!-- Botão de logout -->
-      <!-- @click="sair" = quando o usuário clica, chama a função sair() -->
-      <button @click="sair" class="botao-sair">
-        <i class="fas fa-sign-out-alt"></i>
-        <span>Sair</span>
-      </button>
+        <button @click="sair" class="botao-sair">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Sair</span>
+        </button>
+      </div>
     </aside>
 
-    <!-- ===== CONTEÚDO CENTRAL ===== -->
-    <!-- Aqui é onde as páginas aparecem (Dashboard, Funcionários, etc.) -->
     <main class="conteudo">
-      <!-- RouterView: espaço vazio onde o Vue coloca o componente da rota atual -->
-      <!-- Cada rota filha (children) aparece aqui automaticamente -->
       <RouterView />
     </main>
   </div>
 </template>
 
 <script setup>
-// ===== IMPORTAÇÕES =====
-// Importar o composable do Supabase que já está configurado no projeto
-// useSupabase() = retorna o cliente Supabase pronto para usar
 import { useSupabase } from '@/composables/useSupabase'
 import { useRouter, RouterLink, RouterView } from 'vue-router'
 import { computed } from 'vue'
 
 const { supabase, perfil } = useSupabase()
 
-// Itens de menu com as roles que podem ver cada um
-const MENU = [
-  { to: '/estoque',         label: 'Estoque',           icone: 'fas fa-boxes',     roles: ['admin','almoxarife','professor','aluno'] },
-  { to: '/retirada_epi',    label: 'Retirada de EPIs',  icone: 'fas fa-hand-holding', roles: ['admin','almoxarife','professor','aluno'] },
-  { to: '/meus_epis',       label: 'Meus EPIs',         icone: 'fas fa-hard-hat', roles: ['admin','almoxarife','professor','aluno'] },
-  { to: '/aprovacoes',      label: 'Aprovações',        icone: 'fas fa-clipboard-check', roles: ['admin','almoxarife'] },
-  { to: '/cadastro_epi',    label: 'Cadastro de EPI',   icone: 'fas fa-plus-circle', roles: ['admin','almoxarife'] },
-  { to: '/dashboard',       label: 'Dashboard',         icone: 'fas fa-chart-line', roles: ['admin','almoxarife'] },
-  { to: '/admin/usuarios',  label: 'Gerenciar Usuários',icone: 'fas fa-user-shield', roles: ['admin'] },
-  { to: '/admin/permissoes',label: 'Permissões de EPI', icone: 'fas fa-lock',        roles: ['admin'] },
+// Menu agrupado por setor/área
+const GRUPOS = [
+  {
+    titulo: 'Estoque & EPIs',
+    itens: [
+      { to: '/estoque',      label: 'Estoque',         icone: 'fas fa-boxes',        roles: ['admin','almoxarife','professor','aluno'] },
+      { to: '/cadastro_epi', label: 'Cadastro de EPI', icone: 'fas fa-plus-circle',  roles: ['admin','almoxarife'] },
+    ],
+  },
+  {
+    titulo: 'Operações',
+    itens: [
+      { to: '/retirada_epi', label: 'Retirada de EPIs', icone: 'fas fa-hand-holding',     roles: ['admin','almoxarife','professor','aluno'] },
+      { to: '/meus_epis',    label: 'Meus EPIs',        icone: 'fas fa-hard-hat',         roles: ['admin','almoxarife','professor','aluno'] },
+      { to: '/aprovacoes',   label: 'Aprovações',       icone: 'fas fa-clipboard-check',  roles: ['admin','almoxarife'] },
+    ],
+  },
+  {
+    titulo: 'Análise',
+    itens: [
+      { to: '/dashboard', label: 'Dashboard', icone: 'fas fa-chart-line', roles: ['admin','almoxarife'] },
+    ],
+  },
+  {
+    titulo: 'Administração',
+    itens: [
+      { to: '/admin/usuarios',   label: 'Gerenciar Usuários', icone: 'fas fa-user-shield', roles: ['admin'] },
+      { to: '/admin/permissoes', label: 'Permissões de EPI',  icone: 'fas fa-lock',        roles: ['admin'] },
+    ],
+  },
 ]
 
-const itensVisiveis = computed(() => {
+const gruposVisiveis = computed(() => {
   const role = perfil.value?.role
   if (!role) return []
-  return MENU.filter(i => i.roles.includes(role))
+  return GRUPOS
+    .map(g => ({ ...g, itens: g.itens.filter(i => i.roles.includes(role)) }))
+    .filter(g => g.itens.length > 0)
+})
+
+const rotuloPainel = computed(() => {
+  const r = perfil.value?.role
+  if (r === 'admin') return 'Admin Panel'
+  if (r === 'almoxarife') return 'Almoxarifado'
+  if (r === 'professor') return 'Professor'
+  if (r === 'aluno') return 'Aluno'
+  return 'Sistema EPI'
 })
 
 const iniciais = (nome) =>
   (nome || '?').trim().split(/\s+/).slice(0, 2).map(p => p[0]?.toUpperCase()).join('')
 
-// Pegar o router para navegar entre páginas
-// router = objeto que permite router.push('/pagina') para navegar
 const router = useRouter()
 
-// ===== FUNÇÃO: FAZER LOGOUT =====
-// Esta função é chamada quando o usuário clica no botão "Sair"
-// Ela desconecta o usuário do Supabase e o redireciona para a página de login
 async function sair() {
-  // try = tenta executar o código dentro
-  // Se houver um erro, vai para o catch
   try {
-    // ===== PASSO 1: DESCONECTAR DO SUPABASE =====
-    // supabase.auth.signOut() = função do Supabase que desconecta o usuário
-    // Isso remove a sessão do usuário do navegador
-    // await = espera a operação terminar antes de continuar
     await supabase.auth.signOut()
-    // Depois de desconectar, o usuário não está mais autenticado
-    // Se tentar acessar uma página protegida, será redirecionado para login
-
-    // ===== PASSO 2: REDIRECIONAR PARA A PÁGINA DE LOGIN =====
-    // router.push('/login') = navega para a página /login
-    // Isso leva o usuário de volta para a tela de login
-    // A navegação acontece sem recarregar a página (SPA)
     router.push('/login')
-    // Agora o usuário está na página de login e pode fazer login novamente
-  }
-  // catch = captura qualquer erro que aconteça no try
-  catch (err) {
-    // Se houver um erro ao fazer logout, mostrar no console
-    // Isso ajuda o desenvolvedor a entender o que deu errado
+  } catch (err) {
     console.error('Erro ao fazer logout:', err)
-    // Nota: mesmo com erro, o usuário pode estar desconectado
-    // Mas é bom avisar o desenvolvedor sobre o problema
   }
 }
 </script>
 
 <style scoped>
-/* ===== ESTILOS GERAIS ===== */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* ===== CONTAINER PRINCIPAL: SHELL ===== */
-/* Divide a tela em duas colunas: Sidebar (esquerda) + Conteúdo (direita) */
 .shell {
   display: grid;
-  grid-template-columns: 250px 1fr;
+  grid-template-columns: 260px 1fr;
   min-height: 100vh;
   width: 100%;
 }
 
 .sidebar {
-  background-color: #020200;
-  padding: 30px 20px;
+  background: #221E18;
+  border-right: 1px solid rgba(255,255,255,0.04);
+  padding: 1.5rem 1rem 1.2rem;
   display: flex;
   flex-direction: column;
   position: sticky;
   top: 0;
   height: 100vh;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   overflow-y: auto;
   align-self: start;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* ===== LOGO ===== */
-/* Título do sistema na Sidebar */
-.logo {
-  font-size: 24px;
-  font-weight: 700;
-  color: #FFFFFF;
-  margin-bottom: 40px;
-  text-align: center;
+/* ===== Header ===== */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.4rem 0.5rem 1.4rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  margin-bottom: 1.2rem;
+}
+.logo-icone {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.6rem;
+  background: #F49D25;
+  color: #1a1410;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
+.logo-texto { display: flex; flex-direction: column; line-height: 1.2; }
+.logo-nome { color: #fff; font-size: 1.05rem; font-weight: 800; letter-spacing: -0.01em; }
+.logo-destaque { color: #F49D25; }
+.logo-sub { color: #8b8680; font-size: 0.72rem; font-weight: 500; margin-top: 0.1rem; }
 
-/* Ícone do logo */
-.logo i {
-  font-size: 28px;
-}
-
-/* ===== MENU DE NAVEGAÇÃO ===== */
-/* Container que envolve todos os links do menu */
+/* ===== Menu ===== */
 .menu {
   flex-grow: 1;
-  /* Ocupa todo o espaço disponível */
   display: flex;
   flex-direction: column;
-  /* Coloca os itens em coluna (um embaixo do outro) */
-  gap: 10px;
-  /* Espaço entre os itens */
+  gap: 1.1rem;
+  overflow-y: auto;
+}
+.grupo { display: flex; flex-direction: column; gap: 0.25rem; }
+.grupo-titulo {
+  color: #6b6359;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0 0.6rem 0.4rem;
 }
 
-/* ===== ITENS DO MENU ===== */
-/* Estilo de cada link do menu */
 .menu-item {
   display: flex;
-  /* Coloca o ícone e o texto lado a lado */
   align-items: center;
-  padding: 15px 20px;
-  color: #FFFFFF;
+  gap: 0.75rem;
+  padding: 0.65rem 0.8rem;
+  color: #c5bfb5;
   text-decoration: none;
-  /* Remove o sublinhado padrão dos links */
-  border-radius: 4px;
-  font-size: 16px;
+  border-radius: 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 500;
   cursor: pointer;
-  /* Muda o cursor para "mão" quando passa */
-  transition: all 0.3s ease;
-  /* Animação suave ao mudar de estado */
-  gap: 12px;
-  /* Espaço entre o ícone e o texto */
+  transition: background 0.15s, color 0.15s;
 }
+.menu-item:hover { background: rgba(255,255,255,0.04); color: #fff; }
+.menu-item i { font-size: 0.95rem; width: 1.1rem; text-align: center; color: #8b8680; transition: color 0.15s; }
+.menu-item:hover i { color: #F49D25; }
 
-/* Quando passa o mouse no item do menu */
-.menu-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  /* Fundo branco translúcido */
-}
-
-/* Quando o item está ativo (a página atual) */
 .menu-item.active {
-  background-color: rgba(184, 165, 165, 0.2);
-  /* Fundo branco mais opaco */
+  background: rgba(244, 157, 37, 0.12);
+  color: #F49D25;
   font-weight: 600;
-  /* Texto em negrito */
-  border-left: 4px solid #FFFFFF;
-  /* Borda branca na esquerda */
-  padding-left: 16px;
-  /* Reduz o padding para compensar a borda */
 }
+.menu-item.active i { color: #F49D25; }
 
-/* Ícone do menu */
-.menu-item i {
-  font-size: 20px;
-  width: 24px;
-  text-align: center;
-}
-
-/* ===== BOTÃO SAIR ===== */
-/* Botão de logout na parte inferior da Sidebar */
-.botao-sair {
+/* ===== Base (perfil + sair) ===== */
+.base {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  background-color: rgba(121, 29, 29, 0.1);
-  /* Fundo branco translúcido */
-  color: #FFFFFF;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  width: 100%;
-  /* Ocupa toda a largura da Sidebar */
-}
-
-/* Quando passa o mouse no botão Sair */
-.botao-sair:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  /* Fundo mais opaco */
-}
-
-/* Quando clica no botão Sair */
-.botao-sair:active {
-  transform: scale(0.98);
-  /* Diminui um pouco o tamanho */
-}
-
-/* Ícone do botão Sair */
-.botao-sair i {
-  font-size: 18px;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  margin-top: 1rem;
 }
 
 .perfil-card {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.7rem;
   text-decoration: none;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  padding: 10px 12px;
-  margin: 12px 0 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.7rem;
   transition: background 0.2s, border-color 0.2s;
 }
-.perfil-card:hover { background: rgba(244, 157, 37, 0.1); border-color: rgba(244, 157, 37, 0.4); }
-.perfil-card-ativo { border-color: #F49D25; background: rgba(244, 157, 37, 0.12); }
+.perfil-card:hover { background: rgba(244,157,37,0.08); border-color: rgba(244,157,37,0.3); }
+.perfil-card-ativo { border-color: #F49D25; background: rgba(244,157,37,0.12); }
 
 .perfil-avatar {
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   overflow: hidden;
   background: #3a332b;
@@ -294,58 +255,61 @@ async function sair() {
   justify-content: center;
 }
 .perfil-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.perfil-iniciais { color: #F49D25; font-weight: 800; font-size: 0.95rem; }
+.perfil-iniciais { color: #F49D25; font-weight: 800; font-size: 0.85rem; }
 
-.perfil-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.perfil-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
 .perfil-nome {
   color: #fff;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .perfil-role {
-  color: #F49D25;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: #8b8680;
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  margin-top: 0.1rem;
 }
-.perfil-editar { color: #8b8680; font-size: 0.8rem; flex-shrink: 0; }
-.perfil-card:hover .perfil-editar { color: #F49D25; }
 
-/* ===== CONTEÚDO CENTRAL ===== */
-/* Área principal onde as páginas aparecem */
+.botao-sair {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  background: transparent;
+  color: #8b8680;
+  border: 1px solid rgba(255,255,255,0.05);
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  width: 100%;
+}
+.botao-sair:hover {
+  background: rgba(248,113,113,0.08);
+  color: #f87171;
+  border-color: rgba(248,113,113,0.3);
+}
+.botao-sair i { font-size: 0.85rem; }
+
 .conteudo {
   min-width: 0;
   min-height: 100vh;
   overflow-x: hidden;
 }
 
-/* ===== RESPONSIVIDADE: Telas pequenas (celulares) ===== */
 @media (max-width: 768px) {
-  .shell {
-    grid-template-columns: 200px 1fr;
-  }
-  .logo {
-    font-size: 20px;
-    margin-bottom: 30px;
-  }
-  .menu-item {
-    padding: 12px 15px;
-    font-size: 14px;
-  }
+  .shell { grid-template-columns: 220px 1fr; }
+  .menu-item { padding: 0.55rem 0.7rem; font-size: 0.82rem; }
 }
-
 @media (max-width: 480px) {
-  .shell {
-    grid-template-columns: 1fr;
-  }
-  .sidebar {
-    position: static;
-    height: auto;
-    width: 100%;
-  }
+  .shell { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; width: 100%; }
 }
 </style>
