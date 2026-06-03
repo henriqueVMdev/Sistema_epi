@@ -69,7 +69,7 @@ onMounted(carregar);
   <div class="pagina">
     <header class="cabecalho">
       <div>
-        <p class="caminho">Admin <span class="separador">›</span> <span class="atual">Usuários</span></p>
+        <p class="caminho">Administração <span class="separador">›</span> <span class="atual">Gerenciar Usuários</span></p>
         <h1 class="titulo">Gerenciar <span class="destaque">Usuários</span></h1>
         <p class="subtitulo">Atribua roles e setores. Total: {{ usuarios.length }}.</p>
       </div>

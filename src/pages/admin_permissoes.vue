@@ -158,7 +158,7 @@ onMounted(carregar);
   <div class="pagina">
     <header class="cabecalho">
       <div>
-        <p class="caminho">Admin <span class="separador">›</span> <span class="atual">Permissões de EPI</span></p>
+        <p class="caminho">Administração <span class="separador">›</span> <span class="atual">Permissões de EPI</span></p>
         <h1 class="titulo">Permissões de <span class="destaque">EPIs</span></h1>
         <p class="subtitulo">
           Defina quais EPIs cada combinação de role + setor pode retirar e o limite por pedido.
