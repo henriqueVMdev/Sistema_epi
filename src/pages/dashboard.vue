@@ -119,42 +119,20 @@ const donutSegmentos = computed(() => {
   });
 });
 
-// Retiradas por mês (últimos 6 meses)
-const retiradasPorMes = computed(() => {
-  const meses = [];
-  const ref = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(ref.getFullYear(), ref.getMonth() - i, 1);
-    meses.push({
-      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-      label: d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
-      qtd: 0,
-    });
-  }
-  for (const r of retiradas.value) {
-    if (!r.data_entrega) continue;
-    const d = new Date(r.data_entrega);
-    if (isNaN(d.getTime())) continue;
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const item = meses.find(m => m.key === key);
-    if (item) item.qtd += Number(r.quantidade) || 1;
-  }
-  return meses;
-});
-const maxMes = computed(() =>
-  retiradasPorMes.value.reduce((m, x) => Math.max(m, x.qtd), 0) || 1
+// Estoque por EPI (gráfico de barras) — ordena do maior pro menor
+const estoquePorEpi = computed(() =>
+  epis.value
+    .map(e => ({
+      nome: e.nome || '—',
+      estoque: Number(e.estoque) || 0,
+      minimo: Number(e.estoque_minimo) || 0,
+      baixo: (Number(e.estoque_minimo) || 0) > 0 && (Number(e.estoque) || 0) <= (Number(e.estoque_minimo) || 0),
+    }))
+    .sort((a, b) => b.estoque - a.estoque)
 );
-
-// Linha do gráfico de meses (polyline)
-const linhaMeses = computed(() => {
-  const w = 100, h = 100;
-  const n = retiradasPorMes.value.length;
-  return retiradasPorMes.value.map((m, i) => {
-    const x = n === 1 ? w / 2 : (i / (n - 1)) * w;
-    const y = h - (m.qtd / maxMes.value) * h * 0.85 - 5;
-    return `${x},${y}`;
-  }).join(' ');
-});
+const maxEstoque = computed(() =>
+  estoquePorEpi.value.reduce((m, e) => Math.max(m, e.estoque), 0) || 1
+);
 
 // EPIs próximos ao vencimento (até 90 dias) + vencidos
 const episVencendo = computed(() => {
@@ -237,7 +215,6 @@ const statusRetiradas = computed(() => {
         <section class="card-chart">
           <div class="chart-header">
             <h2>EPIs mais retirados</h2>
-            <span class="chart-tag">top 6</span>
           </div>
           <div v-if="topEpisRetirados.length === 0" class="vazio">Nenhuma retirada registrada.</div>
           <div v-else class="barras-h">
@@ -286,38 +263,27 @@ const statusRetiradas = computed(() => {
         </section>
       </div>
 
-      <!-- Retiradas por mês -->
+      <!-- Estoque atual por EPI -->
       <section class="card-chart">
         <div class="chart-header">
-          <h2>Retiradas nos últimos 6 meses</h2>
-          <span class="chart-tag">tendência</span>
+          <h2>Estoque atual por EPI</h2>
+          <span class="chart-tag">{{ totalEstoque }} un. no total</span>
         </div>
-        <div class="grafico-mes">
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="grafico-svg">
-            <defs>
-              <linearGradient id="gradMes" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#F49D25" stop-opacity="0.5" />
-                <stop offset="100%" stop-color="#F49D25" stop-opacity="0" />
-              </linearGradient>
-            </defs>
-            <polyline
-              :points="`0,100 ${linhaMeses} 100,100`"
-              fill="url(#gradMes)"
-              stroke="none"
-            />
-            <polyline
-              :points="linhaMeses"
-              fill="none"
-              stroke="#F49D25"
-              stroke-width="0.8"
-              vector-effect="non-scaling-stroke"
-            />
-          </svg>
-          <div class="grafico-pontos">
-            <div v-for="m in retiradasPorMes" :key="m.key" class="ponto-col">
-              <span class="ponto-valor">{{ m.qtd }}</span>
-              <span class="ponto-label">{{ m.label }}</span>
+        <div v-if="estoquePorEpi.length === 0" class="vazio">Nenhum EPI cadastrado.</div>
+        <div v-else class="barras-estoque">
+          <div v-for="item in estoquePorEpi" :key="item.nome" class="barra-est-linha">
+            <span class="barra-est-nome">{{ item.nome }}</span>
+            <div class="barra-est-trilho">
+              <div
+                class="barra-est-preenchida"
+                :class="{ 'barra-est-baixo': item.baixo }"
+                :style="{ width: Math.max(2, item.estoque / maxEstoque * 100) + '%' }"
+              ></div>
             </div>
+            <span class="barra-est-valor" :class="{ 'valor-baixo': item.baixo }">
+              {{ item.estoque }}
+              <small v-if="item.minimo">/ mín {{ item.minimo }}</small>
+            </span>
           </div>
         </div>
       </section>
@@ -458,7 +424,10 @@ const statusRetiradas = computed(() => {
   border: 1px solid rgba(255,255,255,0.05);
   border-radius: 1rem;
   padding: 1.4rem 1.5rem;
+  margin-bottom: 1.5rem;
 }
+/* dentro do grid de 2 colunas o espaçamento já vem do gap */
+.grid-2col .card-chart { margin-bottom: 0; }
 .chart-header {
   display: flex;
   justify-content: space-between;
@@ -547,31 +516,51 @@ const statusRetiradas = computed(() => {
 .legend-val { color: #fff; font-weight: 700; }
 .legend-val small { color: #8b8680; font-weight: 500; font-size: 0.75rem; }
 
-/* ---------- gráfico mensal ---------- */
-.grafico-mes { position: relative; }
-.grafico-svg {
-  width: 100%;
-  height: 180px;
-  display: block;
-}
-.grafico-pontos {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  margin-top: 0.6rem;
-}
-.ponto-col {
+/* ---------- gráfico de estoque ---------- */
+.barras-estoque {
   display: flex;
   flex-direction: column;
+  gap: 0.85rem;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.barra-est-linha {
+  display: grid;
+  grid-template-columns: 150px 1fr 90px;
+  gap: 0.8rem;
   align-items: center;
-  gap: 0.15rem;
 }
-.ponto-valor { color: #fff; font-size: 0.95rem; font-weight: 700; }
-.ponto-label {
-  color: #8b8680;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.barra-est-nome {
+  color: #c5bfb5;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+.barra-est-trilho {
+  background: #2a2520;
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.barra-est-preenchida {
+  height: 100%;
+  background: linear-gradient(90deg, #4ade80, #34d399);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+.barra-est-baixo {
+  background: linear-gradient(90deg, #f87171, #fb923c);
+}
+.barra-est-valor {
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-align: right;
+}
+.barra-est-valor small { color: #8b8680; font-weight: 500; font-size: 0.72rem; }
+.valor-baixo { color: #f87171; }
 
 /* ---------- lista vencimento / estoque baixo ---------- */
 .lista-vencimento {
@@ -638,5 +627,6 @@ const statusRetiradas = computed(() => {
   .titulo-pagina { font-size: 1.8rem; }
   .kpi-grid { grid-template-columns: 1fr; }
   .barra-linha { grid-template-columns: 90px 1fr 35px; }
+  .barra-est-linha { grid-template-columns: 90px 1fr 70px; }
 }
 </style>

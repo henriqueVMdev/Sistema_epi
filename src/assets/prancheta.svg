@@ -1,8 +1,8 @@
 <svg width="590" height="590" viewBox="0 0 590 590" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g filter="url(#filter0_d_89_97)">
 <rect x="38" y="13" width="514" height="514" rx="16" fill="url(#pattern0_89_97)" shape-rendering="crispEdges"/>
-<rect x="38" y="13" width="514" height="514" rx="16" fill="white" style="mix-blend-mode:saturation" shape-rendering="crispEdges"/>
-<rect x="38.5" y="13.5" width="513" height="513" rx="15.5" stroke="white" stroke-opacity="0.1" shape-rendering="crispEdges"/>
+
+
 </g>
 <defs>
 <filter id="filter0_d_89_97" x="0" y="0" width="590" height="590" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">

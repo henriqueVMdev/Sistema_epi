@@ -19,32 +19,60 @@ const mostrarMensagem = (tipo, texto) => {
 
 const carregar = async () => {
   carregando.value = true;
-  const [{ data: us, error: eU }, { data: st, error: eS }] = await Promise.all([
+  const [{ data: us, error: eU }, { data: st, error: eS }, { data: fs }] = await Promise.all([
     supabase
       .from('funcionarios')
-      .select('id, nome, email, cpf, role, setor_id, criado_em, setor:setores(id, nome)')
+      .select('id, nome, email, cpf, role, setor_id, criado_em, setor:setores!funcionarios_setor_id_fkey(id, nome)')
       .order('nome'),
     supabase.from('setores').select('id, nome').order('nome'),
+    supabase.from('funcionario_setores').select('funcionario_id, setor_id'),
   ]);
   if (eU) console.error(eU);
   if (eS) console.error(eS);
-  usuarios.value = us || [];
+
+  // anexa lista de setor_ids extras (de junction) em cada professor
+  const extras = new Map();
+  for (const r of (fs || [])) {
+    if (!extras.has(r.funcionario_id)) extras.set(r.funcionario_id, []);
+    extras.get(r.funcionario_id).push(r.setor_id);
+  }
+  usuarios.value = (us || []).map(u => ({
+    ...u,
+    setores_extra: extras.get(u.id) || [],
+    setorMenuAberto: false,
+  }));
   setores.value = st || [];
   carregando.value = false;
 };
 
+const toggleSetorExtra = (u, setorId) => {
+  const idx = u.setores_extra.indexOf(setorId);
+  if (idx >= 0) u.setores_extra.splice(idx, 1);
+  else u.setores_extra.push(setorId);
+};
+
 const salvar = async (u) => {
   salvandoId.value = u.id;
+  // 1) atualiza role + setor principal
   const { error } = await supabase
     .from('funcionarios')
     .update({ role: u.role, setor_id: u.setor_id })
     .eq('id', u.id);
-  salvandoId.value = null;
   if (error) {
+    salvandoId.value = null;
     console.error(error);
     mostrarMensagem('erro', 'Erro ao salvar alterações.');
     return;
   }
+  // 2) atualiza setores extras (apenas para professor)
+  await supabase.from('funcionario_setores').delete().eq('funcionario_id', u.id);
+  if (u.role === 'professor' && u.setores_extra.length > 0) {
+    const rows = u.setores_extra
+      .filter(id => id !== u.setor_id) // não duplicar o principal
+      .map(setor_id => ({ funcionario_id: u.id, setor_id }));
+    if (rows.length) await supabase.from('funcionario_setores').insert(rows);
+  }
+  salvandoId.value = null;
   mostrarMensagem('sucesso', `${u.nome} atualizado.`);
 };
 
@@ -101,10 +129,28 @@ onMounted(carregar);
               </select>
             </td>
             <td>
-              <select v-model="u.setor_id">
-                <option :value="null">—</option>
-                <option v-for="s in setores" :key="s.id" :value="s.id">{{ s.nome }}</option>
-              </select>
+              <div class="setor-cell">
+                <select v-model="u.setor_id">
+                  <option :value="null">—</option>
+                  <option v-for="s in setores" :key="s.id" :value="s.id">{{ s.nome }}</option>
+                </select>
+                <div v-if="u.role === 'professor'" class="multi-setor">
+                  <button type="button" class="btn-mais-setor" @click="u.setorMenuAberto = !u.setorMenuAberto">
+                    + {{ u.setores_extra.filter(id => id !== u.setor_id).length }} setor(es)
+                  </button>
+                  <div v-if="u.setorMenuAberto" class="multi-menu">
+                    <label v-for="s in setores" :key="s.id" class="multi-opcao">
+                      <input
+                        type="checkbox"
+                        :checked="u.setores_extra.includes(s.id)"
+                        :disabled="s.id === u.setor_id"
+                        @change="toggleSetorExtra(u, s.id)"
+                      />
+                      <span>{{ s.nome }}</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
             </td>
             <td class="acoes">
               <button class="btn-salvar" :disabled="salvandoId === u.id" @click="salvar(u)">
@@ -222,4 +268,57 @@ onMounted(carregar);
 }
 .toast-sucesso { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.4); color: #4ade80; }
 .toast-erro { background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.4); color: #f87171; }
+
+.setor-cell { display: flex; align-items: center; gap: 0.4rem; position: relative; }
+.btn-mais-setor {
+  background: rgba(244,157,37,0.12);
+  color: #F49D25;
+  border: 1px solid rgba(244,157,37,0.3);
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-mais-setor:hover { background: rgba(244,157,37,0.22); }
+.multi-menu {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  right: 0;
+  background: #1c1814;
+  border: 1px solid #2a241e;
+  border-radius: 0.45rem;
+  padding: 0.4rem;
+  min-width: 180px;
+  z-index: 100;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  max-height: 220px;
+  overflow-y: auto;
+}
+.multi-opcao {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.3rem;
+  cursor: pointer;
+  color: #ebe8e4;
+  font-size: 0.82rem;
+}
+.multi-opcao:hover { background: rgba(244,157,37,0.08); }
+.multi-opcao input[type="checkbox"] {
+  appearance: none;
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 1.5px solid #5c554d;
+  border-radius: 0.2rem;
+  cursor: pointer;
+  margin: 0;
+}
+.multi-opcao input[type="checkbox"]:checked {
+  background: #F49D25;
+  border-color: #F49D25;
+}
+.multi-opcao input[type="checkbox"]:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>

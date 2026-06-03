@@ -16,13 +16,13 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 const session = ref(null)
 const loadingSession = ref(true)
-const perfil = ref(null) // { id, user_id, nome, email, cpf, role, setor_id, avatar_url, setor: { id, nome } }
+const perfil = ref(null) // { ..., setores: [{ id, nome }, ...] }
 
 async function carregarPerfil(userId) {
   if (!userId) { perfil.value = null; return }
   const { data, error } = await supabase
     .from('funcionarios')
-    .select('id, user_id, nome, email, cpf, role, setor_id, avatar_url, setor:setores(id, nome)')
+    .select('id, user_id, nome, email, cpf, role, setor_id, avatar_url, setor:setores!funcionarios_setor_id_fkey(id, nome)')
     .eq('user_id', userId)
     .maybeSingle()
   if (error) {
@@ -30,7 +30,18 @@ async function carregarPerfil(userId) {
     perfil.value = null
     return
   }
-  perfil.value = data
+  // Lista unificada de setores: o setor "principal" + extras da junction (pra professores)
+  let setores = data?.setor ? [data.setor] : []
+  if (data) {
+    const { data: extras } = await supabase
+      .from('funcionario_setores')
+      .select('setor:setores(id, nome)')
+      .eq('funcionario_id', data.id)
+    for (const e of (extras || [])) {
+      if (e.setor && !setores.find(s => s.id === e.setor.id)) setores.push(e.setor)
+    }
+  }
+  perfil.value = data ? { ...data, setores } : null
 }
 
 // IMPORTANTE: não usar `await` em queries dentro deste callback — trava o cliente Supabase.

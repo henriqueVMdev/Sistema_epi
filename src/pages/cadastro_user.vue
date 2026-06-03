@@ -48,7 +48,12 @@ const cadastrar = async () => {
     email: form.email,
     password: senha.value,
   });
-  if (authError) { error.value = authError.message; return; }
+  if (authError) {
+    error.value = authError.code === 'user_already_exists'
+      ? 'Este e-mail já possui uma conta. Faça login ou use outro e-mail.'
+      : authError.message;
+    return;
+  }
 
   // 3) Insere em funcionarios. Se falhar, desloga pra não deixar sessão de usuário órfão.
   const { error: insertError } = await supabase
@@ -59,6 +64,7 @@ const cadastrar = async () => {
       cpf: form.cpf,
       setor_id: form.setor_id,
       user_id: data.user.id,
+      role: 'aluno',
     });
   if (insertError) {
     console.error('erro ao cadastrar:', insertError);
@@ -77,10 +83,10 @@ const cadastrar = async () => {
 <div class="container">
   <div class="caixa">
     <form @submit.prevent="cadastrar">
-      <H1>
-        <span class="white"> Omni </span> 
+      <h1>
+        <span class="white"> Omni </span>
         <span class="amarelo"> Seg </span>
-      </H1>
+      </h1>
 
       <p class = "mensagem"> Registre-se e desfrute do controle e facilidade</p>
       
@@ -101,7 +107,7 @@ const cadastrar = async () => {
 
       <div class = "campo">
         <label>CPF:</label>
-        <input v-model = "form.cpf" type="text" placeholder="Ex: 123.456.789-00">
+        <input v-model="form.cpf" type="text" maxlength="11" inputmode="numeric" placeholder="Ex: 12345678900">
       </div>
 
       <div class = "campo">
@@ -114,7 +120,7 @@ const cadastrar = async () => {
 
       <p class = "error" v-if = "error"> {{ error }} </p>
 
-    <button class = "btn">
+    <button type="submit" class="btn">
       Criar Conta
     </button>
 

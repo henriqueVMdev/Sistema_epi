@@ -39,7 +39,7 @@ const carregar = async () => {
       id, status, quantidade, justificativa, data_retirada, data_entrega, data_validade, data_devolucao,
       nome_epi, nome_retirada, setor_retirada,
       epi:epis(*),
-      funcionario:funcionarios(id, nome, setor:setores(id, nome))
+      funcionario:funcionarios(id, nome, setor:setores!funcionarios_setor_id_fkey(id, nome))
     `)
     .order('data_retirada', { ascending: false })
     .limit(200);

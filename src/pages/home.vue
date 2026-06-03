@@ -176,7 +176,7 @@
     <h2>Empresas que confiam no nosso projeto</h2>
     <p>venha fazer parte você também</p>
     <div class="logos-row">
-      <img src="../assets/upscalemedia-transformed 1.svg" alt="SENAI" class="logo-senai" />
+      <img src="/senai.svg" alt="SENAI" class="logo-senai" />
     </div>
   </section>
 
@@ -192,7 +192,7 @@
 
   <footer class="footer">
     <div class="footer-brand">
-      <span class="logo-name footer-logo-name">Omni<span class="logo-accent">Seg</span></span>
+      <span class="p-name footer-logo-name"><img src="@/assets/Logo_branco.svg" alt="OmniSeg" class="footer-logo-img" />Omni<span class="logo-accent">Seg</span></span>
       <p>Plataforma focada em gestão de EPIs e<br />segurança do trabalho. Tecnologia que<br />salva vidas.</p>
     </div>
     <div class="footer-col">
@@ -209,7 +209,7 @@
       <a href="#">Blog</a>
       <a href="#">Contato</a>
     </div>
-    <div class="footer-col">
+    <div class="footer-col">a pag
       <h4>Legal</h4>
       <a href="#">Privacidade</a>
       <a href="#">Termos de Uso</a>
@@ -511,21 +511,23 @@ html {
   background: #1f1912;
   border-radius: 1.5rem;
   display: flex;
+  align-items: center;
   overflow: hidden;
   border: 1px solid rgba(255,255,255,0.05);
-  min-height: 340px;
+  padding: 2rem;
+  gap: 2rem;
 }
 
 .bio-img-side {
   position: relative;
-  width: 42%;
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  width: clamp(280px, 36%, 420px);
+  align-self: center;
 }
 
 .bio-img-side img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
   display: block;
 }
 
@@ -542,7 +544,8 @@ html {
 }
 
 .bio-text-side {
-  padding: 3rem 3rem 3rem 3.5rem;
+  flex: 1;
+  padding: 1rem 1rem 1rem 0.5rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -697,6 +700,7 @@ html {
   align-items: center;
   margin-top: 3rem;
   gap: 3rem;
+  
 }
 
 .logo-senai {
@@ -764,8 +768,15 @@ html {
 
 .footer-logo-name {
   font-size: 1.2rem;
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.8rem;
+}
+.footer-logo-img {
+  width: 1.6rem;
+  height: 1.6rem;
+  object-fit: contain;
 }
 
 .footer-brand p {

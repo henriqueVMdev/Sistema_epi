@@ -13,6 +13,9 @@ const mensagem = ref(null);
 
 const podeAdministrar = computed(() => ['admin', 'almoxarife'].includes(perfil.value?.role));
 
+// Limites padrão por role (admin pode sobrescrever em epi_permissoes)
+const LIMITE_PADRAO = { aluno: 1, professor: 30 };
+
 const mostrarMensagem = (tipo, texto, ms = 4000) => {
   mensagem.value = { tipo, texto };
   setTimeout(() => { mensagem.value = null; }, ms);
@@ -49,7 +52,7 @@ async function carregar() {
   carregando.value = true;
 
   const role = perfil.value.role;
-  const setorId = perfil.value.setor_id;
+  const meusSetores = (perfil.value.setores || []).map(s => s.nome);
 
   // 1) Lista de EPIs + limites
   let baseEpis = [];
@@ -61,23 +64,39 @@ async function carregar() {
     baseEpis = data || [];
     // limite "infinito" — sem restrição
   } else {
-    if (!setorId) {
+    if (meusSetores.length === 0) {
       epis.value = [];
       carregando.value = false;
       return;
     }
-    const { data, error } = await supabase
-      .from('epi_permissoes')
-      .select('limite, epi:epis(*)')
-      .eq('role', role)
-      .eq('setor_id', setorId);
+
+    // Busca todos os EPIs e filtra pelos que tem setor do usuário
+    const { data: todos, error } = await supabase.from('epis').select('*').order('nome');
     if (error) console.error(error);
-    for (const p of (data || [])) {
-      if (!p.epi) continue;
-      baseEpis.push(p.epi);
-      limitePorEpi.set(p.epi.id, p.limite);
+
+    const limitePadrao = LIMITE_PADRAO[role] ?? 0;
+
+    // Override opcional do admin: epi_permissoes para (role, setores do usuário)
+    const setorIds = (perfil.value.setores || []).map(s => s.id);
+    const { data: overrides } = await supabase
+      .from('epi_permissoes')
+      .select('epi_id, limite, setor_id')
+      .eq('role', role)
+      .in('setor_id', setorIds.length ? setorIds : [-1]);
+    const overrideMap = new Map();
+    for (const o of (overrides || [])) {
+      // se houver overrides em vários setores pro mesmo EPI, usa o MAIOR
+      const atual = overrideMap.get(o.epi_id) ?? -1;
+      if (o.limite > atual) overrideMap.set(o.epi_id, o.limite);
     }
-    baseEpis.sort((a, b) => a.nome.localeCompare(b.nome));
+
+    for (const e of (todos || [])) {
+      const setoresDoEpi = String(e.setor || '').split(',').map(s => s.trim()).filter(Boolean);
+      const intersecao = setoresDoEpi.some(s => meusSetores.includes(s));
+      if (!intersecao) continue;
+      baseEpis.push(e);
+      limitePorEpi.set(e.id, overrideMap.has(e.id) ? overrideMap.get(e.id) : limitePadrao);
+    }
   }
 
   // 2) "Em uso" do usuário logado

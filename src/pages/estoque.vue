@@ -175,20 +175,20 @@ const carregando = ref(true);
 // Quem é admin/almoxarife enxerga tudo e tem ações administrativas.
 const podeAdministrar = computed(() => ['admin', 'almoxarife'].includes(perfil.value?.role));
 
+// Limite padrão por role (admin pode sobrescrever em epi_permissoes)
+const LIMITE_PADRAO = { aluno: 1, professor: 30 };
+
 const carregar = async () => {
   carregando.value = true;
 
   const role = perfil.value?.role;
-  const setorId = perfil.value?.setor_id;
-
-  // Sem perfil resolvido ainda — não tenta carregar pra evitar mostrar tudo erradamente.
   if (!role) {
     epis.value = [];
     carregando.value = false;
     return;
   }
 
-  // Admin/almoxarife: vê todos os EPIs (sem limite atrelado).
+  // Admin/almoxarife: vê todos os EPIs
   if (podeAdministrar.value) {
     const { data, error } = await supabase.from('epis').select('*').order('nome');
     if (error) console.error(error);
@@ -197,31 +197,33 @@ const carregar = async () => {
     return;
   }
 
-  // Professor/aluno: só vê EPIs com permissão para sua role + seu setor.
-  if (!setorId) {
+  // Professor/aluno: vê EPIs cujos setores intersectem com os seus
+  const meusSetores = (perfil.value?.setores || []).map(s => s.nome);
+  if (meusSetores.length === 0) {
     epis.value = [];
     carregando.value = false;
     return;
   }
 
-  const { data: perms, error: errPerms } = await supabase
+  const { data: todos } = await supabase.from('epis').select('*').order('nome');
+  const limitePadrao = LIMITE_PADRAO[role] ?? 0;
+
+  // Overrides opcionais do admin
+  const setorIds = (perfil.value?.setores || []).map(s => s.id);
+  const { data: overrides } = await supabase
     .from('epi_permissoes')
-    .select('epi_id, limite, epi:epis(*)')
+    .select('epi_id, limite')
     .eq('role', role)
-    .eq('setor_id', setorId);
-
-  if (errPerms) {
-    console.error(errPerms);
-    epis.value = [];
-    carregando.value = false;
-    return;
+    .in('setor_id', setorIds.length ? setorIds : [-1]);
+  const overrideMap = new Map();
+  for (const o of (overrides || [])) {
+    const atual = overrideMap.get(o.epi_id) ?? -1;
+    if (o.limite > atual) overrideMap.set(o.epi_id, o.limite);
   }
 
-  // Achata: cada epi vira uma linha com .limite anexo
-  epis.value = (perms || [])
-    .filter(p => p.epi) // segurança caso EPI tenha sido removido
-    .map(p => ({ ...p.epi, limite: p.limite }))
-    .sort((a, b) => a.nome.localeCompare(b.nome));
+  epis.value = (todos || [])
+    .filter(e => String(e.setor || '').split(',').map(s => s.trim()).some(s => meusSetores.includes(s)))
+    .map(e => ({ ...e, limite: overrideMap.has(e.id) ? overrideMap.get(e.id) : limitePadrao }));
 
   carregando.value = false;
 };
@@ -548,7 +550,7 @@ const excluir = async(id) =>{
     <footer class="rodape">
       <div class="rodape-marca">
         <span class="logo-nome">
-          <span class="logo-icone"></span>
+          <img src="@/assets/Logo_branco.svg" alt="OmniSeg" class="logo-icone" />
           Omni<span class="logo-destaque">Seg</span>
         </span>
         <p>Plataforma Focada em gestão de EPIs e segurança do trabalho. Tecnologia que salva vidas.</p>
@@ -950,11 +952,8 @@ const excluir = async(id) =>{
 .logo-icone {
   width: 1.5rem;
   height: 1.5rem;
-  background: #F49D25;
-  border-radius: 0.35rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  object-fit: contain;
+  vertical-align: middle;
 }
 .logo-destaque { color: #F49D25; }
 

@@ -250,9 +250,7 @@ onMounted(() => {
         <!-- cartão: informações básicas -->
         <section class="cartao">
           <div class="cartao-cabecalho">
-            <span class="icone-cartao">
-            </span>
-            <h2>Informações Básicas</h2>
+<h2>Informações Básicas</h2>
           </div>
 
           <div class="grade-campos">
@@ -316,9 +314,7 @@ onMounted(() => {
         <!-- cartão: certificado de aprovação -->
         <section class="cartao">
           <div class="cartao-cabecalho">
-            <span class="icone-cartao">
-            </span>
-            <h2>Certificado de Aprovação (CA)</h2>
+<h2>Certificado de Aprovação (CA)</h2>
           </div>
 
           <div class="grade-campos">
@@ -344,9 +340,7 @@ onMounted(() => {
         <!-- cartão: controle de estoque -->
         <section class="cartao">
           <div class="cartao-cabecalho">
-            <span class="icone-cartao">
-            </span>
-            <h2>Controle de Estoque</h2>
+<h2>Controle de Estoque</h2>
           </div>
 
           <div class="grade-campos">
@@ -541,8 +535,7 @@ onMounted(() => {
     <footer class="rodape">
       <div class="rodape-marca">
         <span class="logo-nome">
-          <span class="logo-icone">
-          </span>
+          <img src="@/assets/Logo_branco.svg" alt="OmniSeg" class="logo-icone" />
           Omni<span class="logo-destaque">Seg</span>
         </span>
         <p>Plataforma Focada em gestão de EPIs e segurança do trabalho. Tecnologia que salva vidas.</p>
@@ -1044,11 +1037,8 @@ onMounted(() => {
 .logo-icone {
   width: 1.5rem;
   height: 1.5rem;
-  background: #F49D25;
-  border-radius: 0.35rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  object-fit: contain;
+  vertical-align: middle;
 }
 .logo-destaque { color: #F49D25; }
 

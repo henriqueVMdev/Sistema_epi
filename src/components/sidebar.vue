@@ -3,9 +3,7 @@
     <aside class="sidebar">
       <!-- Header: logo OmniSeg -->
       <header class="sidebar-header">
-        <div class="logo-icone">
-          <i class="fas fa-shield-alt"></i>
-        </div>
+        <img src="@/assets/Logo_branco.svg" alt="OmniSeg" class="logo-img" />
         <div class="logo-texto">
           <span class="logo-nome">Omni<span class="logo-destaque">Seg</span></span>
           <span class="logo-sub">{{ rotuloPainel }}</span>
@@ -160,16 +158,10 @@ async function sair() {
   border-bottom: 1px solid rgba(255,255,255,0.04);
   margin-bottom: 1.2rem;
 }
-.logo-icone {
+.logo-img {
   width: 2.4rem;
   height: 2.4rem;
-  border-radius: 0.6rem;
-  background: #F49D25;
-  color: #1a1410;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
+  object-fit: contain;
   flex-shrink: 0;
 }
 .logo-texto { display: flex; flex-direction: column; line-height: 1.2; }
