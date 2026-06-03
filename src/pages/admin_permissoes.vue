@@ -35,7 +35,7 @@ const carregar = async () => {
       .from('epi_permissoes')
       .select('id, role, limite, setor:setores(id, nome), epi:epis(id, nome)')
       .order('id', { ascending: false }),
-    supabase.from('epis').select('id, nome').order('nome'),
+    supabase.from('epis').select('id, nome, setor').order('nome'),
     supabase.from('setores').select('id, nome').order('nome'),
   ]);
   if (pr.error) console.error(pr.error);
@@ -99,11 +99,15 @@ const remover = async (p) => {
   carregar();
 };
 
-const epiCountPorSetor = (setorId) => {
-  const ids = new Set(
-    permissoes.value.filter(p => p.setor?.id === setorId).map(p => p.epi?.id)
-  );
-  return ids.size;
+const epiCountPorSetor = (setorNome) => {
+  const alvo = String(setorNome || '').trim().toLowerCase();
+  if (!alvo) return 0;
+  return epis.value.filter(e =>
+    String(e.setor || '')
+      .split(',')
+      .map(s => s.trim().toLowerCase())
+      .includes(alvo)
+  ).length;
 };
 
 const criarSetor = async () => {
@@ -192,7 +196,7 @@ onMounted(carregar);
           <template v-else>
             <div class="setor-info">
               <strong>{{ s.nome }}</strong>
-              <span class="setor-tag">{{ epiCountPorSetor(s.id) }} EPI(s) vinculado(s)</span>
+              <span class="setor-tag">{{ epiCountPorSetor(s.nome) }} EPI(s) vinculado(s)</span>
             </div>
             <div class="setor-acoes">
               <button class="btn-salvar" @click="iniciarEdicaoSetor(s)">Renomear</button>
