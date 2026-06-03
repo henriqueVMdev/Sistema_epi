@@ -74,7 +74,7 @@
         <span class="bio-badge">✓ Entrega Confirmada</span>
       </div>
       <div class="bio-text-side">
-        <h2>Assinatura digital </h2>
+        <h2>Entrega facilitada </h2>
         <p>
           Nossa tecnologia exclusiva utiliza assinatura digital validando a
           identidade do colaborador no momento do pedido de retirada do equipamento,
@@ -87,15 +87,14 @@
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
             </span>
-            Reconhecimento facial biométrico
-          </li>
+            Rastreio de cadastro por setor          </li>
           <li>
             <span class="check-icon">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
             </span>
-            Geolocalização da entrega
+            Historico de retiradas
           </li>
           <li>
             <span class="check-icon">
