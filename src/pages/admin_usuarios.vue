@@ -30,7 +30,6 @@ const carregar = async () => {
   if (eU) console.error(eU);
   if (eS) console.error(eS);
 
-  // anexa lista de setor_ids extras (de junction) em cada professor
   const extras = new Map();
   for (const r of (fs || [])) {
     if (!extras.has(r.funcionario_id)) extras.set(r.funcionario_id, []);
@@ -53,7 +52,6 @@ const toggleSetorExtra = (u, setorId) => {
 
 const salvar = async (u) => {
   salvandoId.value = u.id;
-  // 1) atualiza role + setor principal
   const { error } = await supabase
     .from('funcionarios')
     .update({ role: u.role, setor_id: u.setor_id })
@@ -64,11 +62,10 @@ const salvar = async (u) => {
     mostrarMensagem('erro', 'Erro ao salvar alterações.');
     return;
   }
-  // 2) atualiza setores extras (apenas para professor)
   await supabase.from('funcionario_setores').delete().eq('funcionario_id', u.id);
   if (u.role === 'professor' && u.setores_extra.length > 0) {
     const rows = u.setores_extra
-      .filter(id => id !== u.setor_id) // não duplicar o principal
+      .filter(id => id !== u.setor_id)
       .map(setor_id => ({ funcionario_id: u.id, setor_id }));
     if (rows.length) await supabase.from('funcionario_setores').insert(rows);
   }

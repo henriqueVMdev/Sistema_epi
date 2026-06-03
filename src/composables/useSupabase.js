@@ -5,9 +5,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    // Desativa o navigator.locks (evita LockAcquireTimeoutError em HMR / múltiplas abas)
-    lock: (_name, _acquireTimeout, fn) => fn(),
+  auth: {    lock: (_name, _acquireTimeout, fn) => fn(),
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
@@ -16,7 +14,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 const session = ref(null)
 const loadingSession = ref(true)
-const perfil = ref(null) // { ..., setores: [{ id, nome }, ...] }
+const perfil = ref(null)
 
 async function carregarPerfil(userId) {
   if (!userId) { perfil.value = null; return }
@@ -30,7 +28,6 @@ async function carregarPerfil(userId) {
     perfil.value = null
     return
   }
-  // Lista unificada de setores: o setor "principal" + extras da junction (pra professores)
   let setores = data?.setor ? [data.setor] : []
   if (data) {
     const { data: extras } = await supabase
@@ -44,7 +41,6 @@ async function carregarPerfil(userId) {
   perfil.value = data ? { ...data, setores } : null
 }
 
-// IMPORTANTE: não usar `await` em queries dentro deste callback — trava o cliente Supabase.
 supabase.auth.onAuthStateChange((_event, newSession) => {
   session.value = newSession
   carregarPerfil(newSession?.user?.id).finally(() => {

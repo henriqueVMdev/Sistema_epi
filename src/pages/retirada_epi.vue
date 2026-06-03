@@ -4,16 +4,15 @@ import { useSupabase } from '../composables/useSupabase';
 
 const { supabase, perfil } = useSupabase();
 
-const epis = ref([]);              // { ...epi, limite, em_uso, disponivel }
+const epis = ref([]);
 const meuHistorico = ref([]);
-const selecionados = ref({});      // { [epi_id]: qtd }
+const selecionados = ref({});
 const justificativa = ref('');
 const carregando = ref(false);
 const mensagem = ref(null);
 
 const podeAdministrar = computed(() => ['admin', 'almoxarife'].includes(perfil.value?.role));
 
-// Limites padrão por role (admin pode sobrescrever em epi_permissoes)
 const LIMITE_PADRAO = { aluno: 1, professor: 30 };
 
 const mostrarMensagem = (tipo, texto, ms = 4000) => {
@@ -28,7 +27,6 @@ const formatarData = (data) => {
   return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 };
 
-// Soma de "em uso" por epi_id, considerando entregue + não devolvido + não vencido
 async function carregarEmUso() {
   const hoje = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase
@@ -54,7 +52,6 @@ async function carregar() {
   const role = perfil.value.role;
   const meusSetores = (perfil.value.setores || []).map(s => s.nome);
 
-  // 1) Lista de EPIs + limites
   let baseEpis = [];
   let limitePorEpi = new Map();
 
@@ -62,7 +59,6 @@ async function carregar() {
     const { data, error } = await supabase.from('epis').select('*').order('nome');
     if (error) console.error(error);
     baseEpis = data || [];
-    // limite "infinito" — sem restrição
   } else {
     if (meusSetores.length === 0) {
       epis.value = [];
@@ -70,13 +66,11 @@ async function carregar() {
       return;
     }
 
-    // Busca todos os EPIs e filtra pelos que tem setor do usuário
     const { data: todos, error } = await supabase.from('epis').select('*').order('nome');
     if (error) console.error(error);
 
     const limitePadrao = LIMITE_PADRAO[role] ?? 0;
 
-    // Override opcional do admin: epi_permissoes para (role, setores do usuário)
     const setorIds = (perfil.value.setores || []).map(s => s.id);
     const { data: overrides } = await supabase
       .from('epi_permissoes')
@@ -85,7 +79,6 @@ async function carregar() {
       .in('setor_id', setorIds.length ? setorIds : [-1]);
     const overrideMap = new Map();
     for (const o of (overrides || [])) {
-      // se houver overrides em vários setores pro mesmo EPI, usa o MAIOR
       const atual = overrideMap.get(o.epi_id) ?? -1;
       if (o.limite > atual) overrideMap.set(o.epi_id, o.limite);
     }
@@ -99,10 +92,8 @@ async function carregar() {
     }
   }
 
-  // 2) "Em uso" do usuário logado
   const emUsoMap = await carregarEmUso();
 
-  // 3) Anexa limite/em_uso/disponivel
   epis.value = baseEpis.map(e => {
     const limite = limitePorEpi.has(e.id) ? limitePorEpi.get(e.id) : null;
     const em_uso = emUsoMap.get(e.id) || 0;
@@ -110,7 +101,6 @@ async function carregar() {
     return { ...e, limite, em_uso, disponivel };
   });
 
-  // 4) Histórico próprio
   const { data: hist, error: histErr } = await supabase
     .from('entrega_epi')
     .select('*')
@@ -118,7 +108,20 @@ async function carregar() {
     .order('data_retirada', { ascending: false })
     .limit(30);
   if (histErr) console.error(histErr);
-  meuHistorico.value = hist || [];
+
+  const aprovadores = [...new Set((hist || []).map(r => r.aprovado_por).filter(Boolean))];
+  let nomePorUser = new Map();
+  if (aprovadores.length) {
+    const { data: aprov } = await supabase
+      .from('funcionarios')
+      .select('user_id, nome')
+      .in('user_id', aprovadores);
+    nomePorUser = new Map((aprov || []).map(a => [a.user_id, a.nome]));
+  }
+  meuHistorico.value = (hist || []).map(r => ({
+    ...r,
+    aprovado_por_nome: r.aprovado_por ? (nomePorUser.get(r.aprovado_por) || 'desconhecido') : null,
+  }));
 
   carregando.value = false;
 }
@@ -349,6 +352,10 @@ const labelStatus = (s) => ({
               <span v-if="r.data_entrega"> · entregue em {{ formatarData(r.data_entrega) }}</span>
               <span v-if="r.data_validade"> · validade {{ formatarData(r.data_validade) }}</span>
             </p>
+            <p v-if="r.aprovado_por_nome" class="hist-aprovador">
+              Aprovado por {{ r.aprovado_por_nome }}
+              <span v-if="r.aprovado_em"> em {{ formatarData(r.aprovado_em) }}</span>
+            </p>
             <p v-if="r.justificativa" class="hist-just">"{{ r.justificativa }}"</p>
           </div>
           <span class="hist-status" :class="'status-' + r.status">{{ labelStatus(r.status) }}</span>
@@ -422,8 +429,8 @@ const labelStatus = (s) => ({
   transition: border-color 0.15s, background 0.15s;
 }
 .card-epi:hover { border-color: rgba(244,157,37,0.35); }
-.card-epi.selecionado { border-color: #F49D25; background: rgba(244,157,37,0.08); }
-.card-epi.precisa-aprovacao { border-color: #facc15; background: rgba(250,204,21,0.08); }
+.card-epi.selecionado { border-color: #F49D25; }
+.card-epi.precisa-aprovacao { border-color: #facc15; }
 
 .info-topo { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
 .badge {
@@ -502,6 +509,7 @@ const labelStatus = (s) => ({
 .hist-nome { color: #fff; font-weight: 700; font-size: 0.95rem; }
 .hist-qtd { color: #F49D25; font-weight: 600; margin-left: 0.3rem; }
 .hist-setor { color: #8b8680; font-size: 0.78rem; margin-top: 0.1rem; }
+.hist-aprovador { color: #4ade80; font-size: 0.78rem; margin-top: 0.1rem; }
 .hist-just { color: #facc15; font-size: 0.78rem; margin-top: 0.2rem; font-style: italic; }
 
 .hist-status {

@@ -1,7 +1,6 @@
 <template>
   <div class="shell">
     <aside class="sidebar">
-      <!-- Header: logo OmniSeg -->
       <header class="sidebar-header">
         <img src="@/assets/Logo_branco.svg" alt="OmniSeg" class="logo-img" />
         <div class="logo-texto">
@@ -10,7 +9,6 @@
         </div>
       </header>
 
-      <!-- Menu agrupado por seção -->
       <nav class="menu">
         <div v-for="grupo in gruposVisiveis" :key="grupo.titulo" class="grupo">
           <p class="grupo-titulo">{{ grupo.titulo }}</p>
@@ -27,7 +25,6 @@
         </div>
       </nav>
 
-      <!-- Perfil + sair na base -->
       <div class="base">
         <RouterLink v-if="perfil" to="/perfil" class="perfil-card" active-class="perfil-card-ativo">
           <div class="perfil-avatar">
@@ -60,7 +57,6 @@ import { computed } from 'vue'
 
 const { supabase, perfil } = useSupabase()
 
-// Menu agrupado por setor/área
 const GRUPOS = [
   {
     titulo: 'Estoque & EPIs',
@@ -149,7 +145,6 @@ async function sair() {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* ===== Header ===== */
 .sidebar-header {
   display: flex;
   align-items: center;
@@ -169,7 +164,6 @@ async function sair() {
 .logo-destaque { color: #F49D25; }
 .logo-sub { color: #8b8680; font-size: 0.72rem; font-weight: 500; margin-top: 0.1rem; }
 
-/* ===== Menu ===== */
 .menu {
   flex-grow: 1;
   display: flex;
@@ -211,7 +205,6 @@ async function sair() {
 }
 .menu-item.active i { color: #F49D25; }
 
-/* ===== Base (perfil + sair) ===== */
 .base {
   display: flex;
   flex-direction: column;

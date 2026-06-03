@@ -60,7 +60,6 @@ const enviarFoto = async () => {
   }
 
   const { data } = supabase.storage.from('avatars').getPublicUrl(caminho);
-  // cache-buster para a imagem atualizar na tela
   const url = `${data.publicUrl}?t=${Date.now()}`;
 
   const { error: dbErr } = await supabase
@@ -89,7 +88,6 @@ const salvar = async () => {
   }
   salvando.value = true;
 
-  // 1) dados na tabela funcionarios
   const { error: dbErr } = await supabase
     .from('funcionarios')
     .update({ nome: form.nome.trim(), email: form.email.trim(), cpf: form.cpf.trim() })
@@ -100,7 +98,6 @@ const salvar = async () => {
     return;
   }
 
-  // 2) email de login (auth) — só se mudou
   let avisoEmail = '';
   if (form.email.trim() && form.email.trim() !== session.value?.user?.email) {
     const { error: authErr } = await supabase.auth.updateUser({ email: form.email.trim() });
@@ -133,7 +130,6 @@ const iniciais = (nome) =>
     <div v-if="mensagem" :class="['toast', 'toast-' + mensagem.tipo]">{{ mensagem.texto }}</div>
 
     <div class="grade">
-      <!-- coluna foto -->
       <section class="cartao cartao-foto">
         <div class="avatar-grande">
           <img v-if="previewLocal || avatarUrl" :src="previewLocal || avatarUrl" alt="Foto de perfil" />
@@ -158,7 +154,6 @@ const iniciais = (nome) =>
         <p class="foto-dica">PNG ou JPG, até 3 MB.</p>
       </section>
 
-      <!-- coluna dados -->
       <section class="cartao">
         <h2 class="cartao-titulo">Dados pessoais</h2>
 

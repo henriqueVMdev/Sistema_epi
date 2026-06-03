@@ -24,7 +24,6 @@ const cadastrar = async () => {
   }
   if (!form.setor_id) { error.value = 'Selecione um setor.'; return; }
 
-  // 1) Pré-checagem: CPF ou e-mail já existem em funcionarios?
   const { data: existentes, error: checkError } = await supabase
     .from('funcionarios')
     .select('cpf, email')
@@ -43,7 +42,6 @@ const cadastrar = async () => {
     return;
   }
 
-  // 2) Cria o usuário no auth
   const { data, error: authError } = await supabase.auth.signUp({
     email: form.email,
     password: senha.value,
@@ -55,7 +53,6 @@ const cadastrar = async () => {
     return;
   }
 
-  // 3) Insere em funcionarios. Se falhar, desloga pra não deixar sessão de usuário órfão.
   const { error: insertError } = await supabase
     .from('funcionarios')
     .insert({

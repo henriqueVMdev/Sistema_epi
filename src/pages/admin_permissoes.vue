@@ -10,7 +10,7 @@ const carregando = ref(true);
 const salvandoId = ref(null);
 const mensagem = ref(null);
 
-const ROLES_PERMITIDAS = ['professor', 'aluno']; // admin/almoxarife veem tudo
+const ROLES_PERMITIDAS = ['professor', 'aluno'];
 
 const novo = reactive({
   epi_id: null,
@@ -19,7 +19,6 @@ const novo = reactive({
   limite: 1,
 });
 
-// estado pra CRUD de setores
 const novoSetorNome = ref('');
 const editandoSetorId = ref(null);
 const editandoSetorNome = ref('');
@@ -100,7 +99,6 @@ const remover = async (p) => {
   carregar();
 };
 
-// quantos EPIs estão vinculados a cada setor (via epi_permissoes, ignorando role)
 const epiCountPorSetor = (setorId) => {
   const ids = new Set(
     permissoes.value.filter(p => p.setor?.id === setorId).map(p => p.epi?.id)
@@ -169,7 +167,6 @@ onMounted(carregar);
 
     <div v-if="mensagem" :class="['toast', 'toast-' + mensagem.tipo]">{{ mensagem.texto }}</div>
 
-    <!-- CRUD de setores -->
     <section class="cartao">
       <h2 class="cartao-titulo">Setores ({{ setores.length }})</h2>
 
@@ -210,7 +207,6 @@ onMounted(carregar);
       </p>
     </section>
 
-    <!-- Form pra nova permissão -->
     <section class="cartao">
       <h2 class="cartao-titulo">Nova permissão</h2>
       <div class="grade-form">
@@ -244,7 +240,6 @@ onMounted(carregar);
       </div>
     </section>
 
-    <!-- Lista de permissões -->
     <section class="cartao">
       <h2 class="cartao-titulo">Permissões cadastradas ({{ permissoes.length }})</h2>
       <div v-if="carregando" class="vazio">Carregando…</div>
@@ -427,7 +422,6 @@ onMounted(carregar);
   .grade-form { grid-template-columns: 1fr 1fr; }
 }
 
-/* ---------- CRUD de setores ---------- */
 .form-novo-setor {
   display: flex;
   gap: 0.6rem;
@@ -498,7 +492,6 @@ onMounted(carregar);
 }
 .dica strong { color: #F49D25; }
 
-/* ---------- remove setas dos number inputs ---------- */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;

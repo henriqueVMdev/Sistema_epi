@@ -25,10 +25,9 @@ const router = useRouter();
 
 const mensagem = ref(null);
 
-// imagem do EPI
-const imagemArquivo = ref(null);   // File selecionado
-const imagemPreview = ref(null);   // objectURL local (pré-visualização)
-const imagemExistente = ref(null); // URL já salva (modo edição)
+const imagemArquivo = ref(null);
+const imagemPreview = ref(null);
+const imagemExistente = ref(null);
 const enviando = ref(false);
 
 const selecionarImagem = (e) => {
@@ -52,7 +51,6 @@ const removerImagem = () => {
   imagemExistente.value = null;
 };
 
-// envia a imagem pro Storage e devolve a URL pública (ou mantém a existente)
 async function uploadImagem() {
   if (!imagemArquivo.value) return imagemExistente.value || null;
   const ext = imagemArquivo.value.name.split('.').pop().toLowerCase();
@@ -65,7 +63,6 @@ async function uploadImagem() {
   return data.publicUrl;
 }
 
-// helpers de data: dd/mm/aaaa <-> yyyy-mm-dd
 const isoParaBr = (iso) => {
   if (!iso) return '';
   const [a, m, d] = String(iso).split('T')[0].split('-');
@@ -77,7 +74,6 @@ const brParaIso = (br) => {
   if (!m) return null;
   return `${m[3]}-${m[2]}-${m[1]}`;
 };
-// aplica máscara dd/mm/aaaa enquanto digita
 const aplicarMascaraData = (e) => {
   let v = e.target.value.replace(/\D/g, '').slice(0, 8);
   if (v.length >= 5) v = `${v.slice(0,2)}/${v.slice(2,4)}/${v.slice(4)}`;
@@ -152,7 +148,6 @@ const setoresUnicos = () => {
   return [...new Set(nomes)];
 };
 
-// abre o modal e preenche o form com os dados do epi clicado
 const iniciarEdicao = (epi) => {
   editandoId.value = epi.id;
   Object.assign(form, {
@@ -172,13 +167,9 @@ const iniciarEdicao = (epi) => {
   modalAberto.value = true;
 };
 
-// reseta o formulário e sai do modo edição
 const cancelarEdicao = () => {
   modalAberto.value = false;
-  // volta o id para null (modo "novo cadastro")
   editandoId.value = null;
-  // Object.assign sobrescreve as chaves do form mantendo a MESMA referência reativa
-  // (não dá pra reatribuir um const reactive — perderia a reatividade)
   Object.assign(form, {
    nome: '',
    setor: [],
@@ -193,12 +184,10 @@ const cancelarEdicao = () => {
   removerImagem();
 };
 
-// volta uma página no histórico (botão Cancelar do cabeçalho)
 const voltar = () => {
   router.back();
 };
 
-// busca os setores cadastrados na tabela setores
 const carregarSetor = async () => {
   const { data, error } = await supabase
     .from('setores')
@@ -208,17 +197,15 @@ const carregarSetor = async () => {
   funcionarios.value = (data || []).map(s => ({ id: s.id, setor: s.nome }));
 };
 
-// onMounted roda uma única vez, logo após o componente entrar no DOM
 onMounted(() => {
-  carregar();        // carrega a lista de EPIs
-  carregarSetor();   // carrega os setores pro select
+  carregar();
+  carregarSetor();
 });
 </script>
 
 <template>
   <div class="pagina-cadastro">
 
-    <!-- cabeçalho da pagina: caminho + titulo + botões -->
     <header class="cabecalho">
       <div class="cabecalho-texto">
         <p class="caminho">
@@ -241,13 +228,10 @@ onMounted(() => {
       {{ mensagem.texto }}
     </div>
 
-    <!-- grade principal: coluna esquerda (formularios) + coluna direita (imagem e dica) -->
     <form class="grade-principal" @submit.prevent="salvar">
 
-      <!-- COLUNA ESQUERDA -->
       <div class="coluna-esquerda">
 
-        <!-- cartão: informações básicas -->
         <section class="cartao">
           <div class="cartao-cabecalho">
 <h2>Informações Básicas</h2>
@@ -311,7 +295,6 @@ onMounted(() => {
           </div>
         </section>
 
-        <!-- cartão: certificado de aprovação -->
         <section class="cartao">
           <div class="cartao-cabecalho">
 <h2>Certificado de Aprovação (CA)</h2>
@@ -337,7 +320,6 @@ onMounted(() => {
           </div>
         </section>
 
-        <!-- cartão: controle de estoque -->
         <section class="cartao">
           <div class="cartao-cabecalho">
 <h2>Controle de Estoque</h2>
@@ -401,7 +383,6 @@ onMounted(() => {
       </aside>
     </form>
 
-    <!-- LISTA DE EPIs CADASTRADOS -->
     <section class="cartao lista-epis">
       <div class="cartao-cabecalho">
         <h2>EPIs cadastrados</h2>
@@ -431,7 +412,6 @@ onMounted(() => {
       </table>
     </section>
 
-    <!-- MODAL DE EDIÇÃO -->
     <div v-if="modalAberto" class="modal-overlay" @click.self="cancelarEdicao">
       <div class="modal">
         <header class="modal-cabecalho">
@@ -583,7 +563,6 @@ onMounted(() => {
 .pagina-cadastro *::after { box-sizing: border-box; }
 .pagina-cadastro .rodape { margin-left: -3rem; margin-right: -3rem; width: calc(100% + 6rem); }
 
-/* ---------- cabeçalho ---------- */
 .cabecalho {
   display: flex;
   justify-content: space-between;
@@ -644,7 +623,6 @@ onMounted(() => {
 }
 .botao-salvar:hover { background: #e08c18; }
 
-/* ---------- grade principal ---------- */
 .grade-principal {
   display: flex;
   flex-direction: row;
@@ -678,7 +656,6 @@ onMounted(() => {
 .cabecalho,
 .rodape { width: 100%; }
 
-/* ---------- cartão padrão ---------- */
 .cartao {
   background: #221E18;
   border: 1px solid rgba(255,255,255,0.04);
@@ -708,7 +685,6 @@ onMounted(() => {
   justify-content: center;
 }
 
-/* ---------- campos ---------- */
 .grade-campos {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -748,7 +724,6 @@ onMounted(() => {
   font-size: 0.75rem;
 }
 
-/* ---------- multi-select de setor ---------- */
 .multi-select { position: relative; width: 100%; }
 
 .multi-select-trigger {
@@ -864,7 +839,6 @@ onMounted(() => {
   text-align: center;
 }
 
-/* ---------- select customizado ---------- */
 .select-wrapper {
   position: relative;
 }
@@ -878,7 +852,6 @@ onMounted(() => {
   pointer-events: none;
 }
 
-/* ---------- input com icone (CA, data) ---------- */
 .input-com-icone {
   position: relative;
   display: flex;
@@ -895,7 +868,6 @@ onMounted(() => {
   padding-left: 2.2rem;
 }
 
-/* ---------- coluna direita: upload ---------- */
 .titulo-lateral {
   color: #fff;
   font-size: 1rem;
@@ -918,7 +890,6 @@ onMounted(() => {
 }
 .area-upload:hover { border-color: #F49D25; }
 
-/* ---------- pré-visualização da imagem ---------- */
 .preview-imagem {
   display: flex;
   flex-direction: column;
@@ -989,7 +960,6 @@ onMounted(() => {
   margin-top: 1rem;
 }
 
-/* ---------- cartão dica ---------- */
 .cartao-dica {
   background: rgba(244, 157, 37, 0.06);
   border: 1px solid rgba(244, 157, 37, 0.35);
@@ -1013,7 +983,6 @@ onMounted(() => {
   line-height: 1.6;
 }
 
-/* ---------- rodapé ---------- */
 .rodape {
   margin-top: 4rem;
   padding: 3rem 4rem 2rem;
@@ -1095,7 +1064,6 @@ onMounted(() => {
   resize: none;
 }
 
-/* ---------- toast ---------- */
 .toast {
   position: fixed;
   top: 1.5rem;
@@ -1122,7 +1090,6 @@ onMounted(() => {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ---------- contador textarea ---------- */
 .contador {
   display: block;
   text-align: right;
@@ -1134,7 +1101,6 @@ onMounted(() => {
   color: #f87171;
 }
 
-/* ---------- lista de epis ---------- */
 .lista-epis { margin-top: 1.5rem; }
 .lista-epis .cartao-cabecalho { margin-bottom: 1rem; }
 .tabela-epis { width: 100%; border-collapse: collapse; }
@@ -1167,7 +1133,6 @@ onMounted(() => {
 }
 .btn-editar:hover { background: rgba(244, 157, 37, 0.22); }
 
-/* ---------- modal ---------- */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1236,7 +1201,6 @@ onMounted(() => {
 }
 .area-upload-modal { padding: 1.2rem; }
 
-/* ---------- remove setas dos number inputs ---------- */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -1248,7 +1212,6 @@ input[type="number"] {
   appearance: textfield;
 }
 
-/* ---------- responsivo ---------- */
 @media (max-width: 960px) {
   .modal-grade { grid-template-columns: 1fr; }
   .grade-principal { flex-direction: column; }

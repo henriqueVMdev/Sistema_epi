@@ -36,7 +36,6 @@ const formatarData = (data) => {
   return `${dia}/${mes}/${ano}`;
 };
 
-// KPIs
 const totalEpis = computed(() => epis.value.length);
 const totalEstoque = computed(() =>
   epis.value.reduce((s, e) => s + (Number(e.estoque) || 0), 0)
@@ -65,7 +64,6 @@ const vencidos = computed(() =>
   }).length
 );
 
-// Top EPIs mais retirados
 const topEpisRetirados = computed(() => {
   const map = {};
   for (const r of retiradas.value) {
@@ -81,7 +79,6 @@ const maxTopEpi = computed(() =>
   topEpisRetirados.value.reduce((m, e) => Math.max(m, e.qtd), 0) || 1
 );
 
-// Retiradas por setor
 const retiradasPorSetor = computed(() => {
   const map = {};
   for (const r of retiradas.value) {
@@ -96,10 +93,8 @@ const totalRetiradasSetor = computed(() =>
   retiradasPorSetor.value.reduce((s, x) => s + x.qtd, 0) || 1
 );
 
-// Cores para o pie/donut
-const paletteCores = ['#F49D25', '#facc15', '#4ade80', '#60a5fa', '#c084fc', '#f87171', '#fb923c', '#34d399'];
+const paletteCores =['#F49D25', '#facc15', '#4ade80', '#60a5fa', '#c084fc', '#f87171', '#fb923c', '#34d399'];
 
-// Donut chart - calcula segmentos
 const donutSegmentos = computed(() => {
   const raio = 70;
   const circ = 2 * Math.PI * raio;
@@ -119,7 +114,6 @@ const donutSegmentos = computed(() => {
   });
 });
 
-// Estoque por EPI (gráfico de barras) — ordena do maior pro menor
 const estoquePorEpi = computed(() =>
   epis.value
     .map(e => ({
@@ -134,7 +128,6 @@ const maxEstoque = computed(() =>
   estoquePorEpi.value.reduce((m, e) => Math.max(m, e.estoque), 0) || 1
 );
 
-// EPIs próximos ao vencimento (até 90 dias) + vencidos
 const episVencendo = computed(() => {
   return epis.value
     .map(e => ({ ...e, dias: diasAteVencer(e.data_validade) }))
@@ -143,7 +136,6 @@ const episVencendo = computed(() => {
     .slice(0, 8);
 });
 
-// EPIs com estoque baixo
 const episEstoqueBaixo = computed(() =>
   epis.value
     .filter(e => {
@@ -155,7 +147,6 @@ const episEstoqueBaixo = computed(() =>
     .slice(0, 6)
 );
 
-// Distribuição de status retiradas
 const statusRetiradas = computed(() => {
   const map = { aprovado: 0, pendente: 0, outro: 0 };
   for (const r of retiradas.value) {
@@ -186,7 +177,6 @@ const statusRetiradas = computed(() => {
     <p v-if="carregando" class="estado-carregando">Carregando dados...</p>
 
     <template v-else>
-      <!-- KPI cards -->
       <section class="kpi-grid">
         <div class="kpi-card">
           <span class="kpi-label">EPIs cadastrados</span>
@@ -211,7 +201,6 @@ const statusRetiradas = computed(() => {
       </section>
 
       <div class="grid-2col">
-        <!-- Top EPIs mais retirados -->
         <section class="card-chart">
           <div class="chart-header">
             <h2>EPIs mais retirados</h2>
@@ -228,7 +217,6 @@ const statusRetiradas = computed(() => {
           </div>
         </section>
 
-        <!-- Retiradas por setor (donut) -->
         <section class="card-chart">
           <div class="chart-header">
             <h2>Retiradas por setor</h2>
@@ -263,7 +251,6 @@ const statusRetiradas = computed(() => {
         </section>
       </div>
 
-      <!-- Estoque atual por EPI -->
       <section class="card-chart">
         <div class="chart-header">
           <h2>Estoque atual por EPI</h2>
@@ -289,7 +276,6 @@ const statusRetiradas = computed(() => {
       </section>
 
       <div class="grid-2col">
-        <!-- EPIs próximos do vencimento -->
         <section class="card-chart">
           <div class="chart-header">
             <h2>EPIs próximos do vencimento</h2>
@@ -313,7 +299,6 @@ const statusRetiradas = computed(() => {
           </ul>
         </section>
 
-        <!-- Estoque baixo -->
         <section class="card-chart">
           <div class="chart-header">
             <h2>Itens com estoque baixo</h2>
@@ -378,7 +363,6 @@ const statusRetiradas = computed(() => {
 
 .estado-carregando { color: #8b8680; }
 
-/* ---------- KPI ---------- */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -410,7 +394,6 @@ const statusRetiradas = computed(() => {
 .kpi-aviso { border-color: rgba(250, 204, 21, 0.3); }
 .kpi-aviso .kpi-label { color: #facc15; }
 
-/* ---------- grid 2 colunas ---------- */
 .grid-2col {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -418,7 +401,6 @@ const statusRetiradas = computed(() => {
   margin-bottom: 1.5rem;
 }
 
-/* ---------- card chart ---------- */
 .card-chart {
   background: #221E18;
   border: 1px solid rgba(255,255,255,0.05);
@@ -426,7 +408,6 @@ const statusRetiradas = computed(() => {
   padding: 1.4rem 1.5rem;
   margin-bottom: 1.5rem;
 }
-/* dentro do grid de 2 colunas o espaçamento já vem do gap */
 .grid-2col .card-chart { margin-bottom: 0; }
 .chart-header {
   display: flex;
@@ -450,7 +431,6 @@ const statusRetiradas = computed(() => {
 
 .vazio { color: #8b8680; font-size: 0.9rem; padding: 1rem 0; text-align: center; }
 
-/* ---------- barras horizontais ---------- */
 .barras-h { display: flex; flex-direction: column; gap: 0.85rem; }
 .barra-linha {
   display: grid;
@@ -480,7 +460,6 @@ const statusRetiradas = computed(() => {
 }
 .barra-valor { color: #fff; font-weight: 700; font-size: 0.9rem; text-align: right; }
 
-/* ---------- donut ---------- */
 .donut-wrap {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -516,7 +495,6 @@ const statusRetiradas = computed(() => {
 .legend-val { color: #fff; font-weight: 700; }
 .legend-val small { color: #8b8680; font-weight: 500; font-size: 0.75rem; }
 
-/* ---------- gráfico de estoque ---------- */
 .barras-estoque {
   display: flex;
   flex-direction: column;
@@ -562,7 +540,6 @@ const statusRetiradas = computed(() => {
 .barra-est-valor small { color: #8b8680; font-weight: 500; font-size: 0.72rem; }
 .valor-baixo { color: #f87171; }
 
-/* ---------- lista vencimento / estoque baixo ---------- */
 .lista-vencimento {
   list-style: none;
   padding: 0;
@@ -615,7 +592,6 @@ const statusRetiradas = computed(() => {
   border: 1px solid rgba(244, 157, 37, 0.3);
 }
 
-/* ---------- responsivo ---------- */
 @media (max-width: 1100px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .grid-2col { grid-template-columns: 1fr; }

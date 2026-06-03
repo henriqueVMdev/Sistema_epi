@@ -52,15 +52,12 @@ const venceEm = (data) => {
   return Math.ceil((d - new Date(hoje)) / (1000 * 60 * 60 * 24));
 };
 
-// Em uso: entregue e não devolvido
 const emUso = computed(() =>
   registros.value.filter(r => r.status === 'entregue' && !r.data_devolucao)
 );
-// Pedidos em andamento (aguardando algo)
 const pendentes = computed(() =>
   registros.value.filter(r => ['pendente_aprovacao', 'pendente_entrega', 'aprovado'].includes(r.status))
 );
-// Histórico encerrado
 const historico = computed(() =>
   registros.value.filter(r => ['devolvido', 'recusado'].includes(r.status))
 );
@@ -92,7 +89,6 @@ const totalVencendo = computed(() =>
     <p v-if="carregando" class="vazio">Carregando…</p>
 
     <template v-else>
-      <!-- resumo -->
       <section class="kpi-grid">
         <div class="kpi-card">
           <span class="kpi-label">EPIs em uso</span>
@@ -111,7 +107,6 @@ const totalVencendo = computed(() =>
         </div>
       </section>
 
-      <!-- em uso -->
       <section class="cartao">
         <div class="cartao-cabecalho">
           <h2>EPIs em uso</h2>
@@ -145,7 +140,6 @@ const totalVencendo = computed(() =>
         </div>
       </section>
 
-      <!-- pedidos em andamento -->
       <section class="cartao">
         <div class="cartao-cabecalho">
           <h2>Pedidos em andamento</h2>
@@ -164,7 +158,6 @@ const totalVencendo = computed(() =>
         </div>
       </section>
 
-      <!-- histórico -->
       <section class="cartao">
         <div class="cartao-cabecalho">
           <h2>Histórico</h2>

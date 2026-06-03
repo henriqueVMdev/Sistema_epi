@@ -8,7 +8,7 @@ const carregando = ref(true);
 const entregas = ref([]);
 const mensagem = ref(null);
 const acaoEmAndamento = ref(null);
-const filtro = ref('pendente_aprovacao'); // tabs
+const filtro = ref('pendente_aprovacao');
 
 const mostrarMensagem = (tipo, texto) => {
   mensagem.value = { tipo, texto };
@@ -102,7 +102,6 @@ async function recusar(reg) {
 }
 
 async function registrarEntrega(reg) {
-  // a validade vem do próprio cadastro do EPI
   const validade = reg.epi?.data_validade || null;
   const estoqueAtual = Number(reg.epi?.estoque) || 0;
   const qtd = Number(reg.quantidade) || 1;
@@ -127,7 +126,7 @@ async function registrarEntrega(reg) {
     .from('epis')
     .update({ estoque: estoqueAtual - qtd })
     .eq('id', reg.epi?.id);
-  if (e2) { console.error(e2); /* segue mesmo assim, mas avisa */ mostrarMensagem('erro', 'Entrega salva, mas falha ao debitar estoque.'); }
+  if (e2) { console.error(e2); mostrarMensagem('erro', 'Entrega salva, mas falha ao debitar estoque.'); }
 
   acaoEmAndamento.value = null;
   mostrarMensagem('sucesso', 'Entrega registrada e estoque atualizado.');
@@ -231,7 +230,6 @@ onMounted(carregar);
               <i class="fas fa-quote-left"></i> {{ r.justificativa }}
             </p>
 
-            <!-- Ações por status -->
             <div class="acoes">
             <template v-if="r.status === 'pendente_aprovacao'">
               <button class="btn-aprovar" :disabled="acaoEmAndamento === r.id" @click="aprovar(r)">Aprovar</button>

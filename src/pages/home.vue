@@ -14,7 +14,6 @@
     </div>
   </header>
 
-  <!-- HERO -->
   <section class="hero">
     <div class="hero-gradient"></div>
     <div class="hero-content" style="position:absolute;bottom:7rem;left:4rem;z-index:1;text-align:left;">

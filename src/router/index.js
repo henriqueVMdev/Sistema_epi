@@ -16,7 +16,6 @@ import meus_epis from "../pages/meus_epis.vue";
 import perfil from "../pages/perfil.vue";
 import { useSupabase } from "../composables/useSupabase";
 
-// roles permitidas por rota (meta.roles). Se omitido, libera para qualquer logado.
 const routes = [
   { path: "/", component: home, meta: { publica: true } },
   { path: "/login", component: login, meta: { publica: true } },
@@ -45,7 +44,6 @@ const router = createRouter({
   routes,
 });
 
-// Espera o perfil carregar antes de decidir o guard
 function aguardarPerfil() {
   const { session, perfil, loadingSession } = useSupabase();
   return new Promise((resolve) => {
@@ -68,7 +66,6 @@ router.beforeEach(async (to) => {
 
   const rolesPermitidos = to.meta.roles;
   if (rolesPermitidos && (!perfil || !rolesPermitidos.includes(perfil.role))) {
-    // sem permissão -> manda pra estoque (página segura para todos)
     return { path: '/estoque' };
   }
   return true;

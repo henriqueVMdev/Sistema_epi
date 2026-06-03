@@ -6,7 +6,6 @@ import { useSupabase } from '../composables/useSupabase';
 const { supabase, perfil } = useSupabase();
 const router = useRouter();
 
-// ---------- edição em modal ----------
 const modalAberto = ref(false);
 const editandoId = ref(null);
 const enviando = ref(false);
@@ -29,7 +28,6 @@ const form = reactive({
   descricao: '',
 });
 
-// helpers de data: dd/mm/aaaa <-> yyyy-mm-dd
 const isoParaBr = (iso) => {
   if (!iso) return '';
   const [a, m, d] = String(iso).split('T')[0].split('-');
@@ -172,10 +170,8 @@ const verDetalhes = (id) => {
 const epis = ref([]);
 const carregando = ref(true);
 
-// Quem é admin/almoxarife enxerga tudo e tem ações administrativas.
 const podeAdministrar = computed(() => ['admin', 'almoxarife'].includes(perfil.value?.role));
 
-// Limite padrão por role (admin pode sobrescrever em epi_permissoes)
 const LIMITE_PADRAO = { aluno: 1, professor: 30 };
 
 const carregar = async () => {
@@ -188,7 +184,6 @@ const carregar = async () => {
     return;
   }
 
-  // Admin/almoxarife: vê todos os EPIs
   if (podeAdministrar.value) {
     const { data, error } = await supabase.from('epis').select('*').order('nome');
     if (error) console.error(error);
@@ -197,7 +192,6 @@ const carregar = async () => {
     return;
   }
 
-  // Professor/aluno: vê EPIs cujos setores intersectem com os seus
   const meusSetores = (perfil.value?.setores || []).map(s => s.nome);
   if (meusSetores.length === 0) {
     epis.value = [];
@@ -208,7 +202,6 @@ const carregar = async () => {
   const { data: todos } = await supabase.from('epis').select('*').order('nome');
   const limitePadrao = LIMITE_PADRAO[role] ?? 0;
 
-  // Overrides opcionais do admin
   const setorIds = (perfil.value?.setores || []).map(s => s.id);
   const { data: overrides } = await supabase
     .from('epi_permissoes')
@@ -233,7 +226,6 @@ onMounted(() => {
   carregarSetores();
 });
 
-// Recarrega se o perfil mudar (ex.: admin promove o usuário e ele recarrega a tela).
 watch(() => perfil.value?.id, () => { carregar(); });
 
 const expandido = ref(null);
@@ -445,7 +437,6 @@ const excluir = async(id) =>{
       </div>
     </section>
 
-    <!-- MODAL DE EDIÇÃO -->
     <div v-if="modalAberto" class="modal-overlay" @click.self="cancelarEdicao">
       <div class="modal">
         <header class="modal-cabecalho">
@@ -610,7 +601,6 @@ const excluir = async(id) =>{
 .pagina-estoque *::after { box-sizing: border-box; }
 .pagina-estoque .rodape { margin-left: -3rem; margin-right: -3rem; width: calc(100% + 6rem); }
 
-/* ---------- cabeçalho ---------- */
 .cabecalho {
   display: flex;
   justify-content: space-between;
@@ -657,7 +647,6 @@ const excluir = async(id) =>{
   font-size: 0.95rem;
 }
 
-/* ---------- lista ---------- */
 .lista-epis {
   background: #221E18;
   border: 1px solid rgba(255,255,255,0.05);
@@ -669,7 +658,6 @@ const excluir = async(id) =>{
   margin-bottom: 4rem;
 }
 
-/* ---------- card EPI ---------- */
 .card-epi {
   background: linear-gradient(180deg, #2d2823 0%, #28231e 100%);
   border: 1px solid rgba(255,255,255,0.05);
@@ -694,7 +682,6 @@ const excluir = async(id) =>{
   padding: 1.1rem 1.4rem;
 }
 
-/* ---------- imagem ---------- */
 .card-imagem {
   flex: 0 0 96px;
   width: 96px;
@@ -718,7 +705,6 @@ const excluir = async(id) =>{
     #3a332b;
 }
 
-/* ---------- info ---------- */
 .card-info {
   flex: 1;
   min-width: 0;
@@ -751,7 +737,6 @@ const excluir = async(id) =>{
 }
 .epi-fabricante span { color: #c5bfb5; font-weight: 600; }
 
-/* ---------- chips de meta ---------- */
 .card-meta {
   display: flex;
   flex-wrap: wrap;
@@ -779,7 +764,6 @@ const excluir = async(id) =>{
   font-weight: 500;
 }
 
-/* ---------- bloco de estoque ---------- */
 .card-estoque {
   flex: 0 0 auto;
   align-self: stretch;
@@ -857,7 +841,6 @@ const excluir = async(id) =>{
   font-size: 0.92rem;
 }
 
-/* ---------- badge estoque baixo ---------- */
 .badge-alerta {
   flex: 0 0 auto;
   background: rgba(220, 60, 60, 0.12);
@@ -870,7 +853,6 @@ const excluir = async(id) =>{
   white-space: nowrap;
 }
 
-/* ---------- botão expandir ---------- */
 .btn-expandir {
   flex: 0 0 auto;
   background: none;
@@ -891,7 +873,6 @@ const excluir = async(id) =>{
   transform: rotate(180deg);
 }
 
-/* ---------- detalhe expandido ---------- */
 .card-detalhe {
   border-top: 1px solid rgba(255,255,255,0.06);
   padding: 1rem 1.3rem 1.2rem;
@@ -928,7 +909,6 @@ const excluir = async(id) =>{
   color: #F49D25;
 }
 
-/* ---------- rodapé ---------- */
 .rodape {
   margin-top: 4rem;
   padding: 3rem 4rem 2rem;
@@ -995,7 +975,6 @@ const excluir = async(id) =>{
 }
 .rodape-redes a:hover { color: #F49D25; }
 
-/* ---------- detalhe expandido ---------- */
 .detalhe-topo {
   display: flex;
   align-items: flex-start;
@@ -1140,7 +1119,6 @@ const excluir = async(id) =>{
   margin-top: 0.1rem;
 }
 
-/* toggle switch */
 .toggle {
   flex-shrink: 0;
   width: 44px;
@@ -1168,7 +1146,6 @@ const excluir = async(id) =>{
 }
 .toggle-ativo .toggle-bolinha { transform: translateX(20px); }
 
-/* ---------- remove setas dos number inputs ---------- */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -1180,7 +1157,6 @@ input[type="number"] {
   appearance: textfield;
 }
 
-/* ---------- toast ---------- */
 .toast {
   position: fixed;
   top: 1.5rem;
@@ -1194,7 +1170,6 @@ input[type="number"] {
 .toast-sucesso { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.4); color: #4ade80; }
 .toast-erro    { background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.4); color: #f87171; }
 
-/* ---------- modal ---------- */
 .modal-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.65);
@@ -1256,7 +1231,6 @@ input[type="number"] {
 }
 .area-upload-modal:hover { border-color: #F49D25; }
 
-/* ---------- campos do modal ---------- */
 .modal .campo { display: flex; flex-direction: column; gap: 0.4rem; }
 .modal .campo label { color: #c5bfb5; font-size: 0.82rem; font-weight: 500; }
 .modal .campo input, .modal .campo textarea {
@@ -1278,7 +1252,6 @@ input[type="number"] {
 .botao-salvar:hover { background: #e08c18; }
 .botao-salvar:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ---------- multi-select ---------- */
 .multi-select { position: relative; width: 100%; }
 .multi-select-trigger {
   width: 100%; min-height: 2.85rem;
@@ -1327,7 +1300,6 @@ input[type="number"] {
 }
 .ms-vazio { padding: 0.6rem; color: #8b8680; font-size: 0.82rem; text-align: center; }
 
-/* ---------- responsivo ---------- */
 @media (max-width: 960px) {
   .modal-grade { grid-template-columns: 1fr; }
   .pagina-estoque { padding: 1.5rem 1.5rem 0; }
