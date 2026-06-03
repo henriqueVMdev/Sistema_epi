@@ -1,10 +1,145 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSupabase } from '../composables/useSupabase';
 
 const { supabase, perfil } = useSupabase();
 const router = useRouter();
+
+// ---------- edição em modal ----------
+const modalAberto = ref(false);
+const editandoId = ref(null);
+const enviando = ref(false);
+const mensagem = ref(null);
+const setoresDisponiveis = ref([]);
+const setorAberto = ref(false);
+const imagemArquivo = ref(null);
+const imagemPreview = ref(null);
+const imagemExistente = ref(null);
+
+const form = reactive({
+  nome: '',
+  setor: [],
+  fabricante: '',
+  custo: '',
+  numero_ca: '',
+  data_validade: '',
+  estoque: '',
+  estoque_minimo: '',
+  descricao: '',
+});
+
+const mostrarMensagem = (tipo, texto) => {
+  mensagem.value = { tipo, texto };
+  setTimeout(() => { mensagem.value = null; }, 3500);
+};
+
+const carregarSetores = async () => {
+  const { data } = await supabase.from('setores').select('nome').order('nome');
+  setoresDisponiveis.value = (data || []).map(s => s.nome);
+};
+
+const toggleSetor = (nome) => {
+  const idx = form.setor.indexOf(nome);
+  if (idx >= 0) form.setor.splice(idx, 1);
+  else form.setor.push(nome);
+};
+
+const selecionarImagem = (e) => {
+  const f = e.target.files?.[0];
+  if (!f) return;
+  if (!f.type.startsWith('image/')) {
+    mostrarMensagem('erro', 'Selecione um arquivo de imagem.');
+    return;
+  }
+  if (f.size > 5 * 1024 * 1024) {
+    mostrarMensagem('erro', 'Imagem muito grande (máx. 5 MB).');
+    return;
+  }
+  imagemArquivo.value = f;
+  imagemPreview.value = URL.createObjectURL(f);
+};
+
+const removerImagem = () => {
+  imagemArquivo.value = null;
+  imagemPreview.value = null;
+  imagemExistente.value = null;
+};
+
+async function uploadImagem() {
+  if (!imagemArquivo.value) return imagemExistente.value || null;
+  const ext = imagemArquivo.value.name.split('.').pop().toLowerCase();
+  const caminho = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage
+    .from('epis')
+    .upload(caminho, imagemArquivo.value, { upsert: false });
+  if (error) throw error;
+  const { data } = supabase.storage.from('epis').getPublicUrl(caminho);
+  return data.publicUrl;
+}
+
+const iniciarEdicao = (epi) => {
+  editandoId.value = epi.id;
+  Object.assign(form, {
+    nome: epi.nome ?? '',
+    setor: epi.setor ? String(epi.setor).split(',').map(s => s.trim()).filter(Boolean) : [],
+    fabricante: epi.fabricante ?? '',
+    custo: epi.custo ?? '',
+    numero_ca: epi.numero_ca ?? '',
+    data_validade: epi.data_validade ?? '',
+    estoque: epi.estoque ?? '',
+    estoque_minimo: epi.estoque_minimo ?? '',
+    descricao: epi.descricao ?? '',
+  });
+  imagemArquivo.value = null;
+  imagemPreview.value = null;
+  imagemExistente.value = epi.imagem || null;
+  modalAberto.value = true;
+};
+
+const cancelarEdicao = () => {
+  modalAberto.value = false;
+  editandoId.value = null;
+  setorAberto.value = false;
+  Object.assign(form, {
+    nome: '', setor: [], fabricante: '', custo: '', numero_ca: '',
+    data_validade: '', estoque: '', estoque_minimo: '', descricao: '',
+  });
+  removerImagem();
+};
+
+const salvarEdicao = async () => {
+  if (!editandoId.value) return;
+  enviando.value = true;
+  let imagemUrl;
+  try {
+    imagemUrl = await uploadImagem();
+  } catch (e) {
+    enviando.value = false;
+    mostrarMensagem('erro', 'Erro ao enviar a imagem: ' + e.message);
+    return;
+  }
+  const payload = {
+    ...form,
+    setor: (form.setor || []).join(', '),
+    custo: form.custo === '' ? null : Number(String(form.custo).replace(',', '.')),
+    numero_ca: form.numero_ca === '' ? null : Number(form.numero_ca),
+    estoque: form.estoque === '' ? null : Number(form.estoque),
+    estoque_minimo: form.estoque_minimo === '' ? null : Number(form.estoque_minimo),
+    data_validade: form.data_validade === '' ? null : form.data_validade,
+  };
+  if (imagemUrl) payload.imagem = imagemUrl;
+
+  const { error } = await supabase.from('epis').update(payload).eq('id', editandoId.value);
+  enviando.value = false;
+  if (error) {
+    mostrarMensagem('erro', 'Erro ao atualizar: ' + error.message);
+    return;
+  }
+  mostrarMensagem('sucesso', 'EPI atualizado com sucesso!');
+  cancelarEdicao();
+  carregar();
+};
 
 const irParaCadastro = () => {
   router.push('/cadastro_epi');
@@ -73,6 +208,7 @@ const carregar = async () => {
 
 onMounted(() => {
   carregar();
+  carregarSetores();
 });
 
 // Recarrega se o perfil mudar (ex.: admin promove o usuário e ele recarrega a tela).
@@ -133,6 +269,8 @@ const excluir = async(id) =>{
 
 <template>
   <div class="pagina-estoque">
+
+    <div v-if="mensagem" :class="['toast', 'toast-' + mensagem.tipo]">{{ mensagem.texto }}</div>
 
     <header class="cabecalho">
       <div class="cabecalho-texto">
@@ -232,7 +370,7 @@ const excluir = async(id) =>{
               </div>
 
               <div v-if="podeAdministrar" class="acoes-secundarias">
-                <button class="btn-acao btn-editar" title="Editar">
+                <button class="btn-acao btn-editar" title="Editar" @click="iniciarEdicao(epi)">
                   Editar
                 </button>
                 <button class="btn-acao btn-excluir" title="Excluir" @click = "excluir(epi.id)">
@@ -284,6 +422,108 @@ const excluir = async(id) =>{
         </div>
       </div>
     </section>
+
+    <!-- MODAL DE EDIÇÃO -->
+    <div v-if="modalAberto" class="modal-overlay" @click.self="cancelarEdicao">
+      <div class="modal">
+        <header class="modal-cabecalho">
+          <h2>Editar <span class="titulo-destaque">EPI</span></h2>
+          <button type="button" class="modal-fechar" @click="cancelarEdicao">×</button>
+        </header>
+
+        <form class="modal-corpo" @submit.prevent="salvarEdicao">
+          <div class="modal-grade">
+            <div class="campo">
+              <label>Nome do EPI</label>
+              <input v-model="form.nome" type="text" />
+            </div>
+
+            <div class="campo">
+              <label>Setores de uso</label>
+              <div class="multi-select" :class="{ aberto: setorAberto }">
+                <button type="button" class="multi-select-trigger" @click="setorAberto = !setorAberto">
+                  <span v-if="form.setor.length === 0" class="ms-placeholder">Selecione um ou mais setores</span>
+                  <span v-else class="ms-tags">
+                    <span class="ms-tag" v-for="s in form.setor" :key="s">
+                      {{ s }}
+                      <span class="ms-tag-x" @click.stop="toggleSetor(s)">×</span>
+                    </span>
+                  </span>
+                  <span class="ms-seta">▾</span>
+                </button>
+                <div v-if="setorAberto" class="multi-select-menu">
+                  <label v-for="nome in setoresDisponiveis" :key="nome" class="ms-opcao">
+                    <input type="checkbox" :value="nome" v-model="form.setor" />
+                    <span>{{ nome }}</span>
+                  </label>
+                  <p v-if="setoresDisponiveis.length === 0" class="ms-vazio">Nenhum setor cadastrado.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="campo">
+              <label>Fabricante</label>
+              <input v-model="form.fabricante" type="text" />
+            </div>
+
+            <div class="campo">
+              <label>Custo</label>
+              <input v-model="form.custo" type="text" />
+            </div>
+
+            <div class="campo">
+              <label>Número do CA</label>
+              <input v-model="form.numero_ca" type="number" />
+            </div>
+
+            <div class="campo">
+              <label>Data de Validade</label>
+              <input v-model="form.data_validade" type="date" />
+            </div>
+
+            <div class="campo">
+              <label>Estoque</label>
+              <input v-model="form.estoque" type="number" />
+            </div>
+
+            <div class="campo">
+              <label>Estoque mínimo</label>
+              <input v-model="form.estoque_minimo" type="number" />
+            </div>
+
+            <div class="campo campo-largo">
+              <label>Descrição</label>
+              <textarea v-model="form.descricao" rows="3" maxlength="200"></textarea>
+            </div>
+
+            <div class="campo campo-largo">
+              <label>Imagem</label>
+              <div v-if="imagemPreview || imagemExistente" class="preview-imagem-modal">
+                <img :src="imagemPreview || imagemExistente" alt="Imagem do EPI" />
+                <div class="preview-acoes">
+                  <label class="btn-trocar">
+                    Trocar
+                    <input type="file" accept="image/png, image/jpeg, image/webp" hidden @change="selecionarImagem" />
+                  </label>
+                  <button type="button" class="btn-remover" @click="removerImagem">Remover</button>
+                </div>
+              </div>
+              <label v-else class="area-upload-modal">
+                <p>Clique para enviar imagem</p>
+                <input type="file" accept="image/png, image/jpeg, image/webp" hidden @change="selecionarImagem" />
+              </label>
+            </div>
+          </div>
+
+          <footer class="modal-rodape">
+            <button type="button" class="botao botao-cancelar" @click="cancelarEdicao">Cancelar</button>
+            <button type="submit" class="botao botao-salvar" :disabled="enviando">
+              {{ enviando ? 'Salvando…' : 'Salvar alterações' }}
+            </button>
+          </footer>
+        </form>
+      </div>
+    </div>
 
     <footer class="rodape">
       <div class="rodape-marca">
