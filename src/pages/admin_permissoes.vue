@@ -497,4 +497,16 @@ onMounted(carregar);
   margin-top: 1rem;
 }
 .dica strong { color: #F49D25; }
+
+/* ---------- remove setas dos number inputs ---------- */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
 </style>

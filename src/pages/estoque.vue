@@ -29,6 +29,26 @@ const form = reactive({
   descricao: '',
 });
 
+// helpers de data: dd/mm/aaaa <-> yyyy-mm-dd
+const isoParaBr = (iso) => {
+  if (!iso) return '';
+  const [a, m, d] = String(iso).split('T')[0].split('-');
+  return a && m && d ? `${d}/${m}/${a}` : '';
+};
+const brParaIso = (br) => {
+  if (!br) return null;
+  const m = String(br).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  return `${m[3]}-${m[2]}-${m[1]}`;
+};
+const aplicarMascaraData = (e) => {
+  let v = e.target.value.replace(/\D/g, '').slice(0, 8);
+  if (v.length >= 5) v = `${v.slice(0,2)}/${v.slice(2,4)}/${v.slice(4)}`;
+  else if (v.length >= 3) v = `${v.slice(0,2)}/${v.slice(2)}`;
+  e.target.value = v;
+  form.data_validade = v;
+};
+
 const mostrarMensagem = (tipo, texto) => {
   mensagem.value = { tipo, texto };
   setTimeout(() => { mensagem.value = null; }, 3500);
@@ -86,7 +106,7 @@ const iniciarEdicao = (epi) => {
     fabricante: epi.fabricante ?? '',
     custo: epi.custo ?? '',
     numero_ca: epi.numero_ca ?? '',
-    data_validade: epi.data_validade ?? '',
+    data_validade: isoParaBr(epi.data_validade),
     estoque: epi.estoque ?? '',
     estoque_minimo: epi.estoque_minimo ?? '',
     descricao: epi.descricao ?? '',
@@ -126,7 +146,7 @@ const salvarEdicao = async () => {
     numero_ca: form.numero_ca === '' ? null : Number(form.numero_ca),
     estoque: form.estoque === '' ? null : Number(form.estoque),
     estoque_minimo: form.estoque_minimo === '' ? null : Number(form.estoque_minimo),
-    data_validade: form.data_validade === '' ? null : form.data_validade,
+    data_validade: brParaIso(form.data_validade),
   };
   if (imagemUrl) payload.imagem = imagemUrl;
 
@@ -478,7 +498,7 @@ const excluir = async(id) =>{
 
             <div class="campo">
               <label>Data de Validade</label>
-              <input v-model="form.data_validade" type="date" />
+              <input :value="form.data_validade" @input="aplicarMascaraData" type="text" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" />
             </div>
 
             <div class="campo">
@@ -1149,8 +1169,168 @@ const excluir = async(id) =>{
 }
 .toggle-ativo .toggle-bolinha { transform: translateX(20px); }
 
+/* ---------- remove setas dos number inputs ---------- */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* ---------- toast ---------- */
+.toast {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 1100;
+  padding: 0.85rem 1.3rem;
+  border-radius: 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.toast-sucesso { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.4); color: #4ade80; }
+.toast-erro    { background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.4); color: #f87171; }
+
+/* ---------- modal ---------- */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 1.5rem;
+}
+.modal {
+  background: #221E18;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 1rem;
+  width: 100%; max-width: 720px; max-height: 90vh;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.modal-cabecalho {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid #2a241e;
+}
+.modal-cabecalho h2 { font-size: 1.25rem; font-weight: 700; color: #fff; }
+.modal-fechar {
+  background: transparent; border: none; color: #8b8680;
+  font-size: 1.6rem; cursor: pointer; line-height: 1; padding: 0 0.3rem;
+}
+.modal-fechar:hover { color: #fff; }
+.modal-corpo { padding: 1.2rem 1.5rem; overflow-y: auto; flex: 1; }
+.modal-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.2rem; }
+.campo-largo { grid-column: 1 / -1; }
+.modal-rodape {
+  display: flex; justify-content: flex-end; gap: 0.7rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #2a241e;
+  background: #1c1814;
+}
+.preview-imagem-modal img {
+  width: 100%; max-height: 180px; object-fit: cover;
+  border-radius: 0.6rem; border: 1px solid #2a241e;
+}
+.preview-imagem-modal { display: flex; flex-direction: column; gap: 0.6rem; }
+.preview-acoes { display: flex; gap: 0.5rem; }
+.btn-trocar, .btn-remover {
+  flex: 1; text-align: center;
+  padding: 0.5rem 0.7rem; border-radius: 0.45rem;
+  font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.btn-trocar {
+  background: rgba(244,157,37,0.12); color: #F49D25;
+  border: 1px solid rgba(244,157,37,0.4);
+}
+.btn-trocar:hover { background: rgba(244,157,37,0.22); }
+.btn-remover {
+  background: rgba(248,113,113,0.12); color: #f87171;
+  border: 1px solid rgba(248,113,113,0.3);
+}
+.btn-remover:hover { background: rgba(248,113,113,0.22); }
+.area-upload-modal {
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.2rem; border: 2px dashed #3a332b; border-radius: 0.6rem;
+  background: #1c1814; cursor: pointer; color: #8b8680; font-size: 0.85rem;
+}
+.area-upload-modal:hover { border-color: #F49D25; }
+
+/* ---------- campos do modal ---------- */
+.modal .campo { display: flex; flex-direction: column; gap: 0.4rem; }
+.modal .campo label { color: #c5bfb5; font-size: 0.82rem; font-weight: 500; }
+.modal .campo input, .modal .campo textarea {
+  background: #131110; border: 1px solid #2a241e;
+  border-radius: 0.5rem; padding: 0.7rem 0.85rem;
+  color: #fff; font-size: 0.88rem; outline: none;
+  width: 100%; font-family: inherit; transition: border-color 0.2s;
+}
+.modal .campo input:focus, .modal .campo textarea:focus { border-color: #F49D25; }
+.modal .campo textarea { resize: none; }
+
+.botao {
+  border: none; padding: 0.6rem 1.1rem; border-radius: 0.5rem;
+  font-size: 0.88rem; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.botao-cancelar { background: #2a241e; color: #fff; border: 1px solid #3a332b; }
+.botao-cancelar:hover { background: #342c25; }
+.botao-salvar { background: #F49D25; color: #1a1410; }
+.botao-salvar:hover { background: #e08c18; }
+.botao-salvar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---------- multi-select ---------- */
+.multi-select { position: relative; width: 100%; }
+.multi-select-trigger {
+  width: 100%; min-height: 2.85rem;
+  background: #131110; border: 1px solid #2a241e; border-radius: 0.5rem;
+  padding: 0.4rem 2.2rem 0.4rem 0.7rem;
+  color: #fff; font-size: 0.88rem; text-align: left; cursor: pointer;
+  display: flex; align-items: center; gap: 0.4rem;
+  position: relative; font-family: inherit;
+}
+.multi-select.aberto .multi-select-trigger,
+.multi-select-trigger:hover { border-color: #F49D25; }
+.ms-placeholder { color: #5c554d; }
+.ms-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; flex: 1; }
+.ms-tag {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  background: rgba(244,157,37,0.15); color: #F49D25;
+  font-size: 0.78rem; font-weight: 600;
+  padding: 0.2rem 0.5rem; border-radius: 0.4rem;
+}
+.ms-tag-x { cursor: pointer; font-weight: 700; line-height: 1; padding: 0 0.15rem; }
+.ms-seta { position: absolute; right: 0.9rem; color: #8b8680; }
+.multi-select-menu {
+  position: absolute; top: calc(100% + 0.3rem); left: 0; right: 0;
+  background: #1c1814; border: 1px solid #2a241e; border-radius: 0.5rem;
+  padding: 0.4rem; max-height: 220px; overflow-y: auto;
+  z-index: 50; box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+.ms-opcao {
+  display: flex; align-items: center; gap: 0.55rem;
+  padding: 0.5rem 0.6rem; border-radius: 0.35rem;
+  cursor: pointer; color: #ebe8e4; font-size: 0.86rem;
+  transition: background 0.15s;
+}
+.ms-opcao:hover { background: rgba(244,157,37,0.08); }
+.ms-opcao input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  width: 1.05rem; height: 1.05rem;
+  border: 1.5px solid #5c554d; border-radius: 0.25rem;
+  background: transparent; cursor: pointer; position: relative;
+  flex-shrink: 0; margin: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.ms-opcao input[type="checkbox"]:hover { border-color: #F49D25; }
+.ms-opcao input[type="checkbox"]:checked {
+  background: #F49D25; border-color: #F49D25;
+}
+.ms-vazio { padding: 0.6rem; color: #8b8680; font-size: 0.82rem; text-align: center; }
+
 /* ---------- responsivo ---------- */
 @media (max-width: 960px) {
+  .modal-grade { grid-template-columns: 1fr; }
   .pagina-estoque { padding: 1.5rem 1.5rem 0; }
   .card-principal { flex-wrap: wrap; }
   .card-estoque { flex: 1 1 100%; flex-direction: row; justify-content: space-between; padding: 0.7rem 1rem; }

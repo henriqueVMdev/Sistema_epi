@@ -65,6 +65,27 @@ async function uploadImagem() {
   return data.publicUrl;
 }
 
+// helpers de data: dd/mm/aaaa <-> yyyy-mm-dd
+const isoParaBr = (iso) => {
+  if (!iso) return '';
+  const [a, m, d] = String(iso).split('T')[0].split('-');
+  return a && m && d ? `${d}/${m}/${a}` : '';
+};
+const brParaIso = (br) => {
+  if (!br) return null;
+  const m = String(br).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  return `${m[3]}-${m[2]}-${m[1]}`;
+};
+// aplica máscara dd/mm/aaaa enquanto digita
+const aplicarMascaraData = (e) => {
+  let v = e.target.value.replace(/\D/g, '').slice(0, 8);
+  if (v.length >= 5) v = `${v.slice(0,2)}/${v.slice(2,4)}/${v.slice(4)}`;
+  else if (v.length >= 3) v = `${v.slice(0,2)}/${v.slice(2)}`;
+  e.target.value = v;
+  form.data_validade = v;
+};
+
 const mostrarMensagem = (tipo, texto) => {
   mensagem.value = { tipo, texto };
   setTimeout(() => { mensagem.value = null; }, 4000);
@@ -94,7 +115,7 @@ const salvar = async () => {
     numero_ca: form.numero_ca === '' ? null : Number(form.numero_ca),
     estoque: form.estoque === '' ? null : Number(form.estoque),
     estoque_minimo: form.estoque_minimo === '' ? null : Number(form.estoque_minimo),
-    data_validade: form.data_validade === '' ? null : form.data_validade,
+    data_validade: brParaIso(form.data_validade),
   };
   if (imagemUrl) payload.imagem = imagemUrl;
 
@@ -140,7 +161,7 @@ const iniciarEdicao = (epi) => {
     fabricante: epi.fabricante ?? '',
     custo: epi.custo ?? '',
     numero_ca: epi.numero_ca ?? '',
-    data_validade: epi.data_validade ?? '',
+    data_validade: isoParaBr(epi.data_validade),
     estoque: epi.estoque ?? '',
     estoque_minimo: epi.estoque_minimo ?? '',
     descricao: epi.descricao ?? '',
@@ -314,7 +335,7 @@ onMounted(() => {
               <div class="input-com-icone">
                 <span class="prefixo">
                 </span>
-                <input v-model="form.data_validade" type="date">
+                <input :value="form.data_validade" @input="aplicarMascaraData" type="text" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric">
               </div>
             </div>
           </div>
@@ -470,7 +491,7 @@ onMounted(() => {
 
             <div class="campo">
               <label>Data de Validade</label>
-              <input v-model="form.data_validade" type="date" />
+              <input :value="form.data_validade" @input="aplicarMascaraData" type="text" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" />
             </div>
 
             <div class="campo">
@@ -824,10 +845,23 @@ onMounted(() => {
 }
 .ms-opcao:hover { background: rgba(244, 157, 37, 0.08); }
 .ms-opcao input[type="checkbox"] {
-  accent-color: #F49D25;
-  width: 1rem;
-  height: 1rem;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 1.5px solid #5c554d;
+  border-radius: 0.25rem;
+  background: transparent;
   cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  margin: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.ms-opcao input[type="checkbox"]:hover { border-color: #F49D25; }
+.ms-opcao input[type="checkbox"]:checked {
+  background: #F49D25;
+  border-color: #F49D25;
 }
 
 .ms-vazio {
@@ -1211,6 +1245,18 @@ onMounted(() => {
   border: 1px solid #2a241e;
 }
 .area-upload-modal { padding: 1.2rem; }
+
+/* ---------- remove setas dos number inputs ---------- */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
 
 /* ---------- responsivo ---------- */
 @media (max-width: 960px) {
