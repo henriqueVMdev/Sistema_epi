@@ -201,8 +201,7 @@ onMounted(() => {
     <header class="cabecalho">
       <div class="cabecalho-texto">
         <p class="caminho">
-          Home <span class="separador">›</span>
-          Estoque <span class="separador">›</span>
+          Estoque &amp; EPIs <span class="separador">›</span>
           <span class="caminho-atual">Cadastro de EPI</span>
         </p>
         <h1 class="titulo-pagina">Novo <span class="titulo-destaque">EPI</span></h1>

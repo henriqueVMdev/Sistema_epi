@@ -137,7 +137,7 @@ const excluir = async(id) =>{
     <header class="cabecalho">
       <div class="cabecalho-texto">
         <p class="caminho">
-          Home <span class="separador">›</span>
+          Estoque &amp; EPIs <span class="separador">›</span>
           <span class="caminho-atual">Estoque</span>
         </p>
         <h1 class="titulo-pagina">Controle de <span class="titulo-destaque">Estoque</span></h1>

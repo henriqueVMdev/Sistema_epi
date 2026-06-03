@@ -28,21 +28,6 @@
     </div>
   </section>
 
-  
-  <section class="software">
-    <h2 class="software-title">Software completo e intuitivo</h2>
-    <p class="software-sub">a evolução digital que sua gestão estava precisando</p>
-    <div class="software-inner">
-      <RouterLink to="/login">
-        <button class="btn-comecar">Começar Agora →</button>
-      </RouterLink>
-      <div class="video-box">
-        <span>video do software aqui</span>
-      </div>
-    </div>
-  </section>
-
-
   <section id="funcionalidades" class="funcionalidades">
     <span class="section-tag">FUNCIONALIDADES</span>
     <h2 class="section-title">Tudo o que você precisa para gestão de EPIs</h2>

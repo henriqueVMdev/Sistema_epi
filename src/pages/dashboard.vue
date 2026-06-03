@@ -194,7 +194,7 @@ const statusRetiradas = computed(() => {
     <header class="cabecalho">
       <div>
         <p class="caminho">
-          Home <span class="separador">›</span>
+          Análise <span class="separador">›</span>
           <span class="caminho-atual">Dashboard</span>
         </p>
         <h1 class="titulo-pagina"><span class="titulo-destaque">Dashboard</span> Geral</h1>

@@ -80,7 +80,7 @@ const totalVencendo = computed(() =>
   <div class="pagina">
     <header class="cabecalho">
       <div>
-        <p class="caminho">Home <span class="separador">›</span> <span class="atual">Meus EPIs</span></p>
+        <p class="caminho">Operações <span class="separador">›</span> <span class="atual">Meus EPIs</span></p>
         <h1 class="titulo">Meus <span class="destaque">EPIs</span></h1>
         <p class="subtitulo">
           {{ perfil?.nome || 'Funcionário' }} · Setor {{ perfil?.setor?.nome || '—' }}

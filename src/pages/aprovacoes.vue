@@ -163,7 +163,7 @@ onMounted(carregar);
   <div class="pagina">
     <header class="cabecalho">
       <div>
-        <p class="caminho">Almoxarife <span class="separador">›</span> <span class="atual">Aprovações</span></p>
+        <p class="caminho">Operações <span class="separador">›</span> <span class="atual">Aprovações</span></p>
         <h1 class="titulo">Fila de <span class="destaque">Aprovações</span></h1>
         <p class="subtitulo">Aprove pedidos acima do limite, registre entregas e devoluções.</p>
       </div>

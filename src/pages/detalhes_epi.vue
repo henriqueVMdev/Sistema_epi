@@ -99,7 +99,7 @@ onMounted(carregar);
     <header class="cabecalho">
       <div>
         <p class="caminho">
-          Home <span class="separador">›</span>
+          Estoque &amp; EPIs <span class="separador">›</span>
           <span @click="voltar" class="caminho-clicavel">Estoque</span>
           <span class="separador">›</span>
           <span class="caminho-atual">Detalhes do EPI</span>

@@ -213,7 +213,7 @@ const labelStatus = (s) => ({
     <header class="cabecalho">
       <div>
         <p class="caminho">
-          Home <span class="separador">›</span>
+          Operações <span class="separador">›</span>
           <span class="caminho-atual">Retirada de EPIs</span>
         </p>
         <h1 class="titulo-pagina">Retirada de <span class="titulo-destaque">EPIs</span></h1>
