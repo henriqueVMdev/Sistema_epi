@@ -140,20 +140,36 @@ const cadastrar = async () => {
   align-items: center;
   min-height: 100vh;
   width: 100%;
+  position: relative;
+}
+.caixa::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 32rem;
+  height: 32rem;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(244, 157, 37, 0.7) 0%, rgba(244, 157, 37, 0.28) 40%, transparent 70%);
+  filter: blur(60px);
+  z-index: 0;
+  pointer-events: none;
 }
 form {
+  position: relative;
+  z-index: 1;
   width: 90%;
   max-width: 25rem;
   min-height: 40rem;
   background-color: #131314 !important;
   background-position: center;
-  display:flex;  
+  display:flex;
   flex-direction: column;
   justify-content: center;
   gap: 5px;
   border-radius: 20px;
   border: 2px solid #f49e2554;
-  
+
   padding: 32px;
 }
 

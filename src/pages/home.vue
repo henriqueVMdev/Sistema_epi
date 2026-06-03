@@ -771,6 +771,7 @@ html {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.8rem;
+  color: #ffffff;
 }
 .footer-logo-img {
   width: 1.6rem;

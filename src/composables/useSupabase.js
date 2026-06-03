@@ -12,7 +12,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 })
 
-const session = ref(null)
+2const session = ref(null)
 const loadingSession = ref(true)
 const perfil = ref(null)
 
