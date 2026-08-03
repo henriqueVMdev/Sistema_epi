@@ -1,0 +1,227 @@
+{
+  "projeto": {
+    "nome": "Sistema EPI",
+    "pacote": "epi-sistem",
+    "versao": "0.0.0",
+    "descricao": "Sistema web de gestão de Equipamentos de Proteção Individual (EPI) em contexto educacional (SENAI). Permite cadastrar EPIs e usuários, controlar estoque, registrar e aprovar retiradas/entregas de equipamentos, e acompanhar os EPIs em uso por cada funcionário, com controle de acesso por hierarquia de papéis.",
+    "tipo": "Single Page Application (SPA)",
+    "contexto": "Projeto Integrador"
+  },
+  "stack": {
+    "frontend": {
+      "framework": "Vue 3 (Composition API, <script setup> SFCs)",
+      "roteamento": "vue-router 4",
+      "build": "Vite 8",
+      "linguagem": "JavaScript (ESM)"
+    },
+    "backend": {
+      "baas": "Supabase",
+      "sdk": "@supabase/supabase-js 2.x",
+      "recursos": ["Auth", "PostgreSQL", "Row Level Security (RLS)", "Storage (avatars)"]
+    },
+    "dependencias": {
+      "producao": ["vue ^3.5.30", "vue-router ^4.6.4", "@supabase/supabase-js ^2.100.0", "requirements ^3.0.0"],
+      "desenvolvimento": ["vite ^8.0.1", "@vitejs/plugin-vue ^6.0.2"]
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "configuracao": {
+    "variaveis_ambiente": {
+      "arquivo": ".env",
+      "chaves": ["VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY"]
+    },
+    "alias": { "@": "./src" },
+    "vite_config": "vite.config.js"
+  },
+  "autenticacao": {
+    "composable": "src/composables/useSupabase.js",
+    "descricao": "Centraliza o cliente Supabase e o estado reativo de autenticação. Escuta onAuthStateChange e carrega o perfil do funcionário logado.",
+    "estado_reativo": ["session", "loadingSession", "perfil"],
+    "carregamento_perfil": "Busca o registro em 'funcionarios' pelo user_id, incluindo o setor principal (FK setor_id) e setores adicionais (via funcionario_setores), agregados em perfil.setores.",
+    "opcoes_auth": ["persistSession: true", "autoRefreshToken: true", "detectSessionInUrl: true"]
+  },
+  "hierarquia_acesso": {
+    "papeis": ["admin", "almoxarife", "professor", "aluno"],
+    "descricao": "Controle de acesso baseado em papel (role) armazenado em funcionarios.role. As rotas declaram meta.roles e o guard de navegação bloqueia o acesso de papéis não autorizados.",
+    "guard": "router.beforeEach em src/router/index.js: aguarda o carregamento do perfil; sem sessão redireciona para /login; sem papel permitido redireciona para /estoque.",
+    "rls": "Políticas de Row Level Security no Supabase usando funções SECURITY DEFINER get_role() e meu_funcionario_id() para evitar recursão."
+  },
+  "rotas": [
+    { "path": "/", "componente": "home.vue", "acesso": "publica" },
+    { "path": "/login", "componente": "login.vue", "acesso": "publica" },
+    { "path": "/cadastro_user", "componente": "cadastro_user.vue", "acesso": "publica" },
+    { "path": "/cadastro_epi", "componente": "cadastro_epi.vue", "acesso": "admin, almoxarife", "layout": "sidebar" },
+    { "path": "/retirada_epi", "componente": "retirada_epi.vue", "acesso": "autenticado", "layout": "sidebar" },
+    { "path": "/meus_epis", "componente": "meus_epis.vue", "acesso": "autenticado", "layout": "sidebar" },
+    { "path": "/perfil", "componente": "perfil.vue", "acesso": "autenticado", "layout": "sidebar" },
+    { "path": "/dashboard", "componente": "dashboard.vue", "acesso": "admin, almoxarife", "layout": "sidebar" },
+    { "path": "/estoque", "componente": "estoque.vue", "acesso": "autenticado", "layout": "sidebar" },
+    { "path": "/epi/:id", "componente": "detalhes_epi.vue", "acesso": "admin, almoxarife", "layout": "sidebar" },
+    { "path": "/admin/usuarios", "componente": "admin_usuarios.vue", "acesso": "admin", "layout": "sidebar" },
+    { "path": "/admin/permissoes", "componente": "admin_permissoes.vue", "acesso": "admin", "layout": "sidebar" },
+    { "path": "/aprovacoes", "componente": "aprovacoes.vue", "acesso": "admin, almoxarife", "layout": "sidebar" }
+  ],
+  "paginas": {
+    "home.vue": { "descricao": "Página inicial/landing pública.", "tabelas": [] },
+    "login.vue": { "descricao": "Tela de autenticação (login via Supabase Auth).", "tabelas": [] },
+    "cadastro_user.vue": { "descricao": "Cadastro de novo usuário/funcionário, com seleção de setor.", "tabelas": ["funcionarios", "setores"] },
+    "cadastro_epi.vue": { "descricao": "Cadastro de novos EPIs (número CA, estoque, etc.) e vínculo com setores.", "tabelas": ["epis", "setores"] },
+    "estoque.vue": { "descricao": "Visualização do estoque de EPIs, incluindo permissões por setor.", "tabelas": ["epis", "setores", "epi_permissoes"] },
+    "detalhes_epi.vue": { "descricao": "Detalhes de um EPI específico e seu histórico de entregas.", "tabelas": ["epis", "entrega_epi"] },
+    "retirada_epi.vue": { "descricao": "Solicitação/registro de retirada de EPI por um funcionário, validando permissões.", "tabelas": ["epis", "epi_permissoes", "entrega_epi", "funcionarios"] },
+    "aprovacoes.vue": { "descricao": "Fila de aprovação das solicitações de entrega de EPI (gestores).", "tabelas": ["entrega_epi", "epis"] },
+    "meus_epis.vue": { "descricao": "EPIs em uso, pedidos em andamento e histórico do funcionário logado (filtrado por funcionario_id).", "tabelas": ["entrega_epi"] },
+    "dashboard.vue": { "descricao": "Painel com indicadores de entregas e EPIs (gestores).", "tabelas": ["entrega_epi", "epis"] },
+    "perfil.vue": { "descricao": "Edição de perfil do usuário e upload de avatar.", "tabelas": ["funcionarios", "avatars (storage)"] },
+    "admin_usuarios.vue": { "descricao": "Administração de usuários e seus setores (admin).", "tabelas": ["funcionarios", "funcionario_setores", "setores"] },
+    "admin_permissoes.vue": { "descricao": "Administração de permissões de EPI por setor (admin).", "tabelas": ["epi_permissoes", "epis", "setores"] }
+  },
+  "componentes": {
+    "sidebar.vue": "Layout com menu lateral usado como wrapper das rotas autenticadas; itens filtrados conforme o papel do usuário."
+  },
+  "modelo_dados": {
+    "fonte": "Schema real do projeto Supabase 'SistemaEPI' (ref ikdzgtljcokivmkxcpqa, região sa-east-1, Postgres 17), lido via MCP.",
+    "observacao": "RLS habilitado em todas as tabelas. Os IDs de funcionarios, epis e entrega_epi são UUID (uuid_generate_v4); os de setores e epi_permissoes são bigint (sequence).",
+    "tabelas": {
+      "funcionarios": {
+        "descricao": "Usuários do sistema, vinculados ao Supabase Auth via user_id.",
+        "rls": true,
+        "primary_key": ["id"],
+        "colunas": [
+          { "nome": "id", "tipo": "uuid", "default": "uuid_generate_v4()", "pk": true },
+          { "nome": "nome", "tipo": "varchar" },
+          { "nome": "email", "tipo": "varchar" },
+          { "nome": "cpf", "tipo": "varchar", "unique": true },
+          { "nome": "criado_em", "tipo": "timestamp", "nullable": true, "default": "now()" },
+          { "nome": "role", "tipo": "text", "default": "aluno", "check": "role IN ('admin','almoxarife','professor','aluno')" },
+          { "nome": "setor_id", "tipo": "bigint", "nullable": true, "fk": "setores.id" },
+          { "nome": "user_id", "tipo": "uuid", "unique": true, "fk": "auth.users.id" },
+          { "nome": "avatar_url", "tipo": "text", "nullable": true }
+        ]
+      },
+      "setores": {
+        "descricao": "Setores/áreas da instituição.",
+        "rls": true,
+        "primary_key": ["id"],
+        "colunas": [
+          { "nome": "id", "tipo": "bigint", "default": "sequence (setores_id_seq)", "pk": true },
+          { "nome": "nome", "tipo": "text", "unique": true },
+          { "nome": "created_at", "tipo": "timestamptz", "nullable": true, "default": "now()" }
+        ]
+      },
+      "funcionario_setores": {
+        "descricao": "Relação N:N entre funcionários e setores (setores adicionais além do principal). Atualmente sem registros.",
+        "rls": true,
+        "primary_key": ["funcionario_id", "setor_id"],
+        "colunas": [
+          { "nome": "funcionario_id", "tipo": "uuid", "fk": "funcionarios.id", "pk": true },
+          { "nome": "setor_id", "tipo": "bigint", "fk": "setores.id", "pk": true }
+        ]
+      },
+      "epis": {
+        "descricao": "Catálogo de Equipamentos de Proteção Individual.",
+        "rls": true,
+        "primary_key": ["id"],
+        "colunas": [
+          { "nome": "id", "tipo": "uuid", "default": "uuid_generate_v4()", "pk": true },
+          { "nome": "nome", "tipo": "varchar" },
+          { "nome": "setor", "tipo": "varchar", "nullable": true },
+          { "nome": "fabricante", "tipo": "varchar", "nullable": true },
+          { "nome": "custo", "tipo": "float8", "nullable": true },
+          { "nome": "numero_ca", "tipo": "integer" },
+          { "nome": "data_validade", "tipo": "date", "nullable": true },
+          { "nome": "descricao", "tipo": "varchar", "nullable": true },
+          { "nome": "estoque", "tipo": "integer" },
+          { "nome": "estoque_minimo", "tipo": "integer", "nullable": true },
+          { "nome": "imagem", "tipo": "text", "nullable": true }
+        ]
+      },
+      "epi_permissoes": {
+        "descricao": "Define quais EPIs cada papel/setor pode retirar e o limite de unidades.",
+        "rls": true,
+        "primary_key": ["id"],
+        "colunas": [
+          { "nome": "id", "tipo": "bigint", "default": "sequence (epi_permissoes_id_seq)", "pk": true },
+          { "nome": "role", "tipo": "text", "check": "role IN ('professor','aluno')" },
+          { "nome": "setor_id", "tipo": "bigint", "fk": "setores.id" },
+          { "nome": "epi_id", "tipo": "uuid", "fk": "epis.id" },
+          { "nome": "limite", "tipo": "integer", "default": "1", "check": "limite >= 0" },
+          { "nome": "created_at", "tipo": "timestamptz", "nullable": true, "default": "now()" }
+        ]
+      },
+      "setor_epis": {
+        "descricao": "Relação N:N entre setores e EPIs com quantidade alocada por setor. Atualmente sem registros.",
+        "rls": true,
+        "primary_key": ["setor_id", "epi_id"],
+        "colunas": [
+          { "nome": "setor_id", "tipo": "bigint", "fk": "setores.id", "pk": true },
+          { "nome": "epi_id", "tipo": "uuid", "fk": "epis.id", "pk": true },
+          { "nome": "quantidade", "tipo": "integer", "default": "0" }
+        ]
+      },
+      "entrega_epi": {
+        "descricao": "Solicitações/entregas de EPI a funcionários, com fluxo de status e aprovação.",
+        "rls": true,
+        "primary_key": ["id"],
+        "colunas": [
+          { "nome": "id", "tipo": "uuid", "default": "uuid_generate_v4()", "pk": true },
+          { "nome": "data_entrega", "tipo": "date", "nullable": true },
+          { "nome": "nome_retirada", "tipo": "varchar", "nullable": true },
+          { "nome": "nome_epi", "tipo": "varchar", "nullable": true },
+          { "nome": "setor_retirada", "tipo": "varchar", "nullable": true },
+          { "nome": "status", "tipo": "text", "default": "pendente_entrega", "check": "status IN ('pendente_aprovacao','pendente_entrega','aprovado','recusado','entregue','devolvido')" },
+          { "nome": "quantidade", "tipo": "integer", "nullable": true },
+          { "nome": "justificativa", "tipo": "text", "nullable": true },
+          { "nome": "aprovado_por", "tipo": "uuid", "nullable": true, "fk": "auth.users.id" },
+          { "nome": "aprovado_em", "tipo": "timestamptz", "nullable": true },
+          { "nome": "data_validade", "tipo": "date", "nullable": true },
+          { "nome": "funcionario_id", "tipo": "uuid", "nullable": true, "fk": "funcionarios.id" },
+          { "nome": "epi_id", "tipo": "uuid", "nullable": true, "fk": "epis.id" },
+          { "nome": "data_retirada", "tipo": "timestamptz", "nullable": true, "default": "now()" },
+          { "nome": "data_devolucao", "tipo": "date", "nullable": true }
+        ],
+        "status_check": "Constraint de status com 6 valores. ATENÇÃO: no banco os valores 'aprovado' e 'devolvido' estão gravados com quebras de linha/espaços embutidos ('\\n  aprovado' e 'devolvido\\n  '), o que pode causar falha de comparação — recomenda-se recriar o CHECK com os valores limpos.",
+        "fluxo_status": ["pendente_aprovacao", "pendente_entrega", "aprovado", "recusado", "entregue", "devolvido"]
+      }
+    },
+    "relacionamentos": [
+      "funcionarios.setor_id → setores.id (setor principal)",
+      "funcionarios.user_id → auth.users.id (vínculo com Supabase Auth)",
+      "funcionario_setores: N:N funcionarios ↔ setores",
+      "epi_permissoes.epi_id → epis.id; epi_permissoes.setor_id → setores.id",
+      "setor_epis: N:N setores ↔ epis (com quantidade)",
+      "entrega_epi.funcionario_id → funcionarios.id; entrega_epi.epi_id → epis.id; entrega_epi.aprovado_por → auth.users.id"
+    ],
+    "funcoes_rls": {
+      "get_role()": "Retorna o papel do usuário autenticado (SECURITY DEFINER).",
+      "meu_funcionario_id()": "Retorna o UUID do funcionário do usuário autenticado (SECURITY DEFINER)."
+    }
+  },
+  "estrutura_diretorios": {
+    "src/": "Código-fonte da aplicação.",
+    "src/main.js": "Ponto de entrada; monta o app Vue e o router.",
+    "src/App.vue": "Componente raiz.",
+    "src/router/index.js": "Definição de rotas e guard de autenticação/autorização.",
+    "src/composables/useSupabase.js": "Cliente Supabase e estado de autenticação.",
+    "src/pages/": "Telas (views) mapeadas às rotas.",
+    "src/components/": "Componentes reutilizáveis (sidebar).",
+    "src/assets/": "Imagens e SVGs (logos, ilustrações).",
+    "src/style.css": "Estilos globais.",
+    "src/test/": "Testes (ex.: cadastro_user.test.js).",
+    "public/": "Assets servidos estaticamente.",
+    "dist/": "Build de produção gerado pelo Vite.",
+    "index.html": "HTML base da SPA."
+  },
+  "fluxos_principais": [
+    "Cadastro de usuário (rota pública) → registro em funcionarios com papel e setor.",
+    "Cadastro de EPI (admin/almoxarife) → registro em epis e permissões por setor.",
+    "Retirada de EPI → funcionário solicita um EPI permitido ao seu setor, gerando registro em entrega_epi com status pendente.",
+    "Aprovação (admin/almoxarife) → gestor aprova/rejeita a solicitação, atualizando status e aprovado_por.",
+    "Acompanhamento → funcionário visualiza seus EPIs em uso, pedidos e histórico em 'Meus EPIs'.",
+    "Administração → admin gerencia usuários, setores e permissões de EPI."
+  ]
+}

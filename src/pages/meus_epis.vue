@@ -83,7 +83,7 @@ const totalVencendo = computed(() =>
           {{ perfil?.nome || 'Funcionário' }} · Setor {{ perfil?.setor?.nome || '—' }}
         </p>
       </div>
-      <button class="botao-recarregar" @click="carregar" :disabled="carregando">↻ Atualizar</button>
+      <button type="button" class="botao-recarregar" @click="carregar" :disabled="carregando">↻ Atualizar</button>
     </header>
 
     <p v-if="carregando" class="vazio">Carregando…</p>
@@ -116,7 +116,7 @@ const totalVencendo = computed(() =>
         <div v-else class="lista">
           <article v-for="r in emUso" :key="r.id" class="item">
             <div class="item-img">
-              <img v-if="r.epi?.imagem" :src="r.epi.imagem" :alt="r.epi?.nome" />
+              <img loading="lazy" decoding="async" v-if="r.epi?.imagem" :src="r.epi.imagem" :alt="r.epi?.nome" />
               <div v-else class="img-placeholder"></div>
             </div>
             <div class="item-info">
@@ -182,9 +182,9 @@ const totalVencendo = computed(() =>
 
 <style scoped>
 .pagina {
-  background: #181511;
+  background: var(--superficie-alta);
   min-height: 100vh;
-  color: #fff;
+  color: var(--texto-forte);
   padding: 2rem 3rem 3rem;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   box-sizing: border-box;
@@ -196,63 +196,63 @@ const totalVencendo = computed(() =>
   display: flex; justify-content: space-between; align-items: flex-start;
   gap: 1.5rem; margin-bottom: 1.8rem;
 }
-.caminho { color: #8b8680; font-size: 0.85rem; margin-bottom: 0.5rem; }
+.caminho { color: var(--texto-suave); font-size: 0.85rem; margin-bottom: 0.5rem; }
 .caminho .separador { margin: 0 0.4rem; }
-.atual { color: #fff; }
+.atual { color: var(--texto-forte); }
 .titulo { font-size: 2.4rem; font-weight: 800; margin-bottom: 0.3rem; letter-spacing: -0.02em; }
-.destaque { color: #F49D25; }
-.subtitulo { color: #8b8680; font-size: 0.9rem; }
+.destaque { color: var(--marca); }
+.subtitulo { color: var(--texto-suave); font-size: 0.9rem; }
 
 .botao-recarregar {
-  background: rgba(244, 157, 37, 0.12); color: #F49D25;
-  border: 1px solid rgba(244, 157, 37, 0.4);
+  background: color-mix(in srgb, var(--marca) 12%, transparent); color: var(--marca);
+  border: 1px solid color-mix(in srgb, var(--marca) 40%, transparent);
   padding: 0.6rem 1.05rem; border-radius: 0.55rem;
   font-size: 0.86rem; font-weight: 700; cursor: pointer; margin-top: 0.4rem;
 }
-.botao-recarregar:hover:not(:disabled) { background: rgba(244, 157, 37, 0.22); }
+.botao-recarregar:hover:not(:disabled) { background: color-mix(in srgb, var(--marca) 22%, transparent); }
 .botao-recarregar:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
 .kpi-card {
-  background: linear-gradient(180deg, #2d2823 0%, #221e18 100%);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(180deg, var(--borda) 0%, var(--superficie-elevada) 100%);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   border-radius: 0.85rem; padding: 1.2rem 1.3rem;
   display: flex; flex-direction: column; gap: 0.3rem;
 }
-.kpi-label { color: #F49D25; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
-.kpi-valor { color: #fff; font-size: 2rem; font-weight: 800; line-height: 1; }
-.kpi-sub { color: #8b8680; font-size: 0.78rem; }
-.kpi-aviso { border-color: rgba(250, 204, 21, 0.3); }
-.kpi-aviso .kpi-label { color: #facc15; }
+.kpi-label { color: var(--marca); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.kpi-valor { color: var(--texto-forte); font-size: 2rem; font-weight: 800; line-height: 1; }
+.kpi-sub { color: var(--texto-suave); font-size: 0.78rem; }
+.kpi-aviso { border-color: color-mix(in srgb, var(--aviso) 30%, transparent); }
+.kpi-aviso .kpi-label { color: var(--aviso); }
 
 .cartao {
-  background: #221E18; border: 1px solid rgba(255,255,255,0.05);
+  background: var(--superficie-elevada); border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   border-radius: 1rem; padding: 1.4rem 1.5rem; margin-bottom: 1.5rem;
 }
 .cartao-cabecalho { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; }
-.cartao-cabecalho h2 { color: #fff; font-size: 1.05rem; font-weight: 700; }
+.cartao-cabecalho h2 { color: var(--texto-forte); font-size: 1.05rem; font-weight: 700; }
 .contagem {
-  color: #F49D25; background: rgba(244, 157, 37, 0.1);
+  color: var(--marca); background: color-mix(in srgb, var(--marca) 10%, transparent);
   font-size: 0.78rem; font-weight: 700; padding: 0.2rem 0.65rem; border-radius: 999px;
 }
 
 .lista { display: flex; flex-direction: column; gap: 0.6rem; }
 .item {
   display: flex; align-items: center; gap: 1rem;
-  background: #2a2520; border: 1px solid rgba(255,255,255,0.05);
+  background: var(--borda); border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   border-radius: 0.7rem; padding: 0.85rem 1rem;
 }
 .item-compacto { padding: 0.7rem 1rem; }
-.item-img { flex: 0 0 52px; width: 52px; height: 52px; border-radius: 0.5rem; overflow: hidden; background: #3a332b; }
+.item-img { flex: 0 0 52px; width: 52px; height: 52px; border-radius: 0.5rem; overflow: hidden; background: var(--borda-forte); }
 .item-img img { width: 100%; height: 100%; object-fit: cover; }
-.img-placeholder { width: 100%; height: 100%; background: #3a332b; }
+.img-placeholder { width: 100%; height: 100%; background: var(--borda-forte); }
 .item-info { flex: 1; min-width: 0; }
-.item-nome { color: #fff; font-weight: 700; font-size: 0.98rem; }
-.qtd { color: #F49D25; font-weight: 700; margin-left: 0.2rem; }
-.item-sub { color: #8b8680; font-size: 0.78rem; margin-top: 0.15rem; }
+.item-nome { color: var(--texto-forte); font-weight: 700; font-size: 0.98rem; }
+.qtd { color: var(--marca); font-weight: 700; margin-left: 0.2rem; }
+.item-sub { color: var(--texto-suave); font-size: 0.78rem; margin-top: 0.15rem; }
 .item-justificativa {
-  margin-top: 0.4rem; color: #facc15; font-size: 0.82rem; font-style: italic;
-  background: rgba(250,204,21,0.06); border-left: 3px solid #facc15;
+  margin-top: 0.4rem; color: var(--aviso); font-size: 0.82rem; font-style: italic;
+  background: color-mix(in srgb, var(--aviso) 6%, transparent); border: 1px solid color-mix(in srgb, var(--aviso) 22%, transparent);
   padding: 0.35rem 0.6rem; border-radius: 0.3rem;
 }
 
@@ -263,18 +263,18 @@ const totalVencendo = computed(() =>
   border-radius: 999px; white-space: nowrap;
 }
 .status { text-transform: uppercase; letter-spacing: 0.04em; }
-.badge-critico { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.35); }
-.badge-alerta  { background: rgba(250,204,21,0.12); color: #facc15; border: 1px solid rgba(250,204,21,0.35); }
-.badge-ok      { background: rgba(34,197,94,0.12); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+.badge-critico { background: color-mix(in srgb, var(--perigo) 15%, transparent); color: var(--perigo); border: 1px solid color-mix(in srgb, var(--perigo) 35%, transparent); }
+.badge-alerta  { background: color-mix(in srgb, var(--aviso) 12%, transparent); color: var(--aviso); border: 1px solid color-mix(in srgb, var(--aviso) 35%, transparent); }
+.badge-ok      { background: color-mix(in srgb, var(--ok) 12%, transparent); color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent); }
 
-.status-pendente_aprovacao { background: rgba(250,204,21,0.12); color: #facc15; border: 1px solid rgba(250,204,21,0.35); }
-.status-pendente_entrega   { background: rgba(96,165,250,0.12); color: #60a5fa; border: 1px solid rgba(96,165,250,0.35); }
-.status-aprovado           { background: rgba(96,165,250,0.12); color: #60a5fa; border: 1px solid rgba(96,165,250,0.35); }
-.status-entregue           { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.35); }
-.status-recusado           { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.35); }
-.status-devolvido          { background: rgba(168,168,168,0.12); color: #a8a8a8; border: 1px solid rgba(168,168,168,0.3); }
+.status-pendente_aprovacao { background: color-mix(in srgb, var(--aviso) 12%, transparent); color: var(--aviso); border: 1px solid color-mix(in srgb, var(--aviso) 35%, transparent); }
+.status-pendente_entrega   { background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); border: 1px solid color-mix(in srgb, var(--info) 35%, transparent); }
+.status-aprovado           { background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); border: 1px solid color-mix(in srgb, var(--info) 35%, transparent); }
+.status-entregue           { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent); }
+.status-recusado           { background: color-mix(in srgb, var(--perigo) 12%, transparent); color: var(--perigo); border: 1px solid color-mix(in srgb, var(--perigo) 35%, transparent); }
+.status-devolvido          { background: rgba(168,168,168,0.12); color: var(--texto-suave); border: 1px solid rgba(168,168,168,0.3); }
 
-.vazio { color: #8b8680; font-size: 0.9rem; padding: 1rem 0; text-align: center; }
+.vazio { color: var(--texto-suave); font-size: 0.9rem; padding: 1rem 0; text-align: center; }
 
 @media (max-width: 700px) {
   .pagina { padding: 1.5rem 1.2rem 2rem; }

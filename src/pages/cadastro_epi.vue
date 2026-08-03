@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, onMounted } from 'vue';
+import { reactive, ref, onMounted, onUnmounted } from 'vue';
 import { useSupabase } from '@/composables/useSupabase';
 import { useRouter } from 'vue-router';
 
@@ -93,6 +93,10 @@ const carregar = async () => {
 };
 
 const salvar = async () => {
+  if (!form.nome.trim()) { mostrarMensagem('erro', 'Informe o nome do EPI.'); return; }
+  if (form.data_validade && !brParaIso(form.data_validade)) {
+    mostrarMensagem('erro', 'Data de validade inválida (use DD/MM/AAAA).'); return;
+  }
   enviando.value = true;
 
   let imagemUrl;
@@ -167,6 +171,11 @@ const iniciarEdicao = (epi) => {
   modalAberto.value = true;
 };
 
+const aoTeclar = (e) => {
+  if (e.key === 'Escape' && modalAberto.value) cancelarEdicao();
+};
+onUnmounted(() => window.removeEventListener('keydown', aoTeclar));
+
 const cancelarEdicao = () => {
   modalAberto.value = false;
   editandoId.value = null;
@@ -198,6 +207,7 @@ const carregarSetor = async () => {
 };
 
 onMounted(() => {
+  window.addEventListener('keydown', aoTeclar);
   carregar();
   carregarSetor();
 });
@@ -257,7 +267,7 @@ onMounted(() => {
                   <span v-else class="ms-tags">
                     <span class="ms-tag" v-for="s in form.setor" :key="s">
                       {{ s }}
-                      <span class="ms-tag-x" @click.stop="toggleSetor(s)">×</span>
+                      <button type="button" class="ms-tag-x" @click.stop="toggleSetor(s)" :aria-label="`Remover setor ${s}`">×</button>
                     </span>
                   </span>
                   <span class="ms-seta">▾</span>
@@ -284,13 +294,13 @@ onMounted(() => {
             </div>
 
             <div class="campo">
-              <label>Fabricante</label>
-              <input v-model="form.fabricante" type="text" placeholder="Ex: MSA Safety">
+              <label for="cad-fabricante">Fabricante</label>
+              <input id="cad-fabricante" v-model="form.fabricante" type="text" placeholder="Ex: MSA Safety">
             </div>
 
             <div class="campo">
-              <label>Custo</label>
-              <input v-model="form.custo" type="text" placeholder="Ex: 123456">
+              <label for="cad-custo">Custo</label>
+              <input id="cad-custo" v-model="form.custo" type="text" placeholder="Ex: 123456">
             </div>
           </div>
         </section>
@@ -388,7 +398,8 @@ onMounted(() => {
         <h2>EPIs cadastrados</h2>
       </div>
       <div v-if="epis.length === 0" class="vazio-lista">Nenhum EPI cadastrado ainda.</div>
-      <table v-else class="tabela-epis">
+      <div v-else class="tabela-rolagem">
+        <table class="tabela-epis">
         <thead>
           <tr>
             <th>Nome</th>
@@ -410,9 +421,10 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+      </div>
     </section>
 
-    <div v-if="modalAberto" class="modal-overlay" @click.self="cancelarEdicao">
+    <div v-if="modalAberto" class="modal-overlay" role="dialog" aria-modal="true" @click.self="cancelarEdicao">
       <div class="modal">
         <header class="modal-cabecalho">
           <h2>Editar <span class="titulo-destaque">EPI</span></h2>
@@ -422,19 +434,19 @@ onMounted(() => {
         <form class="modal-corpo" @submit.prevent="salvar">
           <div class="modal-grade">
             <div class="campo">
-              <label>Nome do EPI</label>
-              <input v-model="form.nome" type="text" />
+              <label for="cad-nome-do-epi">Nome do EPI</label>
+              <input id="cad-nome-do-epi" v-model="form.nome" type="text" />
             </div>
 
             <div class="campo">
-              <label>Setores de uso</label>
+              <span class="rotulo-grupo">Setores de uso</span>
               <div class="multi-select" :class="{ aberto: setorAberto }">
                 <button type="button" class="multi-select-trigger" @click="setorAberto = !setorAberto">
                   <span v-if="form.setor.length === 0" class="ms-placeholder">Selecione um ou mais setores</span>
                   <span v-else class="ms-tags">
                     <span class="ms-tag" v-for="s in form.setor" :key="s">
                       {{ s }}
-                      <span class="ms-tag-x" @click.stop="toggleSetor(s)">×</span>
+                      <button type="button" class="ms-tag-x" @click.stop="toggleSetor(s)" :aria-label="`Remover setor ${s}`">×</button>
                     </span>
                   </span>
                   <span class="ms-seta">▾</span>
@@ -449,42 +461,42 @@ onMounted(() => {
             </div>
 
             <div class="campo">
-              <label>Fabricante</label>
-              <input v-model="form.fabricante" type="text" />
+              <label for="cad-fabricante-2">Fabricante</label>
+              <input id="cad-fabricante-2" v-model="form.fabricante" type="text" />
             </div>
 
             <div class="campo">
-              <label>Custo</label>
-              <input v-model="form.custo" type="text" />
+              <label for="cad-custo-2">Custo</label>
+              <input id="cad-custo-2" v-model="form.custo" type="text" />
             </div>
 
             <div class="campo">
-              <label>Número do CA</label>
-              <input v-model="form.numero_ca" type="number" />
+              <label for="cad-numero-do-ca">Número do CA</label>
+              <input id="cad-numero-do-ca" v-model="form.numero_ca" type="number" />
             </div>
 
             <div class="campo">
-              <label>Data de Validade</label>
-              <input :value="form.data_validade" @input="aplicarMascaraData" type="text" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" />
+              <label for="cad-data-de-validade">Data de Validade</label>
+              <input id="cad-data-de-validade" :value="form.data_validade" @input="aplicarMascaraData" type="text" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" />
             </div>
 
             <div class="campo">
-              <label>Estoque</label>
-              <input v-model="form.estoque" type="number" />
+              <label for="cad-estoque">Estoque</label>
+              <input id="cad-estoque" v-model="form.estoque" type="number" />
             </div>
 
             <div class="campo">
-              <label>Estoque mínimo</label>
-              <input v-model="form.estoque_minimo" type="number" />
+              <label for="cad-estoque-minimo">Estoque mínimo</label>
+              <input id="cad-estoque-minimo" v-model="form.estoque_minimo" type="number" />
             </div>
 
             <div class="campo campo-largo">
-              <label>Descrição</label>
-              <textarea v-model="form.descricao" rows="3" maxlength="200"></textarea>
+              <label for="cad-descricao">Descrição</label>
+              <textarea id="cad-descricao" v-model="form.descricao" rows="3" maxlength="200"></textarea>
             </div>
 
             <div class="campo campo-largo">
-              <label>Imagem</label>
+              <span class="rotulo-grupo">Imagem</span>
               <div v-if="imagemPreview || imagemExistente" class="preview-imagem-modal">
                 <img :src="imagemPreview || imagemExistente" alt="Imagem do EPI" />
                 <div class="preview-acoes">
@@ -548,10 +560,14 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* tabela larga não pode empurrar a página no celular */
+.tabela-rolagem { overflow-x: auto; }
+.tabela-rolagem table { min-width: 640px; }
+
 .pagina-cadastro {
-  background: #181511;
+  background: var(--superficie-alta);
   min-height: 100vh;
-  color: #fff;
+  color: var(--texto-forte);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   box-sizing: border-box;
   width: 100%;
@@ -572,24 +588,24 @@ onMounted(() => {
 }
 
 .caminho {
-  color: #8b8680;
+  color: var(--texto-suave);
   font-size: 0.85rem;
   margin-bottom: 0.7rem;
 }
 .caminho .separador { margin: 0 0.4rem; }
-.caminho-atual { color: #fff; }
+.caminho-atual { color: var(--texto-forte); }
 
 .titulo-pagina {
   font-size: 2.6rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--texto-forte);
   letter-spacing: -0.02em;
   margin-bottom: 0.4rem;
 }
-.titulo-destaque { color: #F49D25; }
+.titulo-destaque { color: var(--marca); }
 
 .subtitulo {
-  color: #8b8680;
+  color: var(--texto-suave);
   font-size: 0.95rem;
 }
 
@@ -612,16 +628,16 @@ onMounted(() => {
   transition: background 0.2s, opacity 0.2s;
 }
 .botao-cancelar {
-  background: #2a241e;
-  color: #fff;
-  border: 1px solid #3a332b;
+  background: var(--borda);
+  color: var(--texto-forte);
+  border: 1px solid var(--borda-forte);
 }
-.botao-cancelar:hover { background: #342c25; }
+.botao-cancelar:hover { background: var(--borda-forte); }
 .botao-salvar {
-  background: #F49D25;
-  color: #1a1410;
+  background: var(--marca);
+  color: var(--marca-texto);
 }
-.botao-salvar:hover { background: #e08c18; }
+.botao-salvar:hover { background: var(--marca-escura); }
 
 .grade-principal {
   display: flex;
@@ -657,8 +673,8 @@ onMounted(() => {
 .rodape { width: 100%; }
 
 .cartao {
-  background: #221E18;
-  border: 1px solid rgba(255,255,255,0.04);
+  background: var(--superficie-elevada);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 4%, transparent);
   border-radius: 1rem;
   padding: 1.5rem 1.6rem;
 }
@@ -670,15 +686,15 @@ onMounted(() => {
   margin-bottom: 1.5rem;
 }
 .cartao-cabecalho h2 {
-  color: #fff;
+  color: var(--texto-forte);
   font-size: 1.1rem;
   font-weight: 700;
 }
 .icone-cartao {
   width: 2rem;
   height: 2rem;
-  background: rgba(244, 157, 37, 0.12);
-  color: #F49D25;
+  background: color-mix(in srgb, var(--marca) 12%, transparent);
+  color: var(--marca);
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
@@ -696,18 +712,18 @@ onMounted(() => {
   flex-direction: column;
   gap: 0.45rem;
 }
-.campo label {
-  color: #c5bfb5;
+.campo label, .campo .rotulo-grupo {
+  color: var(--texto);
   font-size: 0.85rem;
   font-weight: 500;
 }
 .campo input,
 .campo select {
-  background: #131110;
-  border: 1px solid #2a241e;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
   border-radius: 0.5rem;
   padding: 0.75rem 0.9rem;
-  color: #fff;
+  color: var(--texto-forte);
   font-size: 0.9rem;
   outline: none;
   width: 100%;
@@ -715,12 +731,12 @@ onMounted(() => {
   appearance: none;
   font-family: inherit;
 }
-.campo input::placeholder { color: #5c554d; }
+.campo input::placeholder { color: var(--texto-fraco); }
 .campo input:focus,
-.campo select:focus { border-color: #F49D25; }
+.campo select:focus { border-color: var(--marca); }
 
 .ajuda {
-  color: #6b6359;
+  color: var(--texto-fraco);
   font-size: 0.75rem;
 }
 
@@ -729,11 +745,11 @@ onMounted(() => {
 .multi-select-trigger {
   width: 100%;
   min-height: 2.85rem;
-  background: #131110;
-  border: 1px solid #2a241e;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
   border-radius: 0.5rem;
   padding: 0.4rem 2.2rem 0.4rem 0.7rem;
-  color: #fff;
+  color: var(--texto-forte);
   font-size: 0.9rem;
   text-align: left;
   cursor: pointer;
@@ -745,9 +761,9 @@ onMounted(() => {
   transition: border-color 0.2s;
 }
 .multi-select.aberto .multi-select-trigger,
-.multi-select-trigger:hover { border-color: #F49D25; }
+.multi-select-trigger:hover { border-color: var(--marca); }
 
-.ms-placeholder { color: #5c554d; font-size: 0.9rem; }
+.ms-placeholder { color: var(--texto-fraco); font-size: 0.9rem; }
 
 .ms-tags {
   display: flex;
@@ -760,8 +776,8 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  background: rgba(244, 157, 37, 0.15);
-  color: #F49D25;
+  background: color-mix(in srgb, var(--marca) 15%, transparent);
+  color: var(--marca);
   font-size: 0.8rem;
   font-weight: 600;
   padding: 0.2rem 0.5rem;
@@ -769,18 +785,21 @@ onMounted(() => {
 }
 .ms-tag-x {
   cursor: pointer;
-  color: #F49D25;
+  background: none;
+  border: none;
+  font-size: inherit;
+  color: var(--marca);
   font-weight: 700;
   line-height: 1;
   padding: 0 0.15rem;
   border-radius: 0.2rem;
 }
-.ms-tag-x:hover { background: rgba(244, 157, 37, 0.3); }
+.ms-tag-x:hover { background: color-mix(in srgb, var(--marca) 30%, transparent); }
 
 .ms-seta {
   position: absolute;
   right: 0.9rem;
-  color: #8b8680;
+  color: var(--texto-suave);
   transition: transform 0.2s;
 }
 .multi-select.aberto .ms-seta { transform: rotate(180deg); }
@@ -790,8 +809,8 @@ onMounted(() => {
   top: calc(100% + 0.3rem);
   left: 0;
   right: 0;
-  background: #1c1814;
-  border: 1px solid #2a241e;
+  background: var(--superficie-alta);
+  border: 1px solid var(--borda);
   border-radius: 0.5rem;
   padding: 0.4rem;
   max-height: 220px;
@@ -807,17 +826,17 @@ onMounted(() => {
   padding: 0.5rem 0.6rem;
   border-radius: 0.35rem;
   cursor: pointer;
-  color: #ebe8e4;
+  color: var(--texto);
   font-size: 0.88rem;
   transition: background 0.15s;
 }
-.ms-opcao:hover { background: rgba(244, 157, 37, 0.08); }
+.ms-opcao:hover { background: color-mix(in srgb, var(--marca) 8%, transparent); }
 .ms-opcao input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
   width: 1.05rem;
   height: 1.05rem;
-  border: 1.5px solid #5c554d;
+  border: 1.5px solid var(--texto-fraco);
   border-radius: 0.25rem;
   background: transparent;
   cursor: pointer;
@@ -826,15 +845,15 @@ onMounted(() => {
   margin: 0;
   transition: background 0.15s, border-color 0.15s;
 }
-.ms-opcao input[type="checkbox"]:hover { border-color: #F49D25; }
+.ms-opcao input[type="checkbox"]:hover { border-color: var(--marca); }
 .ms-opcao input[type="checkbox"]:checked {
-  background: #F49D25;
-  border-color: #F49D25;
+  background: var(--marca);
+  border-color: var(--marca);
 }
 
 .ms-vazio {
   padding: 0.6rem;
-  color: #8b8680;
+  color: var(--texto-suave);
   font-size: 0.85rem;
   text-align: center;
 }
@@ -842,13 +861,13 @@ onMounted(() => {
 .select-wrapper {
   position: relative;
 }
-.select-wrapper select { padding-right: 2.2rem; color: #8b8680; }
+.select-wrapper select { padding-right: 2.2rem; color: var(--texto-suave); }
 .icone-seta {
   position: absolute;
   right: 0.9rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #8b8680;
+  color: var(--texto-suave);
   pointer-events: none;
 }
 
@@ -860,7 +879,7 @@ onMounted(() => {
 .input-com-icone .prefixo {
   position: absolute;
   left: 0.85rem;
-  color: #8b8680;
+  color: var(--texto-suave);
   display: flex;
   align-items: center;
 }
@@ -869,7 +888,7 @@ onMounted(() => {
 }
 
 .titulo-lateral {
-  color: #fff;
+  color: var(--texto-forte);
   font-size: 1rem;
   font-weight: 700;
   margin-bottom: 1.2rem;
@@ -881,14 +900,14 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   text-align: center;
-  border: 2px dashed #3a332b;
+  border: 2px dashed var(--borda-forte);
   border-radius: 0.75rem;
   padding: 2rem 1rem;
   cursor: pointer;
-  background: #1c1814;
+  background: var(--superficie-alta);
   transition: border-color 0.2s;
 }
-.area-upload:hover { border-color: #F49D25; }
+.area-upload:hover { border-color: var(--marca); }
 
 .preview-imagem {
   display: flex;
@@ -900,8 +919,8 @@ onMounted(() => {
   height: 200px;
   object-fit: cover;
   border-radius: 0.75rem;
-  border: 1px solid #2a241e;
-  background: #1c1814;
+  border: 1px solid var(--borda);
+  background: var(--superficie-alta);
 }
 .preview-acoes {
   display: flex;
@@ -919,17 +938,17 @@ onMounted(() => {
   transition: background 0.15s;
 }
 .btn-trocar {
-  background: rgba(244, 157, 37, 0.12);
-  color: #F49D25;
-  border: 1px solid rgba(244, 157, 37, 0.4);
+  background: color-mix(in srgb, var(--marca) 12%, transparent);
+  color: var(--marca);
+  border: 1px solid color-mix(in srgb, var(--marca) 40%, transparent);
 }
-.btn-trocar:hover { background: rgba(244, 157, 37, 0.22); }
+.btn-trocar:hover { background: color-mix(in srgb, var(--marca) 22%, transparent); }
 .btn-remover {
-  background: rgba(248, 113, 113, 0.12);
-  color: #f87171;
-  border: 1px solid rgba(248, 113, 113, 0.3);
+  background: color-mix(in srgb, var(--perigo) 12%, transparent);
+  color: var(--perigo);
+  border: 1px solid color-mix(in srgb, var(--perigo) 30%, transparent);
 }
-.btn-remover:hover { background: rgba(248, 113, 113, 0.22); }
+.btn-remover:hover { background: color-mix(in srgb, var(--perigo) 22%, transparent); }
 
 .botao-salvar:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -937,32 +956,32 @@ onMounted(() => {
   width: 3rem;
   height: 3rem;
   border-radius: 50%;
-  background: #2a241e;
-  color: #c5bfb5;
+  background: var(--borda);
+  color: var(--texto);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 0.9rem;
 }
 .upload-titulo {
-  color: #fff;
+  color: var(--texto-forte);
   font-weight: 600;
   font-size: 0.95rem;
 }
 .upload-sub {
-  color: #8b8680;
+  color: var(--texto-suave);
   font-size: 0.8rem;
   margin-top: 0.2rem;
 }
 .upload-formatos {
-  color: #6b6359;
+  color: var(--texto-fraco);
   font-size: 0.75rem;
   margin-top: 1rem;
 }
 
 .cartao-dica {
-  background: rgba(244, 157, 37, 0.06);
-  border: 1px solid rgba(244, 157, 37, 0.35);
+  background: color-mix(in srgb, var(--marca) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--marca) 35%, transparent);
   border-radius: 1rem;
   padding: 1.2rem 1.3rem;
 }
@@ -973,12 +992,12 @@ onMounted(() => {
   margin-bottom: 0.6rem;
 }
 .dica-cabecalho h3 {
-  color: #fff;
+  color: var(--texto-forte);
   font-size: 0.95rem;
   font-weight: 700;
 }
 .cartao-dica p {
-  color: #c5bfb5;
+  color: var(--texto);
   font-size: 0.82rem;
   line-height: 1.6;
 }
@@ -989,15 +1008,15 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 1fr;
   gap: 3rem;
-  border-top: 1px solid #2a2520;
-  background: #181511;
+  border-top: 1px solid var(--borda);
+  background: var(--superficie-alta);
   width: 100%;
 }
 
 .rodape-marca .logo-nome {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--texto-forte);
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -1009,52 +1028,52 @@ onMounted(() => {
   object-fit: contain;
   vertical-align: middle;
 }
-.logo-destaque { color: #F49D25; }
+.logo-destaque { color: var(--marca); }
 
 .rodape-marca p {
-  color: #6b6359;
+  color: var(--texto-fraco);
   font-size: 0.82rem;
   line-height: 1.7;
   margin-top: 0.5rem;
 }
 
 .rodape-coluna h4 {
-  color: #fff;
+  color: var(--texto-forte);
   font-size: 0.9rem;
   font-weight: 700;
   margin-bottom: 1rem;
 }
 .rodape-coluna a {
   display: block;
-  color: #6b6359;
+  color: var(--texto-fraco);
   text-decoration: none;
   font-size: 0.82rem;
   margin-bottom: 0.55rem;
   transition: color 0.2s;
 }
-.rodape-coluna a:hover { color: #F49D25; }
+.rodape-coluna a:hover { color: var(--marca); }
 
 .rodape-redes {
   grid-column: 1 / -1;
   display: flex;
   justify-content: flex-end;
   gap: 1.2rem;
-  color: #6b6359;
+  color: var(--texto-fraco);
   padding-top: 1rem;
-  border-top: 1px solid #2a2520;
+  border-top: 1px solid var(--borda);
 }
 .rodape-redes a {
-  color: #6b6359;
+  color: var(--texto-fraco);
   transition: color 0.2s;
 }
-.rodape-redes a:hover { color: #F49D25; }
+.rodape-redes a:hover { color: var(--marca); }
 
 .campo textarea { 
-  background: #131110;
-  border: 1px solid #2a241e;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
   border-radius: 0.5rem;
   padding: 0.75rem 0.9rem;
-  color: #fff;
+  color: var(--texto-forte);
   font-size: 0.9rem;
   outline: none;
   width: 100%;
@@ -1076,14 +1095,14 @@ onMounted(() => {
   animation: fadeIn 0.2s ease;
 }
 .toast-sucesso {
-  background: rgba(34, 197, 94, 0.15);
-  border: 1px solid rgba(34, 197, 94, 0.4);
-  color: #4ade80;
+  background: color-mix(in srgb, var(--ok) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent);
+  color: var(--ok);
 }
 .toast-erro {
-  background: rgba(248, 113, 113, 0.15);
-  border: 1px solid rgba(248, 113, 113, 0.4);
-  color: #f87171;
+  background: color-mix(in srgb, var(--perigo) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--perigo) 40%, transparent);
+  color: var(--perigo);
 }
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-8px); }
@@ -1094,11 +1113,11 @@ onMounted(() => {
   display: block;
   text-align: right;
   font-size: 0.75rem;
-  color: #6b6359;
+  color: var(--texto-fraco);
   margin-top: 0.3rem;
 }
 .contador-limite {
-  color: #f87171;
+  color: var(--perigo);
 }
 
 .lista-epis { margin-top: 1.5rem; }
@@ -1107,23 +1126,23 @@ onMounted(() => {
 .tabela-epis th, .tabela-epis td {
   text-align: left;
   padding: 0.75rem 0.8rem;
-  border-bottom: 1px solid #2a241e;
+  border-bottom: 1px solid var(--borda);
   font-size: 0.88rem;
 }
 .tabela-epis th {
-  color: #8b8680;
+  color: var(--texto-suave);
   font-weight: 600;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
-.tabela-epis .muted { color: #8b8680; }
-.vazio-lista { color: #8b8680; padding: 1rem; text-align: center; }
+.tabela-epis .muted { color: var(--texto-suave); }
+.vazio-lista { color: var(--texto-suave); padding: 1rem; text-align: center; }
 
 .btn-editar {
-  background: rgba(244, 157, 37, 0.12);
-  color: #F49D25;
-  border: 1px solid rgba(244, 157, 37, 0.4);
+  background: color-mix(in srgb, var(--marca) 12%, transparent);
+  color: var(--marca);
+  border: 1px solid color-mix(in srgb, var(--marca) 40%, transparent);
   padding: 0.45rem 0.9rem;
   border-radius: 0.45rem;
   font-weight: 600;
@@ -1131,7 +1150,7 @@ onMounted(() => {
   cursor: pointer;
   font-family: inherit;
 }
-.btn-editar:hover { background: rgba(244, 157, 37, 0.22); }
+.btn-editar:hover { background: color-mix(in srgb, var(--marca) 22%, transparent); }
 
 .modal-overlay {
   position: fixed;
@@ -1145,8 +1164,8 @@ onMounted(() => {
   animation: fadeIn 0.15s ease;
 }
 .modal {
-  background: #221E18;
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--superficie-elevada);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 6%, transparent);
   border-radius: 1rem;
   width: 100%;
   max-width: 720px;
@@ -1160,19 +1179,19 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 1.2rem 1.5rem;
-  border-bottom: 1px solid #2a241e;
+  border-bottom: 1px solid var(--borda);
 }
-.modal-cabecalho h2 { font-size: 1.25rem; font-weight: 700; color: #fff; }
+.modal-cabecalho h2 { font-size: 1.25rem; font-weight: 700; color: var(--texto-forte); }
 .modal-fechar {
   background: transparent;
   border: none;
-  color: #8b8680;
+  color: var(--texto-suave);
   font-size: 1.6rem;
   cursor: pointer;
   line-height: 1;
   padding: 0 0.3rem;
 }
-.modal-fechar:hover { color: #fff; }
+.modal-fechar:hover { color: var(--texto-forte); }
 .modal-corpo {
   padding: 1.2rem 1.5rem;
   overflow-y: auto;
@@ -1189,15 +1208,15 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 0.7rem;
   padding: 1rem 1.5rem;
-  border-top: 1px solid #2a241e;
-  background: #1c1814;
+  border-top: 1px solid var(--borda);
+  background: var(--superficie-alta);
 }
 .preview-imagem-modal img {
   width: 100%;
   max-height: 180px;
   object-fit: cover;
   border-radius: 0.6rem;
-  border: 1px solid #2a241e;
+  border: 1px solid var(--borda);
 }
 .area-upload-modal { padding: 1.2rem; }
 

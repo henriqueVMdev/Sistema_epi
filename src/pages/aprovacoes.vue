@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useSupabase } from '@/composables/useSupabase';
+import { ajustarEstoque } from '@/composables/estoque';
 
 const { supabase, perfil } = useSupabase();
 
@@ -10,9 +11,9 @@ const mensagem = ref(null);
 const acaoEmAndamento = ref(null);
 const filtro = ref('pendente_aprovacao');
 
-const mostrarMensagem = (tipo, texto) => {
+const mostrarMensagem = (tipo, texto, ms = 3500) => {
   mensagem.value = { tipo, texto };
-  setTimeout(() => { mensagem.value = null; }, 3500);
+  setTimeout(() => { mensagem.value = null; }, ms);
 };
 
 const formatarData = (data) => {
@@ -112,6 +113,18 @@ async function registrarEntrega(reg) {
 
   acaoEmAndamento.value = reg.id;
 
+  // debita primeiro: se o estoque mudou no meio do caminho, nada é entregue
+  const deb = await ajustarEstoque(supabase, reg.epi?.id, estoqueAtual, -qtd);
+  if (!deb.ok) {
+    acaoEmAndamento.value = null;
+    if (deb.error) console.error(deb.error);
+    mostrarMensagem('erro', deb.motivo === 'conflito'
+      ? 'O estoque mudou desde que a tela carregou. Atualize e tente de novo.'
+      : 'Estoque insuficiente ou erro ao debitar.');
+    carregar();
+    return;
+  }
+
   const { error: e1 } = await supabase
     .from('entrega_epi')
     .update({
@@ -120,13 +133,14 @@ async function registrarEntrega(reg) {
       data_validade: validade,
     })
     .eq('id', reg.id);
-  if (e1) { acaoEmAndamento.value = null; mostrarMensagem('erro', 'Erro ao registrar entrega.'); console.error(e1); return; }
-
-  const { error: e2 } = await supabase
-    .from('epis')
-    .update({ estoque: estoqueAtual - qtd })
-    .eq('id', reg.epi?.id);
-  if (e2) { console.error(e2); mostrarMensagem('erro', 'Entrega salva, mas falha ao debitar estoque.'); }
+  if (e1) {
+    console.error(e1);
+    await ajustarEstoque(supabase, reg.epi?.id, deb.estoque, qtd); // desfaz o débito
+    acaoEmAndamento.value = null;
+    mostrarMensagem('erro', 'Erro ao registrar entrega. Estoque não foi alterado.');
+    carregar();
+    return;
+  }
 
   acaoEmAndamento.value = null;
   mostrarMensagem('sucesso', 'Entrega registrada e estoque atualizado.');
@@ -148,7 +162,8 @@ async function registrarDevolucao(reg) {
 
   const estoqueAtual = Number(reg.epi?.estoque) || 0;
   const qtd = Number(reg.quantidade) || 1;
-  await supabase.from('epis').update({ estoque: estoqueAtual + qtd }).eq('id', reg.epi?.id);
+  const cred = await ajustarEstoque(supabase, reg.epi?.id, estoqueAtual, qtd);
+  if (!cred.ok) mostrarMensagem('erro', 'Devolução salva, mas o estoque não foi creditado. Ajuste manualmente.', 8000);
 
   acaoEmAndamento.value = null;
   mostrarMensagem('sucesso', 'Devolução registrada.');
@@ -171,7 +186,7 @@ onMounted(carregar);
     <div v-if="mensagem" :class="['toast', 'toast-' + mensagem.tipo]">{{ mensagem.texto }}</div>
 
     <nav class="tabs">
-      <button
+      <button type="button"
         v-for="t in tabs"
         :key="t.key"
         :class="['tab', { ativa: filtro === t.key }]"
@@ -189,7 +204,7 @@ onMounted(carregar);
       <div v-else class="lista">
         <article v-for="r in filtradas" :key="r.id" class="item">
           <div class="item-img">
-            <img v-if="r.epi?.imagem" :src="r.epi.imagem" :alt="r.epi?.nome" />
+            <img loading="lazy" decoding="async" v-if="r.epi?.imagem" :src="r.epi.imagem" :alt="r.epi?.nome" />
             <div v-else class="img-placeholder"><i class="fas fa-hard-hat"></i></div>
           </div>
 
@@ -232,21 +247,21 @@ onMounted(carregar);
 
             <div class="acoes">
             <template v-if="r.status === 'pendente_aprovacao'">
-              <button class="btn-aprovar" :disabled="acaoEmAndamento === r.id" @click="aprovar(r)">Aprovar</button>
-              <button class="btn-recusar" :disabled="acaoEmAndamento === r.id" @click="recusar(r)">Recusar</button>
+              <button type="button" class="btn-aprovar" :disabled="acaoEmAndamento === r.id" @click="aprovar(r)">Aprovar</button>
+              <button type="button" class="btn-recusar" :disabled="acaoEmAndamento === r.id" @click="recusar(r)">Recusar</button>
             </template>
 
             <template v-else-if="r.status === 'pendente_entrega'">
-              <button
+              <button type="button"
                 class="btn-aprovar"
                 :disabled="acaoEmAndamento === r.id"
                 @click="registrarEntrega(r)"
               >Registrar entrega</button>
-              <button class="btn-recusar" :disabled="acaoEmAndamento === r.id" @click="recusar(r)">Recusar</button>
+              <button type="button" class="btn-recusar" :disabled="acaoEmAndamento === r.id" @click="recusar(r)">Recusar</button>
             </template>
 
             <template v-else-if="r.status === 'entregue'">
-              <button
+              <button type="button"
                 class="btn-recusar"
                 :disabled="acaoEmAndamento === r.id"
                 @click="registrarDevolucao(r)"
@@ -262,76 +277,76 @@ onMounted(carregar);
 
 <style scoped>
 .pagina {
-  background: #181511;
+  background: var(--superficie-alta);
   min-height: 100vh;
-  color: #fff;
+  color: var(--texto-forte);
   padding: 2rem 3rem;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .cabecalho { margin-bottom: 1.6rem; }
-.caminho { color: #8b8680; font-size: 0.85rem; margin-bottom: 0.5rem; }
+.caminho { color: var(--texto-suave); font-size: 0.85rem; margin-bottom: 0.5rem; }
 .caminho .separador { margin: 0 0.4rem; }
-.atual { color: #fff; }
+.atual { color: var(--texto-forte); }
 .titulo { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.3rem; }
-.destaque { color: #F49D25; }
-.subtitulo { color: #8b8680; font-size: 0.9rem; }
+.destaque { color: var(--marca); }
+.subtitulo { color: var(--texto-suave); font-size: 0.9rem; }
 
 .tabs { display: flex; gap: 0.4rem; margin-bottom: 1rem; flex-wrap: wrap; }
 .tab {
-  background: #221E18; border: 1px solid rgba(255,255,255,0.06); color: #c5bfb5;
+  background: var(--superficie-elevada); border: 1px solid color-mix(in srgb, var(--texto-forte) 6%, transparent); color: var(--texto);
   padding: 0.55rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.86rem;
   display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600;
 }
-.tab:hover { border-color: rgba(244,157,37,0.4); }
-.tab.ativa { background: rgba(244,157,37,0.12); border-color: #F49D25; color: #F49D25; }
+.tab:hover { border-color: color-mix(in srgb, var(--marca) 40%, transparent); }
+.tab.ativa { background: color-mix(in srgb, var(--marca) 12%, transparent); border-color: var(--marca); color: var(--marca); }
 .tab-contador {
-  background: #F49D25; color: #1a1410; font-weight: 800;
+  background: var(--marca); color: var(--marca-texto); font-weight: 800;
   border-radius: 999px; padding: 0.05rem 0.5rem; font-size: 0.75rem;
 }
 
 .cartao {
-  background: #221E18;
-  border: 1px solid rgba(255,255,255,0.04);
+  background: var(--superficie-elevada);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 4%, transparent);
   border-radius: 1rem;
   padding: 1.2rem;
 }
-.vazio { text-align: center; color: #8b8680; padding: 2rem; }
+.vazio { text-align: center; color: var(--texto-suave); padding: 2rem; }
 
 .lista { display: flex; flex-direction: column; gap: 1rem; }
 .item {
-  background: #2a2520; border: 1px solid rgba(255,255,255,0.05);
+  background: var(--borda); border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   border-radius: 0.85rem; padding: 1.3rem 1.4rem;
   display: flex; align-items: flex-start; gap: 1.3rem;
   transition: border-color 0.15s;
 }
-.item:hover { border-color: rgba(244,157,37,0.25); }
+.item:hover { border-color: color-mix(in srgb, var(--marca) 25%, transparent); }
 
 .item-img {
   flex: 0 0 84px; width: 84px; height: 84px;
-  border-radius: 0.7rem; overflow: hidden; background: #3a332b;
-  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 0.7rem; overflow: hidden; background: var(--borda-forte);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
 }
 .item-img img { width: 100%; height: 100%; object-fit: cover; }
 .img-placeholder {
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, rgba(244,157,37,0.1), transparent 60%), #3a332b;
-  color: #F49D25; font-size: 1.6rem;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--marca) 10%, transparent), transparent 60%), var(--borda-forte);
+  color: var(--marca); font-size: 1.6rem;
 }
 
 .item-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.9rem; }
 
 .item-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .item-titulo { display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem; min-width: 0; }
-.item-nome { color: #fff; font-weight: 700; font-size: 1.3rem; letter-spacing: -0.01em; }
+.item-nome { color: var(--texto-forte); font-weight: 700; font-size: 1.3rem; letter-spacing: -0.01em; }
 .qtd {
-  color: #F49D25; font-weight: 700; font-size: 0.95rem;
-  background: rgba(244,157,37,0.12); padding: 0.15rem 0.6rem; border-radius: 999px;
+  color: var(--marca); font-weight: 700; font-size: 0.95rem;
+  background: color-mix(in srgb, var(--marca) 12%, transparent); padding: 0.15rem 0.6rem; border-radius: 999px;
 }
 .ca-chip {
-  color: #c5bfb5; font-weight: 600; font-size: 0.78rem;
-  background: rgba(255,255,255,0.05); padding: 0.18rem 0.6rem; border-radius: 999px;
+  color: var(--texto); font-weight: 600; font-size: 0.78rem;
+  background: color-mix(in srgb, var(--texto-forte) 5%, transparent); padding: 0.18rem 0.6rem; border-radius: 999px;
 }
 
 .meta-grade {
@@ -341,14 +356,14 @@ onMounted(carregar);
 }
 .meta-item { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
 .meta-label {
-  color: #8b8680; font-size: 0.68rem; font-weight: 700;
+  color: var(--texto-suave); font-size: 0.68rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.06em;
 }
-.meta-valor { color: #ebe8e4; font-size: 0.92rem; font-weight: 500; }
+.meta-valor { color: var(--texto); font-size: 0.92rem; font-weight: 500; }
 
 .item-justificativa {
-  color: #facc15; font-size: 0.88rem; font-style: italic;
-  background: rgba(250,204,21,0.06); border-left: 3px solid #facc15;
+  color: var(--aviso); font-size: 0.88rem; font-style: italic;
+  background: color-mix(in srgb, var(--aviso) 6%, transparent); border: 1px solid color-mix(in srgb, var(--aviso) 22%, transparent);
   padding: 0.55rem 0.85rem; border-radius: 0.4rem;
   display: flex; align-items: baseline; gap: 0.5rem;
 }
@@ -359,38 +374,38 @@ onMounted(carregar);
   border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
   flex-shrink: 0;
 }
-.status-pendente_aprovacao { background: rgba(250,204,21,0.12); color: #facc15; border: 1px solid rgba(250,204,21,0.35); }
-.status-pendente_entrega   { background: rgba(96,165,250,0.12); color: #60a5fa; border: 1px solid rgba(96,165,250,0.35); }
-.status-aprovado           { background: rgba(96,165,250,0.12); color: #60a5fa; border: 1px solid rgba(96,165,250,0.35); }
-.status-entregue           { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.35); }
-.status-recusado           { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.35); }
-.status-devolvido          { background: rgba(168,168,168,0.12); color: #a8a8a8; border: 1px solid rgba(168,168,168,0.3); }
+.status-pendente_aprovacao { background: color-mix(in srgb, var(--aviso) 12%, transparent); color: var(--aviso); border: 1px solid color-mix(in srgb, var(--aviso) 35%, transparent); }
+.status-pendente_entrega   { background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); border: 1px solid color-mix(in srgb, var(--info) 35%, transparent); }
+.status-aprovado           { background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); border: 1px solid color-mix(in srgb, var(--info) 35%, transparent); }
+.status-entregue           { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent); }
+.status-recusado           { background: color-mix(in srgb, var(--perigo) 12%, transparent); color: var(--perigo); border: 1px solid color-mix(in srgb, var(--perigo) 35%, transparent); }
+.status-devolvido          { background: rgba(168,168,168,0.12); color: var(--texto-suave); border: 1px solid rgba(168,168,168,0.3); }
 
 .acoes {
   display: flex; gap: 0.55rem; align-items: center; flex-wrap: wrap;
   padding-top: 0.9rem; margin-top: 0.1rem;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid color-mix(in srgb, var(--texto-forte) 6%, transparent);
 }
 .btn-aprovar {
-  background: #F49D25; color: #1a1410; border: none;
+  background: var(--marca); color: var(--marca-texto); border: none;
   padding: 0.5rem 1rem; border-radius: 0.45rem; font-weight: 700; cursor: pointer; font-size: 0.85rem;
 }
-.btn-aprovar:hover:not(:disabled) { background: #e08c18; }
+.btn-aprovar:hover:not(:disabled) { background: var(--marca-escura); }
 .btn-aprovar:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-recusar {
-  background: rgba(248,113,113,0.12); color: #f87171;
-  border: 1px solid rgba(248,113,113,0.3);
+  background: color-mix(in srgb, var(--perigo) 12%, transparent); color: var(--perigo);
+  border: 1px solid color-mix(in srgb, var(--perigo) 30%, transparent);
   padding: 0.45rem 0.9rem; border-radius: 0.45rem; font-weight: 600; cursor: pointer; font-size: 0.82rem;
 }
-.btn-recusar:hover:not(:disabled) { background: rgba(248,113,113,0.22); }
+.btn-recusar:hover:not(:disabled) { background: color-mix(in srgb, var(--perigo) 22%, transparent); }
 
 .toast {
   position: fixed; top: 1.5rem; right: 1.5rem; z-index: 999;
   padding: 0.85rem 1.3rem; border-radius: 0.6rem; font-weight: 600;
 }
-.toast-sucesso { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.4); color: #4ade80; }
-.toast-erro    { background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.4); color: #f87171; }
+.toast-sucesso { background: color-mix(in srgb, var(--ok) 15%, transparent); border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok); }
+.toast-erro    { background: color-mix(in srgb, var(--perigo) 15%, transparent); border: 1px solid color-mix(in srgb, var(--perigo) 40%, transparent); color: var(--perigo); }
 
 @media (max-width: 700px) {
   .pagina { padding: 1.5rem 1.2rem; }

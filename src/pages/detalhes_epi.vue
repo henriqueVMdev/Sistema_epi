@@ -100,7 +100,7 @@ onMounted(carregar);
       <div>
         <p class="caminho">
           Estoque &amp; EPIs <span class="separador">›</span>
-          <span @click="voltar" class="caminho-clicavel">Estoque</span>
+          <button type="button" @click="voltar" class="caminho-clicavel">Estoque</button>
           <span class="separador">›</span>
           <span class="caminho-atual">Detalhes do EPI</span>
         </p>
@@ -120,7 +120,7 @@ onMounted(carregar);
 
     <section v-else class="detalhes">
       <div class="bloco-imagem">
-        <img v-if="epi.imagem" :src="epi.imagem" :alt="epi.nome" />
+        <img loading="lazy" decoding="async" v-if="epi.imagem" :src="epi.imagem" :alt="epi.nome" />
         <div v-else class="imagem-placeholder">Sem imagem</div>
       </div>
 
@@ -241,9 +241,9 @@ onMounted(carregar);
 
 <style scoped>
 .pagina-detalhes {
-  background: #181511;
+  background: var(--superficie-alta);
   min-height: 100vh;
-  color: #fff;
+  color: var(--texto-forte);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding: 2rem 3rem;
   box-sizing: border-box;
@@ -258,23 +258,23 @@ onMounted(carregar);
   margin-bottom: 2.5rem;
 }
 
-.caminho { color: #8b8680; font-size: 0.85rem; margin-bottom: 0.7rem; }
+.caminho { color: var(--texto-suave); font-size: 0.85rem; margin-bottom: 0.7rem; }
 .caminho .separador { margin: 0 0.4rem; }
-.caminho-atual { color: #fff; }
-.caminho-clicavel { cursor: pointer; transition: color 0.2s; }
-.caminho-clicavel:hover { color: #F49D25; }
+.caminho-atual { color: var(--texto-forte); }
+.caminho-clicavel { cursor: pointer; background: none; border: none; padding: 0; font: inherit; color: inherit; transition: color 0.2s; }
+.caminho-clicavel:hover { color: var(--marca); }
 
 .titulo-pagina {
   font-size: 2.6rem;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
-.titulo-destaque { color: #F49D25; }
+.titulo-destaque { color: var(--marca); }
 
 .botao-voltar {
-  background: #2a241e;
-  color: #fff;
-  border: 1px solid #3a332b;
+  background: var(--borda);
+  color: var(--texto-forte);
+  border: 1px solid var(--borda-forte);
   padding: 0.7rem 1.2rem;
   border-radius: 0.55rem;
   font-size: 0.9rem;
@@ -283,23 +283,23 @@ onMounted(carregar);
   margin-top: 0.5rem;
   transition: background 0.2s;
 }
-.botao-voltar:hover { background: #342c25; }
+.botao-voltar:hover { background: var(--borda-forte); }
 
-.estado { color: #8b8680; }
-.estado.erro { color: #f87171; }
+.estado { color: var(--texto-suave); }
+.estado.erro { color: var(--perigo); }
 
 .detalhes {
   display: grid;
   grid-template-columns: 320px 1fr;
   gap: 2rem;
-  background: #221E18;
-  border: 1px solid rgba(255,255,255,0.05);
+  background: var(--superficie-elevada);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   border-radius: 1rem;
   padding: 2rem;
 }
 
 .bloco-imagem {
-  background: #2a2520;
+  background: var(--borda);
   border-radius: 0.85rem;
   overflow: hidden;
   aspect-ratio: 1 / 1;
@@ -308,7 +308,7 @@ onMounted(carregar);
   justify-content: center;
 }
 .bloco-imagem img { width: 100%; height: 100%; object-fit: cover; }
-.imagem-placeholder { color: #6b6359; font-size: 0.9rem; }
+.imagem-placeholder { color: var(--texto-fraco); font-size: 0.9rem; }
 
 .bloco-info { display: flex; flex-direction: column; gap: 1.4rem; }
 
@@ -316,16 +316,16 @@ onMounted(carregar);
   font-size: 2rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: #fff;
+  color: var(--texto-forte);
 }
-.epi-fabricante { color: #8b8680; font-size: 0.95rem; margin-top: -0.8rem; }
-.epi-fabricante span { color: #c5bfb5; font-weight: 600; }
+.epi-fabricante { color: var(--texto-suave); font-size: 0.95rem; margin-top: -0.8rem; }
+.epi-fabricante span { color: var(--texto); font-weight: 600; }
 
 .estoque-destaque {
   display: inline-flex;
   flex-direction: column;
-  background: rgba(244, 157, 37, 0.08);
-  border: 1px solid rgba(244, 157, 37, 0.25);
+  background: color-mix(in srgb, var(--marca) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--marca) 25%, transparent);
   border-radius: 0.75rem;
   padding: 1rem 1.4rem;
   align-self: flex-start;
@@ -336,22 +336,22 @@ onMounted(carregar);
   border-color: rgba(220, 60, 60, 0.4);
 }
 .estoque-label {
-  color: #F49D25;
+  color: var(--marca);
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-.estoque-destaque.alerta .estoque-label { color: #f87171; }
+.estoque-destaque.alerta .estoque-label { color: var(--perigo); }
 .estoque-numero {
-  color: #fff;
+  color: var(--texto-forte);
   font-size: 3rem;
   font-weight: 800;
   line-height: 1;
   margin: 0.3rem 0 0.2rem;
 }
-.estoque-destaque.alerta .estoque-numero { color: #f87171; }
-.estoque-minimo { color: #8b8680; font-size: 0.8rem; }
+.estoque-destaque.alerta .estoque-numero { color: var(--perigo); }
+.estoque-minimo { color: var(--texto-suave); font-size: 0.8rem; }
 
 .grade-info {
   display: grid;
@@ -361,21 +361,21 @@ onMounted(carregar);
 
 .campo { display: flex; flex-direction: column; gap: 0.25rem; }
 .label {
-  color: #F49D25;
+  color: var(--marca);
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-.valor { color: #fff; font-size: 1rem; font-weight: 500; }
+.valor { color: var(--texto-forte); font-size: 1rem; font-weight: 500; }
 .valor-texto {
-  color: #c5bfb5;
+  color: var(--texto);
   font-size: 0.95rem;
   line-height: 1.65;
-  background: #2a2520;
+  background: var(--borda);
   padding: 0.9rem 1.1rem;
   border-radius: 0.6rem;
-  border: 1px solid rgba(255,255,255,0.04);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 4%, transparent);
 }
 
 .dashboards {
@@ -399,8 +399,8 @@ onMounted(carregar);
 }
 
 .card-resumo {
-  background: #221E18;
-  border: 1px solid rgba(244, 157, 37, 0.2);
+  background: var(--superficie-elevada);
+  border: 1px solid color-mix(in srgb, var(--marca) 20%, transparent);
   border-radius: 0.85rem;
   padding: 1.1rem 1.3rem;
   display: flex;
@@ -408,14 +408,14 @@ onMounted(carregar);
   gap: 0.4rem;
 }
 .card-label {
-  color: #F49D25;
+  color: var(--marca);
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 .card-numero {
-  color: #fff;
+  color: var(--texto-forte);
   font-size: 2rem;
   font-weight: 800;
   line-height: 1;
@@ -428,38 +428,40 @@ onMounted(carregar);
 }
 
 .painel {
-  background: #221E18;
-  border: 1px solid rgba(255,255,255,0.05);
+  background: var(--superficie-elevada);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   border-radius: 1rem;
   padding: 1.5rem;
 }
 .painel-titulo {
   font-size: 1.05rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--texto-forte);
   margin: 0 0 1rem;
 }
-.painel-vazio { color: #8b8680; font-size: 0.9rem; }
+.painel-vazio { color: var(--texto-suave); font-size: 0.9rem; }
 
 .lista-barras { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.85rem; }
 .barra-item { display: flex; flex-direction: column; gap: 0.35rem; }
 .barra-info { display: flex; justify-content: space-between; font-size: 0.85rem; }
-.barra-nome { color: #fff; font-weight: 600; }
-.barra-valor { color: #8b8680; }
+.barra-nome { color: var(--texto-forte); font-weight: 600; }
+.barra-valor { color: var(--texto-suave); }
 .barra-trilho {
-  background: #2a2520;
+  background: var(--borda);
   border-radius: 999px;
   height: 8px;
   overflow: hidden;
 }
 .barra-preenchida {
   height: 100%;
-  background: linear-gradient(90deg, #F49D25, #f6b85a);
+  background: linear-gradient(90deg, var(--marca), var(--marca-clara));
   border-radius: 999px;
+  /* barra: anima largura de propósito — scaleX achataria as pontas arredondadas.
+     Dispara uma vez, em no máximo 8 elementos. */
   transition: width 0.4s ease;
 }
 .barra-preenchida.alt {
-  background: linear-gradient(90deg, #4f9cf9, #7bb6ff);
+  background: linear-gradient(90deg, var(--info), var(--info));
 }
 
 .lista-historico { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.6rem; }
@@ -467,18 +469,18 @@ onMounted(carregar);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #2a2520;
-  border: 1px solid rgba(255,255,255,0.04);
+  background: var(--borda);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 4%, transparent);
   border-radius: 0.6rem;
   padding: 0.75rem 1rem;
   gap: 1rem;
 }
 .hist-esq { display: flex; flex-direction: column; gap: 0.15rem; }
-.hist-nome { color: #fff; font-weight: 600; font-size: 0.95rem; }
-.hist-setor { color: #8b8680; font-size: 0.8rem; }
+.hist-nome { color: var(--texto-forte); font-weight: 600; font-size: 0.95rem; }
+.hist-setor { color: var(--texto-suave); font-size: 0.8rem; }
 .hist-dir { display: flex; align-items: center; gap: 0.9rem; }
-.hist-qtd { color: #F49D25; font-weight: 700; font-size: 0.9rem; }
-.hist-data { color: #c5bfb5; font-size: 0.85rem; }
+.hist-qtd { color: var(--marca); font-weight: 700; font-size: 0.9rem; }
+.hist-data { color: var(--texto); font-size: 0.85rem; }
 .hist-status {
   font-size: 0.7rem;
   font-weight: 700;
@@ -487,9 +489,9 @@ onMounted(carregar);
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
 }
-.status-aprovado { background: rgba(74, 222, 128, 0.12); color: #4ade80; }
-.status-pendente { background: rgba(244, 157, 37, 0.15); color: #F49D25; }
-.status-recusado { background: rgba(248, 113, 113, 0.12); color: #f87171; }
+.status-aprovado { background: color-mix(in srgb, var(--ok) 12%, transparent); color: var(--ok); }
+.status-pendente { background: color-mix(in srgb, var(--marca) 15%, transparent); color: var(--marca); }
+.status-recusado { background: color-mix(in srgb, var(--perigo) 12%, transparent); color: var(--perigo); }
 
 @media (max-width: 900px) {
   .detalhes { grid-template-columns: 1fr; }

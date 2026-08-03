@@ -104,7 +104,8 @@ onMounted(carregar);
 
     <section class="cartao">
       <div v-if="carregando" class="vazio">Carregando…</div>
-      <table v-else class="tabela">
+      <div v-else class="tabela-rolagem">
+        <table class="tabela">
         <thead>
           <tr>
             <th>Nome</th>
@@ -150,10 +151,10 @@ onMounted(carregar);
               </div>
             </td>
             <td class="acoes">
-              <button class="btn-salvar" :disabled="salvandoId === u.id" @click="salvar(u)">
+              <button type="button" class="btn-salvar" :disabled="salvandoId === u.id" @click="salvar(u)">
                 {{ salvandoId === u.id ? 'Salvando…' : 'Salvar' }}
               </button>
-              <button class="btn-excluir" :disabled="excluindoId === u.id" @click="excluir(u)">
+              <button type="button" class="btn-excluir" :disabled="excluindoId === u.id" @click="excluir(u)">
                 {{ excluindoId === u.id ? 'Excluindo…' : 'Excluir' }}
               </button>
             </td>
@@ -163,30 +164,35 @@ onMounted(carregar);
           </tr>
         </tbody>
       </table>
+      </div>
     </section>
   </div>
 </template>
 
 <style scoped>
+/* tabela larga não pode empurrar a página no celular */
+.tabela-rolagem { overflow-x: auto; }
+.tabela-rolagem table { min-width: 640px; }
+
 .pagina {
-  background: #181511;
+  background: var(--superficie-alta);
   min-height: 100vh;
-  color: #fff;
+  color: var(--texto-forte);
   padding: 2rem 3rem;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .cabecalho { margin-bottom: 2rem; }
-.caminho { color: #8b8680; font-size: 0.85rem; margin-bottom: 0.5rem; }
+.caminho { color: var(--texto-suave); font-size: 0.85rem; margin-bottom: 0.5rem; }
 .caminho .separador { margin: 0 0.4rem; }
-.atual { color: #fff; }
+.atual { color: var(--texto-forte); }
 .titulo { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.3rem; }
-.destaque { color: #F49D25; }
-.subtitulo { color: #8b8680; font-size: 0.9rem; }
+.destaque { color: var(--marca); }
+.subtitulo { color: var(--texto-suave); font-size: 0.9rem; }
 
 .cartao {
-  background: #221E18;
-  border: 1px solid rgba(255,255,255,0.04);
+  background: var(--superficie-elevada);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 4%, transparent);
   border-radius: 1rem;
   padding: 1.2rem;
 }
@@ -198,32 +204,32 @@ onMounted(carregar);
 .tabela th, .tabela td {
   text-align: left;
   padding: 0.85rem 0.9rem;
-  border-bottom: 1px solid #2a241e;
+  border-bottom: 1px solid var(--borda);
   font-size: 0.9rem;
 }
 .tabela th {
-  color: #8b8680;
+  color: var(--texto-suave);
   font-weight: 600;
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
-.muted { color: #8b8680; }
+.muted { color: var(--texto-suave); }
 
 .tabela select {
-  background: #131110;
-  border: 1px solid #2a241e;
-  color: #fff;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  color: var(--texto-forte);
   padding: 0.45rem 0.6rem;
   border-radius: 0.4rem;
   font-size: 0.85rem;
   outline: none;
 }
-.tabela select:focus { border-color: #F49D25; }
+.tabela select:focus { border-color: var(--marca); }
 
 .btn-salvar {
-  background: #F49D25;
-  color: #1a1410;
+  background: var(--marca);
+  color: var(--marca-texto);
   border: none;
   padding: 0.5rem 0.9rem;
   border-radius: 0.45rem;
@@ -231,26 +237,26 @@ onMounted(carregar);
   font-size: 0.82rem;
   cursor: pointer;
 }
-.btn-salvar:hover { background: #e08c18; }
+.btn-salvar:hover { background: var(--marca-escura); }
 .btn-salvar:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .acoes { display: flex; gap: 0.45rem; }
 .btn-excluir {
-  background: rgba(248, 113, 113, 0.12);
-  color: #f87171;
-  border: 1px solid rgba(248, 113, 113, 0.3);
+  background: color-mix(in srgb, var(--perigo) 12%, transparent);
+  color: var(--perigo);
+  border: 1px solid color-mix(in srgb, var(--perigo) 30%, transparent);
   padding: 0.5rem 0.85rem;
   border-radius: 0.45rem;
   font-weight: 600;
   font-size: 0.82rem;
   cursor: pointer;
 }
-.btn-excluir:hover { background: rgba(248, 113, 113, 0.22); }
+.btn-excluir:hover { background: color-mix(in srgb, var(--perigo) 22%, transparent); }
 .btn-excluir:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .vazio {
   text-align: center;
-  color: #8b8680;
+  color: var(--texto-suave);
   padding: 2rem;
 }
 
@@ -263,14 +269,14 @@ onMounted(carregar);
   font-weight: 600;
   z-index: 999;
 }
-.toast-sucesso { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.4); color: #4ade80; }
-.toast-erro { background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.4); color: #f87171; }
+.toast-sucesso { background: color-mix(in srgb, var(--ok) 15%, transparent); border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok); }
+.toast-erro { background: color-mix(in srgb, var(--perigo) 15%, transparent); border: 1px solid color-mix(in srgb, var(--perigo) 40%, transparent); color: var(--perigo); }
 
 .setor-cell { display: flex; align-items: center; gap: 0.4rem; position: relative; }
 .btn-mais-setor {
-  background: rgba(244,157,37,0.12);
-  color: #F49D25;
-  border: 1px solid rgba(244,157,37,0.3);
+  background: color-mix(in srgb, var(--marca) 12%, transparent);
+  color: var(--marca);
+  border: 1px solid color-mix(in srgb, var(--marca) 30%, transparent);
   padding: 0.35rem 0.6rem;
   border-radius: 0.4rem;
   font-size: 0.75rem;
@@ -278,13 +284,13 @@ onMounted(carregar);
   cursor: pointer;
   white-space: nowrap;
 }
-.btn-mais-setor:hover { background: rgba(244,157,37,0.22); }
+.btn-mais-setor:hover { background: color-mix(in srgb, var(--marca) 22%, transparent); }
 .multi-menu {
   position: absolute;
   top: calc(100% + 0.3rem);
   right: 0;
-  background: #1c1814;
-  border: 1px solid #2a241e;
+  background: var(--superficie-alta);
+  border: 1px solid var(--borda);
   border-radius: 0.45rem;
   padding: 0.4rem;
   min-width: 180px;
@@ -300,22 +306,22 @@ onMounted(carregar);
   padding: 0.4rem 0.5rem;
   border-radius: 0.3rem;
   cursor: pointer;
-  color: #ebe8e4;
+  color: var(--texto);
   font-size: 0.82rem;
 }
-.multi-opcao:hover { background: rgba(244,157,37,0.08); }
+.multi-opcao:hover { background: color-mix(in srgb, var(--marca) 8%, transparent); }
 .multi-opcao input[type="checkbox"] {
   appearance: none;
   width: 0.95rem;
   height: 0.95rem;
-  border: 1.5px solid #5c554d;
+  border: 1.5px solid var(--texto-fraco);
   border-radius: 0.2rem;
   cursor: pointer;
   margin: 0;
 }
 .multi-opcao input[type="checkbox"]:checked {
-  background: #F49D25;
-  border-color: #F49D25;
+  background: var(--marca);
+  border-color: var(--marca);
 }
 .multi-opcao input[type="checkbox"]:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>

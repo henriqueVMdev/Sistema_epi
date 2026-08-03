@@ -28,7 +28,7 @@
       <div class="base">
         <RouterLink v-if="perfil" to="/perfil" class="perfil-card" active-class="perfil-card-ativo">
           <div class="perfil-avatar">
-            <img v-if="perfil.avatar_url" :src="perfil.avatar_url" :alt="perfil.nome" />
+            <img loading="lazy" decoding="async" v-if="perfil.avatar_url" :src="perfil.avatar_url" :alt="perfil.nome" />
             <span v-else class="perfil-iniciais">{{ iniciais(perfil.nome) }}</span>
           </div>
           <div class="perfil-texto">
@@ -37,7 +37,7 @@
           </div>
         </RouterLink>
 
-        <button @click="sair" class="botao-sair">
+        <button type="button" @click="sair" class="botao-sair">
           <i class="fas fa-sign-out-alt"></i>
           <span>Sair</span>
         </button>
@@ -131,8 +131,8 @@ async function sair() {
 }
 
 .sidebar {
-  background: #221E18;
-  border-right: 1px solid rgba(255,255,255,0.04);
+  background: var(--superficie-elevada);
+  border-right: 1px solid color-mix(in srgb, var(--texto-forte) 4%, transparent);
   padding: 1.5rem 1rem 1.2rem;
   display: flex;
   flex-direction: column;
@@ -150,7 +150,7 @@ async function sair() {
   align-items: center;
   gap: 0.7rem;
   padding: 0.4rem 0.5rem 1.4rem;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid color-mix(in srgb, var(--texto-forte) 4%, transparent);
   margin-bottom: 1.2rem;
 }
 .logo-img {
@@ -160,9 +160,9 @@ async function sair() {
   flex-shrink: 0;
 }
 .logo-texto { display: flex; flex-direction: column; line-height: 1.2; }
-.logo-nome { color: #fff; font-size: 1.05rem; font-weight: 800; letter-spacing: -0.01em; }
-.logo-destaque { color: #F49D25; }
-.logo-sub { color: #8b8680; font-size: 0.72rem; font-weight: 500; margin-top: 0.1rem; }
+.logo-nome { color: var(--texto-forte); font-size: 1.05rem; font-weight: 800; letter-spacing: -0.01em; }
+.logo-destaque { color: var(--marca); }
+.logo-sub { color: var(--texto-suave); font-size: 0.72rem; font-weight: 500; margin-top: 0.1rem; }
 
 .menu {
   flex-grow: 1;
@@ -173,7 +173,7 @@ async function sair() {
 }
 .grupo { display: flex; flex-direction: column; gap: 0.25rem; }
 .grupo-titulo {
-  color: #6b6359;
+  color: var(--texto-fraco);
   font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -186,7 +186,7 @@ async function sair() {
   align-items: center;
   gap: 0.75rem;
   padding: 0.65rem 0.8rem;
-  color: #c5bfb5;
+  color: var(--texto);
   text-decoration: none;
   border-radius: 0.5rem;
   font-size: 0.88rem;
@@ -194,23 +194,23 @@ async function sair() {
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
-.menu-item:hover { background: rgba(255,255,255,0.04); color: #fff; }
-.menu-item i { font-size: 0.95rem; width: 1.1rem; text-align: center; color: #8b8680; transition: color 0.15s; }
-.menu-item:hover i { color: #F49D25; }
+.menu-item:hover { background: color-mix(in srgb, var(--texto-forte) 4%, transparent); color: var(--texto-forte); }
+.menu-item i { font-size: 0.95rem; width: 1.1rem; text-align: center; color: var(--texto-suave); transition: color 0.15s; }
+.menu-item:hover i { color: var(--marca); }
 
 .menu-item.active {
-  background: rgba(244, 157, 37, 0.12);
-  color: #F49D25;
+  background: color-mix(in srgb, var(--marca) 12%, transparent);
+  color: var(--marca);
   font-weight: 600;
 }
-.menu-item.active i { color: #F49D25; }
+.menu-item.active i { color: var(--marca); }
 
 .base {
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
   padding-top: 1rem;
-  border-top: 1px solid rgba(255,255,255,0.04);
+  border-top: 1px solid color-mix(in srgb, var(--texto-forte) 4%, transparent);
   margin-top: 1rem;
 }
 
@@ -219,14 +219,14 @@ async function sair() {
   align-items: center;
   gap: 0.7rem;
   text-decoration: none;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: color-mix(in srgb, var(--texto-forte) 3%, transparent);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   border-radius: 0.6rem;
   padding: 0.6rem 0.7rem;
   transition: background 0.2s, border-color 0.2s;
 }
-.perfil-card:hover { background: rgba(244,157,37,0.08); border-color: rgba(244,157,37,0.3); }
-.perfil-card-ativo { border-color: #F49D25; background: rgba(244,157,37,0.12); }
+.perfil-card:hover { background: color-mix(in srgb, var(--marca) 8%, transparent); border-color: color-mix(in srgb, var(--marca) 30%, transparent); }
+.perfil-card-ativo { border-color: var(--marca); background: color-mix(in srgb, var(--marca) 12%, transparent); }
 
 .perfil-avatar {
   flex: 0 0 36px;
@@ -234,17 +234,17 @@ async function sair() {
   height: 36px;
   border-radius: 50%;
   overflow: hidden;
-  background: #3a332b;
+  background: var(--borda-forte);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .perfil-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.perfil-iniciais { color: #F49D25; font-weight: 800; font-size: 0.85rem; }
+.perfil-iniciais { color: var(--marca); font-weight: 800; font-size: 0.85rem; }
 
 .perfil-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
 .perfil-nome {
-  color: #fff;
+  color: var(--texto-forte);
   font-size: 0.82rem;
   font-weight: 600;
   white-space: nowrap;
@@ -252,7 +252,7 @@ async function sair() {
   text-overflow: ellipsis;
 }
 .perfil-role {
-  color: #8b8680;
+  color: var(--texto-suave);
   font-size: 0.68rem;
   font-weight: 500;
   text-transform: capitalize;
@@ -265,8 +265,8 @@ async function sair() {
   justify-content: center;
   gap: 0.55rem;
   background: transparent;
-  color: #8b8680;
-  border: 1px solid rgba(255,255,255,0.05);
+  color: var(--texto-suave);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   padding: 0.6rem 0.8rem;
   border-radius: 0.5rem;
   cursor: pointer;
@@ -277,9 +277,9 @@ async function sair() {
   width: 100%;
 }
 .botao-sair:hover {
-  background: rgba(248,113,113,0.08);
-  color: #f87171;
-  border-color: rgba(248,113,113,0.3);
+  background: color-mix(in srgb, var(--perigo) 8%, transparent);
+  color: var(--perigo);
+  border-color: color-mix(in srgb, var(--perigo) 30%, transparent);
 }
 .botao-sair i { font-size: 0.85rem; }
 

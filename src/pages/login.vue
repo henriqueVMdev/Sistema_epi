@@ -8,16 +8,27 @@ const { supabase } = useSupabase();
 const error = ref('');
 const router = useRouter();
 
+const entrando = ref(false);
+
 async function login() {
+  if (entrando.value) return;
+  error.value = '';
+  if (!email.value.trim() || !senha.value) {
+    error.value = 'Informe email e senha.';
+    return;
+  }
+  entrando.value = true;
   const { error: authError } = await supabase.auth.signInWithPassword({
-    email: email.value,
+    email: email.value.trim(),
     password: senha.value
   })
+  entrando.value = false;
 
   if (authError) {
     error.value = authError.message;
   } else {
-    router.push('/cadastro_epi');
+    // estoque é acessível a todos os perfis; o guard redireciona quem tem mais acesso
+    router.push('/estoque');
   }
 }
 </script>
@@ -34,21 +45,21 @@ async function login() {
       <p class = "mensagem"> entre para gerenciar seu estoque de segurança</p>
       
       <div class = "campo">
-        <label>Email:</label>
-        <input v-model = "email">
+        <label for="login-email">Email:</label>
+        <input id="login-email" v-model = "email" type="email" autocomplete="email">
       </div>
 
       <div class = "campo">
-        <label>Senha:</label>
-        <input v-model = "senha" type="password">
+        <label for="login-senha">Senha:</label>
+        <input id="login-senha" v-model = "senha" type="password" autocomplete="current-password">
       </div>
 
-      <p class = "error" v-if = "error"> {{ error }} </p>
+      <p class="error" role="alert" v-if="error"> {{ error }} </p>
 
     
 
-    <button class = "btn">
-      Entrar na Plataforma
+    <button class = "btn" type="submit" :disabled="entrando">
+      {{ entrando ? 'Entrando…' : 'Entrar na Plataforma' }}
     </button>
 
     <p class = "divisor"> Novo na empresa?</p>
@@ -64,7 +75,7 @@ async function login() {
 
 <style scoped>
 .container{
-  background-image: url(../assets/background.png);
+  background-image: url(../assets/background.webp);
   background-size: 100%;
   background-position: center;
   background-repeat: no-repeat;
@@ -77,6 +88,7 @@ async function login() {
   min-height: 100vh;
   width: 100%;
   position: relative;
+  padding: 1.5rem 1rem;
 }
 .caixa::before {
   content: "";
@@ -86,7 +98,7 @@ async function login() {
   width: 32rem;
   height: 32rem;
   transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(244, 157, 37, 0.7) 0%, rgba(244, 157, 37, 0.28) 40%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--marca) 70%, transparent) 0%, color-mix(in srgb, var(--marca) 28%, transparent) 40%, transparent 70%);
   filter: blur(60px);
   z-index: 0;
   pointer-events: none;
@@ -94,12 +106,9 @@ async function login() {
 form {
   position: relative;
   z-index: 1;
-  width: 90%;
+  width: 100%;
   max-width: 25rem;
-  max-height: 35rem;
-  min-height: 35rem;
-  min-width: 25rem;
-  background-color: #131314 !important;
+  background-color: var(--superficie) !important;
   background-position: center;
   display:flex;
   flex-direction: column;
@@ -112,8 +121,8 @@ form {
 button.btn {
   display: flex;
   justify-content: center;
-  background-color: #F49D25;
-  color: white;
+  background-color: var(--marca);
+  color: var(--marca-texto);
   border: none;
   padding: 0.7rem;
   border-radius: 0.5rem;
@@ -123,7 +132,7 @@ button.btn {
 }
 
 label {
-  color: #ffffff;
+  color: var(--texto-forte);
   font-size: 0.9rem;
   padding-bottom: 3px;
   padding-top: 1.5rem;
@@ -132,12 +141,12 @@ label {
 
 input{
   justify-content: center;
-  color: #9CA3AF ;
+  color: var(--texto-forte);
   background-color: rgba(0, 0, 0, 0.6);
   padding: 10px;
   gap: 2px;
   border: none;
-  border: 1px solid #262729;
+  border: 1px solid var(--borda);
   outline: none;
 }
 
@@ -147,7 +156,7 @@ input{
 }
 
 .error {
-  color: #dd5e5e;
+  color: var(--perigo);
   font-size: 0.9rem;
 }
 
@@ -158,16 +167,16 @@ h1 {
 }
 
 .amarelo {
-  color: #F49D25;
+  color: var(--marca);
 }
 
 .white {
-  color: #ffffff;
+  color: var(--texto-forte);
 }
 
 .mensagem {
   text-align: center;
-  color: #9CA3AF;
+  color: var(--texto-suave);
   font-size: 1rem;
   padding-bottom: 0.5rem;
    ;
@@ -177,7 +186,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #9CA3AF;
+  color: var(--texto-suave);
   padding-top: 1.5rem;
   font-size: 1.2rem;
 }
@@ -187,14 +196,14 @@ h1 {
   content: "";
   flex: 1;
   height: 1px;
-  background-color: #9CA3AF;
+  background-color: var(--texto-suave);
 }
 
 .link {
   display: block;
   text-align: center;
   text-decoration: none;
-  color:#F49D25;
+  color:var(--marca);
   margin-top: 1.5rem;
   font-size: 1.2rem;
 }

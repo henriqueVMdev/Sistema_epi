@@ -1,7 +1,8 @@
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSupabase } from '../composables/useSupabase';
+import { ajustarEstoque } from '../composables/estoque';
 
 const { supabase, perfil } = useSupabase();
 const router = useRouter();
@@ -115,6 +116,11 @@ const iniciarEdicao = (epi) => {
   modalAberto.value = true;
 };
 
+const aoTeclar = (e) => {
+  if (e.key === 'Escape' && modalAberto.value) cancelarEdicao();
+};
+onUnmounted(() => window.removeEventListener('keydown', aoTeclar));
+
 const cancelarEdicao = () => {
   modalAberto.value = false;
   editandoId.value = null;
@@ -128,6 +134,10 @@ const cancelarEdicao = () => {
 
 const salvarEdicao = async () => {
   if (!editandoId.value) return;
+  if (!form.nome.trim()) { mostrarMensagem('erro', 'Informe o nome do EPI.'); return; }
+  if (form.data_validade && !brParaIso(form.data_validade)) {
+    mostrarMensagem('erro', 'Data de validade inválida (use DD/MM/AAAA).'); return;
+  }
   enviando.value = true;
   let imagemUrl;
   try {
@@ -222,6 +232,7 @@ const carregar = async () => {
 };
 
 onMounted(() => {
+  window.addEventListener('keydown', aoTeclar);
   carregar();
   carregarSetores();
 });
@@ -242,7 +253,7 @@ const formatarData = (data) => {
 };
 
 const estoquebaixo = (epi) => {
-  const qtd = Number(epi.quantidade);
+  const qtd = Number(epi.estoque);
   const min = Number(epi.estoque_minimo);
   return !isNaN(qtd) && !isNaN(min) && min > 0 && qtd <= min;
 };
@@ -253,14 +264,13 @@ const adicionarEstoque = async (epi) => {
   const qtd = parseInt(quantidadeAdicionar.value[epi.id], 10);
   if (isNaN(qtd) || qtd <= 0) return;
 
-  const novoEstoque = (Number(epi.estoque) || 0) + qtd;
-  const { error } = await supabase
-    .from('epis')
-    .update({ estoque: novoEstoque })
-    .eq('id', epi.id);
-
-  if (error) {
-    console.error(error);
+  const r = await ajustarEstoque(supabase, epi.id, epi.estoque, qtd);
+  if (!r.ok) {
+    if (r.error) console.error(r.error);
+    mostrarMensagem('erro', r.motivo === 'conflito'
+      ? 'O estoque mudou enquanto você editava. Recarregando.'
+      : 'Erro ao adicionar ao estoque.');
+    await carregar();
     return;
   }
   quantidadeAdicionar.value[epi.id] = '';
@@ -314,7 +324,7 @@ const excluir = async(id) =>{
       >
         <div class="card-principal">
           <div class="card-imagem">
-            <img v-if="epi.imagem" :src="epi.imagem" :alt="epi.nome" />
+            <img loading="lazy" decoding="async" v-if="epi.imagem" :src="epi.imagem" :alt="epi.nome" />
             <div v-else class="imagem-placeholder"></div>
           </div>
 
@@ -351,14 +361,14 @@ const excluir = async(id) =>{
             <span class="estoque-minimo">mín. {{ epi.estoque_minimo || 0 }} un.</span>
           </div>
 
-          <button v-if="podeAdministrar" class="btn-detalhes" @click.stop="verDetalhes(epi.id)">
+          <button type="button" v-if="podeAdministrar" class="btn-detalhes" @click.stop="verDetalhes(epi.id)">
             Ver mais detalhes →
           </button>
           <div v-else-if="epi.limite != null" class="badge-limite" title="Limite por pedido sem precisar de aprovação">
             Limite: <strong>{{ epi.limite }}</strong>
           </div>
 
-          <button class="btn-expandir" @click="toggleCard(epi.id)">
+          <button type="button" class="btn-expandir" @click="toggleCard(epi.id)">
             <svg
               :class="{ rotacionado: expandido === epi.id }"
               width="20" height="20" viewBox="0 0 24 24"
@@ -384,10 +394,10 @@ const excluir = async(id) =>{
               </div>
 
               <div v-if="podeAdministrar" class="acoes-secundarias">
-                <button class="btn-acao btn-editar" title="Editar" @click="iniciarEdicao(epi)">
+                <button type="button" class="btn-acao btn-editar" title="Editar" @click="iniciarEdicao(epi)">
                   Editar
                 </button>
-                <button class="btn-acao btn-excluir" title="Excluir" @click = "excluir(epi.id)">
+                <button type="button" class="btn-acao btn-excluir" title="Excluir" @click = "excluir(epi.id)">
                   Excluir
                 </button>
               </div>
@@ -401,7 +411,7 @@ const excluir = async(id) =>{
                   <p class="notificacao-sub">Receber alerta quando o estoque atingir {{ epi.estoque_minimo }} unidades em estoque.</p>
                 </div>
               </div>
-              <button class="toggle">
+              <button type="button" class="toggle">
                 <span class="toggle-bolinha"></span>
               </button>
             </div>
@@ -422,7 +432,7 @@ const excluir = async(id) =>{
                   v-model="quantidadeAdicionar[epi.id]"
                   @keyup.enter="adicionarEstoque(epi)"
                 />
-                <button
+                <button type="button"
                   class="btn-acao btn-adicionar"
                   title="Adicionar unidades ao estoque"
                   :disabled="!quantidadeAdicionar[epi.id] || quantidadeAdicionar[epi.id] <= 0"
@@ -437,7 +447,7 @@ const excluir = async(id) =>{
       </div>
     </section>
 
-    <div v-if="modalAberto" class="modal-overlay" @click.self="cancelarEdicao">
+    <div v-if="modalAberto" class="modal-overlay" role="dialog" aria-modal="true" @click.self="cancelarEdicao">
       <div class="modal">
         <header class="modal-cabecalho">
           <h2>Editar <span class="titulo-destaque">EPI</span></h2>
@@ -447,19 +457,19 @@ const excluir = async(id) =>{
         <form class="modal-corpo" @submit.prevent="salvarEdicao">
           <div class="modal-grade">
             <div class="campo">
-              <label>Nome do EPI</label>
-              <input v-model="form.nome" type="text" />
+              <label for="est-nome-do-epi">Nome do EPI</label>
+              <input id="est-nome-do-epi" v-model="form.nome" type="text" />
             </div>
 
             <div class="campo">
-              <label>Setores de uso</label>
+              <span class="rotulo-grupo">Setores de uso</span>
               <div class="multi-select" :class="{ aberto: setorAberto }">
                 <button type="button" class="multi-select-trigger" @click="setorAberto = !setorAberto">
                   <span v-if="form.setor.length === 0" class="ms-placeholder">Selecione um ou mais setores</span>
                   <span v-else class="ms-tags">
                     <span class="ms-tag" v-for="s in form.setor" :key="s">
                       {{ s }}
-                      <span class="ms-tag-x" @click.stop="toggleSetor(s)">×</span>
+                      <button type="button" class="ms-tag-x" @click.stop="toggleSetor(s)" :aria-label="`Remover setor ${s}`">×</button>
                     </span>
                   </span>
                   <span class="ms-seta">▾</span>
@@ -475,44 +485,44 @@ const excluir = async(id) =>{
             </div>
 
             <div class="campo">
-              <label>Fabricante</label>
-              <input v-model="form.fabricante" type="text" />
+              <label for="est-fabricante">Fabricante</label>
+              <input id="est-fabricante" v-model="form.fabricante" type="text" />
             </div>
 
             <div class="campo">
-              <label>Custo</label>
-              <input v-model="form.custo" type="text" />
+              <label for="est-custo">Custo</label>
+              <input id="est-custo" v-model="form.custo" type="text" />
             </div>
 
             <div class="campo">
-              <label>Número do CA</label>
-              <input v-model="form.numero_ca" type="number" />
+              <label for="est-numero-do-ca">Número do CA</label>
+              <input id="est-numero-do-ca" v-model="form.numero_ca" type="number" />
             </div>
 
             <div class="campo">
-              <label>Data de Validade</label>
-              <input :value="form.data_validade" @input="aplicarMascaraData" type="text" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" />
+              <label for="est-data-de-validade">Data de Validade</label>
+              <input id="est-data-de-validade" :value="form.data_validade" @input="aplicarMascaraData" type="text" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" />
             </div>
 
             <div class="campo">
-              <label>Estoque</label>
-              <input v-model="form.estoque" type="number" />
+              <label for="est-estoque">Estoque</label>
+              <input id="est-estoque" v-model="form.estoque" type="number" />
             </div>
 
             <div class="campo">
-              <label>Estoque mínimo</label>
-              <input v-model="form.estoque_minimo" type="number" />
+              <label for="est-estoque-minimo">Estoque mínimo</label>
+              <input id="est-estoque-minimo" v-model="form.estoque_minimo" type="number" />
             </div>
 
             <div class="campo campo-largo">
-              <label>Descrição</label>
-              <textarea v-model="form.descricao" rows="3" maxlength="200"></textarea>
+              <label for="est-descricao">Descrição</label>
+              <textarea id="est-descricao" v-model="form.descricao" rows="3" maxlength="200"></textarea>
             </div>
 
             <div class="campo campo-largo">
-              <label>Imagem</label>
+              <span class="rotulo-grupo">Imagem</span>
               <div v-if="imagemPreview || imagemExistente" class="preview-imagem-modal">
-                <img :src="imagemPreview || imagemExistente" alt="Imagem do EPI" />
+                <img loading="lazy" decoding="async" :src="imagemPreview || imagemExistente" alt="Imagem do EPI" />
                 <div class="preview-acoes">
                   <label class="btn-trocar">
                     Trocar
@@ -541,7 +551,7 @@ const excluir = async(id) =>{
     <footer class="rodape">
       <div class="rodape-marca">
         <span class="logo-nome">
-          <img src="@/assets/Logo_branco.svg" alt="OmniSeg" class="logo-icone" />
+          <img loading="lazy" decoding="async" src="@/assets/Logo_branco.svg" alt="OmniSeg" class="logo-icone" />
           Omni<span class="logo-destaque">Seg</span>
         </span>
         <p>Plataforma Focada em gestão de EPIs e segurança do trabalho. Tecnologia que salva vidas.</p>
@@ -587,9 +597,9 @@ const excluir = async(id) =>{
 
 <style scoped>
 .pagina-estoque {
-  background: #181511;
+  background: var(--superficie-alta);
   min-height: 100vh;
-  color: #fff;
+  color: var(--texto-forte);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   box-sizing: border-box;
   width: 100%;
@@ -610,8 +620,8 @@ const excluir = async(id) =>{
 }
 
 .botao-cadastrar {
-  background: #F49D25;
-  color: #1a1410;
+  background: var(--marca);
+  color: var(--marca-texto);
   border: none;
   padding: 0.75rem 1.3rem;
   border-radius: 0.55rem;
@@ -622,34 +632,34 @@ const excluir = async(id) =>{
   white-space: nowrap;
   margin-top: 0.5rem;
 }
-.botao-cadastrar:hover { background: #e08c18; }
+.botao-cadastrar:hover { background: var(--marca-escura); }
 .botao-cadastrar:active { transform: scale(0.97); }
 
 .caminho {
-  color: #8b8680;
+  color: var(--texto-suave);
   font-size: 0.85rem;
   margin-bottom: 0.7rem;
 }
 .caminho .separador { margin: 0 0.4rem; }
-.caminho-atual { color: #fff; }
+.caminho-atual { color: var(--texto-forte); }
 
 .titulo-pagina {
   font-size: 2.6rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--texto-forte);
   letter-spacing: -0.02em;
   margin-bottom: 0.4rem;
 }
-.titulo-destaque { color: #F49D25; }
+.titulo-destaque { color: var(--marca); }
 
 .subtitulo {
-  color: #8b8680;
+  color: var(--texto-suave);
   font-size: 0.95rem;
 }
 
 .lista-epis {
-  background: #221E18;
-  border: 1px solid rgba(255,255,255,0.05);
+  background: var(--superficie-elevada);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   border-radius: 1rem;
   padding: 1rem;
   display: flex;
@@ -659,20 +669,20 @@ const excluir = async(id) =>{
 }
 
 .card-epi {
-  background: linear-gradient(180deg, #2d2823 0%, #28231e 100%);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(180deg, var(--borda) 0%, var(--superficie-elevada) 100%);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   border-radius: 0.85rem;
   overflow: hidden;
   transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
 }
 .card-epi:hover {
-  border-color: rgba(244, 157, 37, 0.3);
+  border-color: color-mix(in srgb, var(--marca) 30%, transparent);
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(0,0,0,0.25);
 }
 .card-expandido {
-  border-color: rgba(244, 157, 37, 0.45);
-  box-shadow: 0 4px 14px rgba(244, 157, 37, 0.08);
+  border-color: color-mix(in srgb, var(--marca) 45%, transparent);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--marca) 8%, transparent);
 }
 
 .card-principal {
@@ -688,8 +698,8 @@ const excluir = async(id) =>{
   height: 96px;
   border-radius: 0.65rem;
   overflow: hidden;
-  background: #3a332b;
-  border: 1px solid rgba(255,255,255,0.05);
+  background: var(--borda-forte);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   align-self: center;
 }
 .card-imagem img {
@@ -701,8 +711,8 @@ const excluir = async(id) =>{
   width: 100%;
   height: 100%;
   background:
-    linear-gradient(135deg, rgba(244,157,37,0.08), transparent 60%),
-    #3a332b;
+    linear-gradient(135deg, color-mix(in srgb, var(--marca) 8%, transparent), transparent 60%),
+    var(--borda-forte);
 }
 
 .card-info {
@@ -724,7 +734,7 @@ const excluir = async(id) =>{
 .card-titulo { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
 
 .epi-nome {
-  color: #fff;
+  color: var(--texto-forte);
   font-size: 1.35rem;
   font-weight: 700;
   letter-spacing: -0.015em;
@@ -732,10 +742,10 @@ const excluir = async(id) =>{
 }
 
 .epi-fabricante {
-  color: #8b8680;
+  color: var(--texto-suave);
   font-size: 0.85rem;
 }
-.epi-fabricante span { color: #c5bfb5; font-weight: 600; }
+.epi-fabricante span { color: var(--texto); font-weight: 600; }
 
 .card-meta {
   display: flex;
@@ -752,7 +762,7 @@ const excluir = async(id) =>{
 }
 
 .meta-label {
-  color: #F49D25;
+  color: var(--marca);
   font-weight: 700;
   font-size: 0.72rem;
   text-transform: uppercase;
@@ -760,7 +770,7 @@ const excluir = async(id) =>{
 }
 
 .meta-valor {
-  color: #ebe8e4;
+  color: var(--texto);
   font-weight: 500;
 }
 
@@ -777,7 +787,7 @@ const excluir = async(id) =>{
 }
 
 .estoque-label {
-  color: #F49D25;
+  color: var(--marca);
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -785,16 +795,16 @@ const excluir = async(id) =>{
 }
 
 .estoque-numero {
-  color: #fff;
+  color: var(--texto-forte);
   font-size: 2rem;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
 }
-.estoque-numero-alerta { color: #f87171; }
+.estoque-numero-alerta { color: var(--perigo); }
 
 .estoque-minimo {
-  color: #8b8680;
+  color: var(--texto-suave);
   font-size: 0.72rem;
 }
 
@@ -802,8 +812,8 @@ const excluir = async(id) =>{
   flex: 0 0 auto;
   align-self: center;
   background: transparent;
-  border: 1px solid rgba(244, 157, 37, 0.4);
-  color: #F49D25;
+  border: 1px solid color-mix(in srgb, var(--marca) 40%, transparent);
+  color: var(--marca);
   font-size: 0.8rem;
   font-weight: 600;
   padding: 0.55rem 0.9rem;
@@ -813,27 +823,27 @@ const excluir = async(id) =>{
   transition: background 0.15s, border-color 0.15s;
 }
 .btn-detalhes:hover {
-  background: rgba(244, 157, 37, 0.12);
-  border-color: #F49D25;
+  background: color-mix(in srgb, var(--marca) 12%, transparent);
+  border-color: var(--marca);
 }
 
 .badge-limite {
   align-self: center;
-  background: rgba(244, 157, 37, 0.10);
-  border: 1px solid rgba(244, 157, 37, 0.35);
-  color: #F49D25;
+  background: color-mix(in srgb, var(--marca) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--marca) 35%, transparent);
+  color: var(--marca);
   font-size: 0.78rem;
   font-weight: 600;
   padding: 0.45rem 0.85rem;
   border-radius: 0.5rem;
   white-space: nowrap;
 }
-.badge-limite strong { color: #fff; font-weight: 800; }
+.badge-limite strong { color: var(--texto-forte); font-weight: 800; }
 
 .estoque-vazio {
-  background: rgba(244, 157, 37, 0.06);
-  border: 1px dashed rgba(244, 157, 37, 0.35);
-  color: #c5bfb5;
+  background: color-mix(in srgb, var(--marca) 6%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--marca) 35%, transparent);
+  color: var(--texto);
   text-align: center;
   padding: 2rem;
   border-radius: 1rem;
@@ -845,7 +855,7 @@ const excluir = async(id) =>{
   flex: 0 0 auto;
   background: rgba(220, 60, 60, 0.12);
   border: 1px solid rgba(220, 60, 60, 0.4);
-  color: #f87171;
+  color: var(--perigo);
   font-size: 0.72rem;
   font-weight: 700;
   padding: 0.28rem 0.7rem;
@@ -857,7 +867,7 @@ const excluir = async(id) =>{
   flex: 0 0 auto;
   background: none;
   border: none;
-  color: #F49D25;
+  color: var(--marca);
   cursor: pointer;
   padding: 0.4rem;
   display: flex;
@@ -874,7 +884,7 @@ const excluir = async(id) =>{
 }
 
 .card-detalhe {
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid color-mix(in srgb, var(--texto-forte) 6%, transparent);
   padding: 1rem 1.3rem 1.2rem;
   animation: slideDown 0.2s ease;
 }
@@ -897,16 +907,16 @@ const excluir = async(id) =>{
 }
 .detalhe-campo .campo-label {
   font-size: 0.75rem;
-  color: #F49D25;
+  color: var(--marca);
 }
 .detalhe-campo .campo-valor {
   font-size: 0.9rem;
-  color: #fff;
+  color: var(--texto-forte);
 }
 
 .detalhe-acoes .campo-label{
   font-size: 0.85rem;
-  color: #F49D25;
+  color: var(--marca);
 }
 
 .rodape {
@@ -915,15 +925,15 @@ const excluir = async(id) =>{
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 1fr;
   gap: 3rem;
-  border-top: 1px solid #2a2520;
-  background: #181511;
+  border-top: 1px solid var(--borda);
+  background: var(--superficie-alta);
   width: 100%;
 }
 
 .rodape-marca .logo-nome {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--texto-forte);
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -935,45 +945,45 @@ const excluir = async(id) =>{
   object-fit: contain;
   vertical-align: middle;
 }
-.logo-destaque { color: #F49D25; }
+.logo-destaque { color: var(--marca); }
 
 .rodape-marca p {
-  color: #6b6359;
+  color: var(--texto-fraco);
   font-size: 0.82rem;
   line-height: 1.7;
   margin-top: 0.5rem;
 }
 
 .rodape-coluna h4 {
-  color: #fff;
+  color: var(--texto-forte);
   font-size: 0.9rem;
   font-weight: 700;
   margin-bottom: 1rem;
 }
 .rodape-coluna a {
   display: block;
-  color: #6b6359;
+  color: var(--texto-fraco);
   text-decoration: none;
   font-size: 0.82rem;
   margin-bottom: 0.55rem;
   transition: color 0.2s;
 }
-.rodape-coluna a:hover { color: #F49D25; }
+.rodape-coluna a:hover { color: var(--marca); }
 
 .rodape-redes {
   grid-column: 1 / -1;
   display: flex;
   justify-content: flex-end;
   gap: 1.2rem;
-  color: #6b6359;
+  color: var(--texto-fraco);
   padding-top: 1rem;
-  border-top: 1px solid #2a2520;
+  border-top: 1px solid var(--borda);
 }
 .rodape-redes a {
-  color: #6b6359;
+  color: var(--texto-fraco);
   transition: color 0.2s;
 }
-.rodape-redes a:hover { color: #F49D25; }
+.rodape-redes a:hover { color: var(--marca); }
 
 .detalhe-topo {
   display: flex;
@@ -989,7 +999,7 @@ const excluir = async(id) =>{
   gap: 0.4rem;
 }
 .descricao-texto {
-  color: #c5bfb5;
+  color: var(--texto);
   font-size: 0.88rem;
   line-height: 1.65;
 }
@@ -1032,7 +1042,7 @@ const excluir = async(id) =>{
 }
 
 .add-estoque-texto { display: flex; flex-direction: column; gap: 0.1rem; }
-.add-estoque-texto strong { color: #fff; }
+.add-estoque-texto strong { color: var(--texto-forte); }
 
 .add-estoque-controles {
   display: flex;
@@ -1043,42 +1053,42 @@ const excluir = async(id) =>{
 
 .input-qtd {
   width: 80px;
-  background: #2a2520;
-  border: 1px solid rgba(244, 157, 37, 0.3);
-  color: #fff;
+  background: var(--borda);
+  border: 1px solid color-mix(in srgb, var(--marca) 30%, transparent);
+  color: var(--texto-forte);
   border-radius: 0.4rem;
   padding: 0.4rem 0.55rem;
   font-size: 0.82rem;
   outline: none;
   transition: border-color 0.15s;
 }
-.input-qtd::placeholder { color: #6b6359; }
-.input-qtd:focus { border-color: #F49D25; }
+.input-qtd::placeholder { color: var(--texto-fraco); }
+.input-qtd:focus { border-color: var(--marca); }
 .input-qtd::-webkit-outer-spin-button,
 .input-qtd::-webkit-inner-spin-button { appearance: none; -webkit-appearance: none; margin: 0; }
 .input-qtd[type=number] { appearance: textfield; -moz-appearance: textfield; }
 
 .btn-adicionar {
-  background: rgba(244, 157, 37, 0.15);
-  color: #F49D25;
+  background: color-mix(in srgb, var(--marca) 15%, transparent);
+  color: var(--marca);
   padding: 0.45rem 0.85rem;
   font-size: 0.82rem;
   white-space: nowrap;
 }
-.btn-adicionar:hover:not(:disabled) { background: rgba(244, 157, 37, 0.28); }
+.btn-adicionar:hover:not(:disabled) { background: color-mix(in srgb, var(--marca) 28%, transparent); }
 .btn-adicionar:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .btn-editar {
-  background: rgba(244, 157, 37, 0.12);
-  color: #F49D25;
+  background: color-mix(in srgb, var(--marca) 12%, transparent);
+  color: var(--marca);
 }
-.btn-editar:hover { background: rgba(244, 157, 37, 0.22); }
+.btn-editar:hover { background: color-mix(in srgb, var(--marca) 22%, transparent); }
 
 .btn-excluir {
-  background: rgba(248, 113, 113, 0.12);
-  color: #f87171;
+  background: color-mix(in srgb, var(--perigo) 12%, transparent);
+  color: var(--perigo);
 }
-.btn-excluir:hover { background: rgba(248, 113, 113, 0.22); }
+.btn-excluir:hover { background: color-mix(in srgb, var(--perigo) 22%, transparent); }
 
 .detalhe-rodape {
   display: flex;
@@ -1093,8 +1103,8 @@ const excluir = async(id) =>{
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  background: rgba(244, 157, 37, 0.06);
-  border: 1px solid rgba(244, 157, 37, 0.2);
+  background: color-mix(in srgb, var(--marca) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--marca) 20%, transparent);
   border-radius: 0.65rem;
   padding: 0.55rem 1rem;
   flex: 1 1 0;
@@ -1105,16 +1115,16 @@ const excluir = async(id) =>{
   display: flex;
   align-items: flex-start;
   gap: 0.7rem;
-  color: #F49D25;
+  color: var(--marca);
 }
 
 .notificacao-titulo {
-  color: #fff;
+  color: var(--texto-forte);
   font-size: 0.85rem;
   font-weight: 600;
 }
 .notificacao-sub {
-  color: #8b8680;
+  color: var(--texto-suave);
   font-size: 0.75rem;
   margin-top: 0.1rem;
 }
@@ -1123,7 +1133,7 @@ const excluir = async(id) =>{
   flex-shrink: 0;
   width: 44px;
   height: 24px;
-  background: #3a332b;
+  background: var(--borda-forte);
   border: none;
   border-radius: 999px;
   cursor: pointer;
@@ -1131,7 +1141,7 @@ const excluir = async(id) =>{
   transition: background 0.25s;
   padding: 0;
 }
-.toggle-ativo { background: #F49D25; }
+.toggle-ativo { background: var(--marca); }
 
 .toggle-bolinha {
   position: absolute;
@@ -1139,7 +1149,7 @@ const excluir = async(id) =>{
   left: 3px;
   width: 18px;
   height: 18px;
-  background: #fff;
+  background: var(--texto-forte);
   border-radius: 50%;
   transition: transform 0.25s;
   display: block;
@@ -1167,8 +1177,8 @@ input[type="number"] {
   font-size: 0.9rem;
   font-weight: 600;
 }
-.toast-sucesso { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.4); color: #4ade80; }
-.toast-erro    { background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.4); color: #f87171; }
+.toast-sucesso { background: color-mix(in srgb, var(--ok) 15%, transparent); border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok); }
+.toast-erro    { background: color-mix(in srgb, var(--perigo) 15%, transparent); border: 1px solid color-mix(in srgb, var(--perigo) 40%, transparent); color: var(--perigo); }
 
 .modal-overlay {
   position: fixed; inset: 0;
@@ -1177,8 +1187,8 @@ input[type="number"] {
   z-index: 1000; padding: 1.5rem;
 }
 .modal {
-  background: #221E18;
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--superficie-elevada);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 6%, transparent);
   border-radius: 1rem;
   width: 100%; max-width: 720px; max-height: 90vh;
   display: flex; flex-direction: column; overflow: hidden;
@@ -1186,26 +1196,26 @@ input[type="number"] {
 .modal-cabecalho {
   display: flex; align-items: center; justify-content: space-between;
   padding: 1.2rem 1.5rem;
-  border-bottom: 1px solid #2a241e;
+  border-bottom: 1px solid var(--borda);
 }
-.modal-cabecalho h2 { font-size: 1.25rem; font-weight: 700; color: #fff; }
+.modal-cabecalho h2 { font-size: 1.25rem; font-weight: 700; color: var(--texto-forte); }
 .modal-fechar {
-  background: transparent; border: none; color: #8b8680;
+  background: transparent; border: none; color: var(--texto-suave);
   font-size: 1.6rem; cursor: pointer; line-height: 1; padding: 0 0.3rem;
 }
-.modal-fechar:hover { color: #fff; }
+.modal-fechar:hover { color: var(--texto-forte); }
 .modal-corpo { padding: 1.2rem 1.5rem; overflow-y: auto; flex: 1; }
 .modal-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.2rem; }
 .campo-largo { grid-column: 1 / -1; }
 .modal-rodape {
   display: flex; justify-content: flex-end; gap: 0.7rem;
   padding: 1rem 1.5rem;
-  border-top: 1px solid #2a241e;
-  background: #1c1814;
+  border-top: 1px solid var(--borda);
+  background: var(--superficie-alta);
 }
 .preview-imagem-modal img {
   width: 100%; max-height: 180px; object-fit: cover;
-  border-radius: 0.6rem; border: 1px solid #2a241e;
+  border-radius: 0.6rem; border: 1px solid var(--borda);
 }
 .preview-imagem-modal { display: flex; flex-direction: column; gap: 0.6rem; }
 .preview-acoes { display: flex; gap: 0.5rem; }
@@ -1215,90 +1225,90 @@ input[type="number"] {
   font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit;
 }
 .btn-trocar {
-  background: rgba(244,157,37,0.12); color: #F49D25;
-  border: 1px solid rgba(244,157,37,0.4);
+  background: color-mix(in srgb, var(--marca) 12%, transparent); color: var(--marca);
+  border: 1px solid color-mix(in srgb, var(--marca) 40%, transparent);
 }
-.btn-trocar:hover { background: rgba(244,157,37,0.22); }
+.btn-trocar:hover { background: color-mix(in srgb, var(--marca) 22%, transparent); }
 .btn-remover {
-  background: rgba(248,113,113,0.12); color: #f87171;
-  border: 1px solid rgba(248,113,113,0.3);
+  background: color-mix(in srgb, var(--perigo) 12%, transparent); color: var(--perigo);
+  border: 1px solid color-mix(in srgb, var(--perigo) 30%, transparent);
 }
-.btn-remover:hover { background: rgba(248,113,113,0.22); }
+.btn-remover:hover { background: color-mix(in srgb, var(--perigo) 22%, transparent); }
 .area-upload-modal {
   display: flex; align-items: center; justify-content: center;
-  padding: 1.2rem; border: 2px dashed #3a332b; border-radius: 0.6rem;
-  background: #1c1814; cursor: pointer; color: #8b8680; font-size: 0.85rem;
+  padding: 1.2rem; border: 2px dashed var(--borda-forte); border-radius: 0.6rem;
+  background: var(--superficie-alta); cursor: pointer; color: var(--texto-suave); font-size: 0.85rem;
 }
-.area-upload-modal:hover { border-color: #F49D25; }
+.area-upload-modal:hover { border-color: var(--marca); }
 
 .modal .campo { display: flex; flex-direction: column; gap: 0.4rem; }
-.modal .campo label { color: #c5bfb5; font-size: 0.82rem; font-weight: 500; }
+.modal .campo label, .campo .rotulo-grupo { color: var(--texto); font-size: 0.82rem; font-weight: 500; }
 .modal .campo input, .modal .campo textarea {
-  background: #131110; border: 1px solid #2a241e;
+  background: var(--superficie); border: 1px solid var(--borda);
   border-radius: 0.5rem; padding: 0.7rem 0.85rem;
-  color: #fff; font-size: 0.88rem; outline: none;
+  color: var(--texto-forte); font-size: 0.88rem; outline: none;
   width: 100%; font-family: inherit; transition: border-color 0.2s;
 }
-.modal .campo input:focus, .modal .campo textarea:focus { border-color: #F49D25; }
+.modal .campo input:focus, .modal .campo textarea:focus { border-color: var(--marca); }
 .modal .campo textarea { resize: none; }
 
 .botao {
   border: none; padding: 0.6rem 1.1rem; border-radius: 0.5rem;
   font-size: 0.88rem; font-weight: 600; cursor: pointer; font-family: inherit;
 }
-.botao-cancelar { background: #2a241e; color: #fff; border: 1px solid #3a332b; }
-.botao-cancelar:hover { background: #342c25; }
-.botao-salvar { background: #F49D25; color: #1a1410; }
-.botao-salvar:hover { background: #e08c18; }
+.botao-cancelar { background: var(--borda); color: var(--texto-forte); border: 1px solid var(--borda-forte); }
+.botao-cancelar:hover { background: var(--borda-forte); }
+.botao-salvar { background: var(--marca); color: var(--marca-texto); }
+.botao-salvar:hover { background: var(--marca-escura); }
 .botao-salvar:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .multi-select { position: relative; width: 100%; }
 .multi-select-trigger {
   width: 100%; min-height: 2.85rem;
-  background: #131110; border: 1px solid #2a241e; border-radius: 0.5rem;
+  background: var(--superficie); border: 1px solid var(--borda); border-radius: 0.5rem;
   padding: 0.4rem 2.2rem 0.4rem 0.7rem;
-  color: #fff; font-size: 0.88rem; text-align: left; cursor: pointer;
+  color: var(--texto-forte); font-size: 0.88rem; text-align: left; cursor: pointer;
   display: flex; align-items: center; gap: 0.4rem;
   position: relative; font-family: inherit;
 }
 .multi-select.aberto .multi-select-trigger,
-.multi-select-trigger:hover { border-color: #F49D25; }
-.ms-placeholder { color: #5c554d; }
+.multi-select-trigger:hover { border-color: var(--marca); }
+.ms-placeholder { color: var(--texto-fraco); }
 .ms-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; flex: 1; }
 .ms-tag {
   display: inline-flex; align-items: center; gap: 0.3rem;
-  background: rgba(244,157,37,0.15); color: #F49D25;
+  background: color-mix(in srgb, var(--marca) 15%, transparent); color: var(--marca);
   font-size: 0.78rem; font-weight: 600;
   padding: 0.2rem 0.5rem; border-radius: 0.4rem;
 }
-.ms-tag-x { cursor: pointer; font-weight: 700; line-height: 1; padding: 0 0.15rem; }
-.ms-seta { position: absolute; right: 0.9rem; color: #8b8680; }
+.ms-tag-x { cursor: pointer; background: none; border: none; color: inherit; font-size: inherit; font-weight: 700; line-height: 1; padding: 0 0.15rem; }
+.ms-seta { position: absolute; right: 0.9rem; color: var(--texto-suave); }
 .multi-select-menu {
   position: absolute; top: calc(100% + 0.3rem); left: 0; right: 0;
-  background: #1c1814; border: 1px solid #2a241e; border-radius: 0.5rem;
+  background: var(--superficie-alta); border: 1px solid var(--borda); border-radius: 0.5rem;
   padding: 0.4rem; max-height: 220px; overflow-y: auto;
   z-index: 50; box-shadow: 0 8px 20px rgba(0,0,0,0.4);
 }
 .ms-opcao {
   display: flex; align-items: center; gap: 0.55rem;
   padding: 0.5rem 0.6rem; border-radius: 0.35rem;
-  cursor: pointer; color: #ebe8e4; font-size: 0.86rem;
+  cursor: pointer; color: var(--texto); font-size: 0.86rem;
   transition: background 0.15s;
 }
-.ms-opcao:hover { background: rgba(244,157,37,0.08); }
+.ms-opcao:hover { background: color-mix(in srgb, var(--marca) 8%, transparent); }
 .ms-opcao input[type="checkbox"] {
   appearance: none; -webkit-appearance: none;
   width: 1.05rem; height: 1.05rem;
-  border: 1.5px solid #5c554d; border-radius: 0.25rem;
+  border: 1.5px solid var(--texto-fraco); border-radius: 0.25rem;
   background: transparent; cursor: pointer; position: relative;
   flex-shrink: 0; margin: 0;
   transition: background 0.15s, border-color 0.15s;
 }
-.ms-opcao input[type="checkbox"]:hover { border-color: #F49D25; }
+.ms-opcao input[type="checkbox"]:hover { border-color: var(--marca); }
 .ms-opcao input[type="checkbox"]:checked {
-  background: #F49D25; border-color: #F49D25;
+  background: var(--marca); border-color: var(--marca);
 }
-.ms-vazio { padding: 0.6rem; color: #8b8680; font-size: 0.82rem; text-align: center; }
+.ms-vazio { padding: 0.6rem; color: var(--texto-suave); font-size: 0.82rem; text-align: center; }
 
 @media (max-width: 960px) {
   .modal-grade { grid-template-columns: 1fr; }

@@ -189,8 +189,8 @@ onMounted(carregar);
               @keyup.enter="salvarSetor(s)"
             />
             <div class="setor-acoes">
-              <button class="btn-salvar" @click="salvarSetor(s)">Salvar</button>
-              <button class="btn-del" @click="editandoSetorId = null">Cancelar</button>
+              <button type="button" class="btn-salvar" @click="salvarSetor(s)">Salvar</button>
+              <button type="button" class="btn-del" @click="editandoSetorId = null">Cancelar</button>
             </div>
           </template>
           <template v-else>
@@ -199,8 +199,8 @@ onMounted(carregar);
               <span class="setor-tag">{{ epiCountPorSetor(s.nome) }} EPI(s) vinculado(s)</span>
             </div>
             <div class="setor-acoes">
-              <button class="btn-salvar" @click="iniciarEdicaoSetor(s)">Renomear</button>
-              <button class="btn-del" @click="removerSetor(s)">Excluir</button>
+              <button type="button" class="btn-salvar" @click="iniciarEdicaoSetor(s)">Renomear</button>
+              <button type="button" class="btn-del" @click="removerSetor(s)">Excluir</button>
             </div>
           </template>
         </li>
@@ -215,31 +215,31 @@ onMounted(carregar);
       <h2 class="cartao-titulo">Nova permissão</h2>
       <div class="grade-form">
         <div class="campo">
-          <label>EPI</label>
-          <select v-model="novo.epi_id">
+          <label for="perm-epi">EPI</label>
+          <select id="perm-epi" v-model="novo.epi_id">
             <option :value="null" disabled>Selecione um EPI</option>
             <option v-for="e in epis" :key="e.id" :value="e.id">{{ e.nome }}</option>
           </select>
         </div>
         <div class="campo">
-          <label>Role</label>
-          <select v-model="novo.role">
+          <label for="perm-role">Role</label>
+          <select id="perm-role" v-model="novo.role">
             <option v-for="r in ROLES_PERMITIDAS" :key="r" :value="r">{{ r }}</option>
           </select>
         </div>
         <div class="campo">
-          <label>Setor</label>
-          <select v-model="novo.setor_id">
+          <label for="perm-setor">Setor</label>
+          <select id="perm-setor" v-model="novo.setor_id">
             <option :value="null" disabled>Selecione um setor</option>
             <option v-for="s in setores" :key="s.id" :value="s.id">{{ s.nome }}</option>
           </select>
         </div>
         <div class="campo">
-          <label>Limite por pedido</label>
-          <input v-model.number="novo.limite" type="number" min="0" />
+          <label for="perm-limite">Limite por pedido</label>
+          <input id="perm-limite" v-model.number="novo.limite" type="number" min="0" />
         </div>
         <div class="campo-acao">
-          <button class="btn-add" @click="adicionar">+ Adicionar</button>
+          <button type="button" class="btn-add" @click="adicionar">+ Adicionar</button>
         </div>
       </div>
     </section>
@@ -247,7 +247,8 @@ onMounted(carregar);
     <section class="cartao">
       <h2 class="cartao-titulo">Permissões cadastradas ({{ permissoes.length }})</h2>
       <div v-if="carregando" class="vazio">Carregando…</div>
-      <table v-else class="tabela">
+      <div v-else class="tabela-rolagem">
+        <table class="tabela">
         <thead>
           <tr>
             <th>EPI</th>
@@ -266,10 +267,10 @@ onMounted(carregar);
               <input class="input-limite" v-model.number="p.limite" type="number" min="0" />
             </td>
             <td class="acoes">
-              <button class="btn-salvar" :disabled="salvandoId === p.id" @click="salvarLimite(p)">
+              <button type="button" class="btn-salvar" :disabled="salvandoId === p.id" @click="salvarLimite(p)">
                 {{ salvandoId === p.id ? '…' : 'Salvar' }}
               </button>
-              <button class="btn-del" @click="remover(p)">Remover</button>
+              <button type="button" class="btn-del" @click="remover(p)">Remover</button>
             </td>
           </tr>
           <tr v-if="permissoes.length === 0">
@@ -277,36 +278,41 @@ onMounted(carregar);
           </tr>
         </tbody>
       </table>
+      </div>
     </section>
   </div>
 </template>
 
 <style scoped>
+/* tabela larga não pode empurrar a página no celular */
+.tabela-rolagem { overflow-x: auto; }
+.tabela-rolagem table { min-width: 640px; }
+
 .pagina {
-  background: #181511;
+  background: var(--superficie-alta);
   min-height: 100vh;
-  color: #fff;
+  color: var(--texto-forte);
   padding: 2rem 3rem;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .cabecalho { margin-bottom: 2rem; }
-.caminho { color: #8b8680; font-size: 0.85rem; margin-bottom: 0.5rem; }
+.caminho { color: var(--texto-suave); font-size: 0.85rem; margin-bottom: 0.5rem; }
 .caminho .separador { margin: 0 0.4rem; }
-.atual { color: #fff; }
+.atual { color: var(--texto-forte); }
 .titulo { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.3rem; }
-.destaque { color: #F49D25; }
-.subtitulo { color: #8b8680; font-size: 0.9rem; max-width: 70ch; }
+.destaque { color: var(--marca); }
+.subtitulo { color: var(--texto-suave); font-size: 0.9rem; max-width: 70ch; }
 
 .cartao {
-  background: #221E18;
-  border: 1px solid rgba(255,255,255,0.04);
+  background: var(--superficie-elevada);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 4%, transparent);
   border-radius: 1rem;
   padding: 1.4rem 1.5rem;
   margin-bottom: 1.5rem;
 }
 .cartao-titulo {
-  color: #fff;
+  color: var(--texto-forte);
   font-size: 1rem;
   font-weight: 700;
   margin-bottom: 1.2rem;
@@ -319,22 +325,22 @@ onMounted(carregar);
   align-items: end;
 }
 .campo { display: flex; flex-direction: column; gap: 0.4rem; }
-.campo label { color: #c5bfb5; font-size: 0.82rem; }
+.campo label { color: var(--texto); font-size: 0.82rem; }
 .campo input, .campo select {
-  background: #131110;
-  border: 1px solid #2a241e;
-  color: #fff;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  color: var(--texto-forte);
   padding: 0.6rem 0.7rem;
   border-radius: 0.45rem;
   font-size: 0.88rem;
   outline: none;
 }
-.campo input:focus, .campo select:focus { border-color: #F49D25; }
+.campo input:focus, .campo select:focus { border-color: var(--marca); }
 
 .campo-acao { display: flex; }
 .btn-add {
-  background: #F49D25;
-  color: #1a1410;
+  background: var(--marca);
+  color: var(--marca-texto);
   border: none;
   padding: 0.65rem 1.2rem;
   border-radius: 0.5rem;
@@ -342,17 +348,17 @@ onMounted(carregar);
   cursor: pointer;
   white-space: nowrap;
 }
-.btn-add:hover { background: #e08c18; }
+.btn-add:hover { background: var(--marca-escura); }
 
 .tabela { width: 100%; border-collapse: collapse; }
 .tabela th, .tabela td {
   text-align: left;
   padding: 0.85rem 0.9rem;
-  border-bottom: 1px solid #2a241e;
+  border-bottom: 1px solid var(--borda);
   font-size: 0.9rem;
 }
 .tabela th {
-  color: #8b8680;
+  color: var(--texto-suave);
   font-weight: 600;
   font-size: 0.78rem;
   text-transform: uppercase;
@@ -360,8 +366,8 @@ onMounted(carregar);
 }
 
 .role-tag {
-  background: rgba(244, 157, 37, 0.15);
-  color: #F49D25;
+  background: color-mix(in srgb, var(--marca) 15%, transparent);
+  color: var(--marca);
   padding: 0.2rem 0.55rem;
   border-radius: 0.3rem;
   font-size: 0.78rem;
@@ -372,20 +378,20 @@ onMounted(carregar);
 
 .input-limite {
   width: 80px;
-  background: #131110;
-  border: 1px solid #2a241e;
-  color: #fff;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  color: var(--texto-forte);
   padding: 0.4rem 0.55rem;
   border-radius: 0.4rem;
   font-size: 0.88rem;
   outline: none;
 }
-.input-limite:focus { border-color: #F49D25; }
+.input-limite:focus { border-color: var(--marca); }
 
 .acoes { display: flex; gap: 0.5rem; }
 .btn-salvar {
-  background: #F49D25;
-  color: #1a1410;
+  background: var(--marca);
+  color: var(--marca-texto);
   border: none;
   padding: 0.45rem 0.85rem;
   border-radius: 0.4rem;
@@ -393,22 +399,22 @@ onMounted(carregar);
   font-size: 0.82rem;
   cursor: pointer;
 }
-.btn-salvar:hover { background: #e08c18; }
+.btn-salvar:hover { background: var(--marca-escura); }
 .btn-salvar:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .btn-del {
-  background: rgba(248,113,113,0.12);
-  color: #f87171;
-  border: 1px solid rgba(248,113,113,0.3);
+  background: color-mix(in srgb, var(--perigo) 12%, transparent);
+  color: var(--perigo);
+  border: 1px solid color-mix(in srgb, var(--perigo) 30%, transparent);
   padding: 0.45rem 0.85rem;
   border-radius: 0.4rem;
   font-weight: 600;
   font-size: 0.82rem;
   cursor: pointer;
 }
-.btn-del:hover { background: rgba(248,113,113,0.2); }
+.btn-del:hover { background: color-mix(in srgb, var(--perigo) 20%, transparent); }
 
-.vazio { text-align: center; color: #8b8680; padding: 2rem; }
+.vazio { text-align: center; color: var(--texto-suave); padding: 2rem; }
 
 .toast {
   position: fixed;
@@ -419,8 +425,8 @@ onMounted(carregar);
   font-weight: 600;
   z-index: 999;
 }
-.toast-sucesso { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.4); color: #4ade80; }
-.toast-erro { background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.4); color: #f87171; }
+.toast-sucesso { background: color-mix(in srgb, var(--ok) 15%, transparent); border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok); }
+.toast-erro { background: color-mix(in srgb, var(--perigo) 15%, transparent); border: 1px solid color-mix(in srgb, var(--perigo) 40%, transparent); color: var(--perigo); }
 
 @media (max-width: 900px) {
   .grade-form { grid-template-columns: 1fr 1fr; }
@@ -433,15 +439,15 @@ onMounted(carregar);
 }
 .form-novo-setor input {
   flex: 1;
-  background: #131110;
-  border: 1px solid #2a241e;
-  color: #fff;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  color: var(--texto-forte);
   padding: 0.6rem 0.8rem;
   border-radius: 0.45rem;
   font-size: 0.88rem;
   outline: none;
 }
-.form-novo-setor input:focus { border-color: #F49D25; }
+.form-novo-setor input:focus { border-color: var(--marca); }
 
 .lista-setores {
   list-style: none;
@@ -456,8 +462,8 @@ onMounted(carregar);
   justify-content: space-between;
   align-items: center;
   gap: 0.8rem;
-  background: #1c1814;
-  border: 1px solid #2a241e;
+  background: var(--superficie-alta);
+  border: 1px solid var(--borda);
   border-radius: 0.55rem;
   padding: 0.7rem 0.9rem;
 }
@@ -465,12 +471,12 @@ onMounted(carregar);
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  color: #fff;
+  color: var(--texto-forte);
   font-size: 0.92rem;
 }
 .setor-tag {
-  background: rgba(244, 157, 37, 0.12);
-  color: #F49D25;
+  background: color-mix(in srgb, var(--marca) 12%, transparent);
+  color: var(--marca);
   font-size: 0.72rem;
   font-weight: 700;
   padding: 0.18rem 0.5rem;
@@ -480,9 +486,9 @@ onMounted(carregar);
 
 .input-edit {
   flex: 1;
-  background: #131110;
-  border: 1px solid #F49D25;
-  color: #fff;
+  background: var(--superficie);
+  border: 1px solid var(--marca);
+  color: var(--texto-forte);
   padding: 0.45rem 0.6rem;
   border-radius: 0.4rem;
   font-size: 0.9rem;
@@ -490,11 +496,11 @@ onMounted(carregar);
 }
 
 .dica {
-  color: #8b8680;
+  color: var(--texto-suave);
   font-size: 0.82rem;
   margin-top: 1rem;
 }
-.dica strong { color: #F49D25; }
+.dica strong { color: var(--marca); }
 
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {

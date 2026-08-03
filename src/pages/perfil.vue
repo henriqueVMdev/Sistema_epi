@@ -132,7 +132,7 @@ const iniciais = (nome) =>
     <div class="grade">
       <section class="cartao cartao-foto">
         <div class="avatar-grande">
-          <img v-if="previewLocal || avatarUrl" :src="previewLocal || avatarUrl" alt="Foto de perfil" />
+          <img loading="lazy" decoding="async" v-if="previewLocal || avatarUrl" :src="previewLocal || avatarUrl" alt="Foto de perfil" />
           <span v-else class="avatar-iniciais">{{ iniciais(form.nome) }}</span>
         </div>
 
@@ -144,7 +144,7 @@ const iniciais = (nome) =>
           <input type="file" accept="image/*" @change="selecionarArquivo" hidden />
         </label>
 
-        <button
+        <button type="button"
           v-if="arquivo"
           class="btn-salvar"
           :disabled="enviandoFoto"
@@ -158,26 +158,26 @@ const iniciais = (nome) =>
         <h2 class="cartao-titulo">Dados pessoais</h2>
 
         <div class="campo">
-          <label>Nome</label>
-          <input v-model="form.nome" type="text" placeholder="Seu nome completo" />
+          <label for="perfil-nome">Nome</label>
+          <input id="perfil-nome" v-model="form.nome" type="text" placeholder="Seu nome completo" />
         </div>
 
         <div class="campo">
-          <label>Email <span class="hint">(também é seu login)</span></label>
-          <input v-model="form.email" type="email" placeholder="seuemail@exemplo.com" />
+          <label for="perfil-email">Email <span class="hint">(também é seu login)</span></label>
+          <input id="perfil-email" v-model="form.email" type="email" placeholder="seuemail@exemplo.com" />
         </div>
 
         <div class="campo">
-          <label>CPF</label>
-          <input v-model="form.cpf" type="text" placeholder="000.000.000-00" />
+          <label for="perfil-cpf">CPF</label>
+          <input id="perfil-cpf" v-model="form.cpf" type="text" placeholder="000.000.000-00" />
         </div>
 
         <div class="campo campo-leitura">
-          <label>Função</label>
-          <input :value="perfil?.role || '—'" disabled />
+          <label for="perfil-role">Função</label>
+          <input id="perfil-role" :value="perfil?.role || '—'" disabled />
         </div>
 
-        <button class="btn-salvar btn-largo" :disabled="salvando" @click="salvar">
+        <button type="button" class="btn-salvar btn-largo" :disabled="salvando" @click="salvar">
           {{ salvando ? 'Salvando…' : 'Salvar alterações' }}
         </button>
       </section>
@@ -187,9 +187,9 @@ const iniciais = (nome) =>
 
 <style scoped>
 .pagina {
-  background: #181511;
+  background: var(--superficie-alta);
   min-height: 100vh;
-  color: #fff;
+  color: var(--texto-forte);
   padding: 2rem 3rem 3rem;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   box-sizing: border-box;
@@ -198,17 +198,17 @@ const iniciais = (nome) =>
 .pagina *, .pagina *::before, .pagina *::after { box-sizing: border-box; }
 
 .cabecalho { margin-bottom: 1.8rem; }
-.caminho { color: #8b8680; font-size: 0.85rem; margin-bottom: 0.5rem; }
+.caminho { color: var(--texto-suave); font-size: 0.85rem; margin-bottom: 0.5rem; }
 .caminho .separador { margin: 0 0.4rem; }
-.atual { color: #fff; }
+.atual { color: var(--texto-forte); }
 .titulo { font-size: 2.4rem; font-weight: 800; margin-bottom: 0.3rem; letter-spacing: -0.02em; }
-.destaque { color: #F49D25; }
-.subtitulo { color: #8b8680; font-size: 0.9rem; }
+.destaque { color: var(--marca); }
+.subtitulo { color: var(--texto-suave); font-size: 0.9rem; }
 
 .grade { display: grid; grid-template-columns: 300px 1fr; gap: 1.2rem; align-items: start; }
 
 .cartao {
-  background: #221E18; border: 1px solid rgba(255,255,255,0.05);
+  background: var(--superficie-elevada); border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   border-radius: 1rem; padding: 1.6rem;
 }
 .cartao-titulo { font-size: 1.1rem; font-weight: 700; margin-bottom: 1.4rem; }
@@ -216,42 +216,42 @@ const iniciais = (nome) =>
 .cartao-foto { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.5rem; }
 .avatar-grande {
   width: 130px; height: 130px; border-radius: 50%;
-  overflow: hidden; background: #3a332b;
-  border: 3px solid rgba(244,157,37,0.5);
+  overflow: hidden; background: var(--borda-forte);
+  border: 3px solid color-mix(in srgb, var(--marca) 50%, transparent);
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 0.4rem;
 }
 .avatar-grande img { width: 100%; height: 100%; object-fit: cover; }
-.avatar-iniciais { color: #F49D25; font-size: 2.6rem; font-weight: 800; }
-.foto-nome { color: #fff; font-size: 1.15rem; font-weight: 700; }
-.foto-role { color: #8b8680; font-size: 0.82rem; text-transform: capitalize; margin-bottom: 0.6rem; }
+.avatar-iniciais { color: var(--marca); font-size: 2.6rem; font-weight: 800; }
+.foto-nome { color: var(--texto-forte); font-size: 1.15rem; font-weight: 700; }
+.foto-role { color: var(--texto-suave); font-size: 0.82rem; text-transform: capitalize; margin-bottom: 0.6rem; }
 
 .btn-escolher {
   display: inline-block; cursor: pointer;
-  background: rgba(244,157,37,0.12); color: #F49D25;
-  border: 1px solid rgba(244,157,37,0.4);
+  background: color-mix(in srgb, var(--marca) 12%, transparent); color: var(--marca);
+  border: 1px solid color-mix(in srgb, var(--marca) 40%, transparent);
   padding: 0.5rem 1.1rem; border-radius: 0.5rem; font-size: 0.85rem; font-weight: 700;
 }
-.btn-escolher:hover { background: rgba(244,157,37,0.22); }
-.foto-dica { color: #6b6359; font-size: 0.72rem; margin-top: 0.3rem; }
+.btn-escolher:hover { background: color-mix(in srgb, var(--marca) 22%, transparent); }
+.foto-dica { color: var(--texto-fraco); font-size: 0.72rem; margin-top: 0.3rem; }
 
 .campo { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.1rem; }
-.campo label { color: #c5bfb5; font-size: 0.85rem; font-weight: 600; }
-.campo label .hint { color: #6b6359; font-weight: 400; }
+.campo label { color: var(--texto); font-size: 0.85rem; font-weight: 600; }
+.campo label .hint { color: var(--texto-fraco); font-weight: 400; }
 .campo input {
-  background: #131110; border: 1px solid #2a241e; color: #fff;
+  background: var(--superficie); border: 1px solid var(--borda); color: var(--texto-forte);
   padding: 0.7rem 0.85rem; border-radius: 0.5rem; font-size: 0.92rem;
   outline: none; transition: border-color 0.15s; font-family: inherit;
 }
-.campo input:focus { border-color: #F49D25; }
-.campo-leitura input { color: #8b8680; cursor: not-allowed; text-transform: capitalize; }
+.campo input:focus { border-color: var(--marca); }
+.campo-leitura input { color: var(--texto-suave); cursor: not-allowed; text-transform: capitalize; }
 
 .btn-salvar {
-  background: #F49D25; color: #1a1410; border: none;
+  background: var(--marca); color: var(--marca-texto); border: none;
   padding: 0.65rem 1.2rem; border-radius: 0.55rem;
   font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: background 0.2s;
 }
-.btn-salvar:hover:not(:disabled) { background: #e08c18; }
+.btn-salvar:hover:not(:disabled) { background: var(--marca-escura); }
 .btn-salvar:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-largo { width: 100%; margin-top: 0.4rem; padding: 0.8rem; }
 
@@ -259,8 +259,8 @@ const iniciais = (nome) =>
   position: fixed; top: 1.5rem; right: 1.5rem; z-index: 999;
   padding: 0.85rem 1.3rem; border-radius: 0.6rem; font-weight: 600; max-width: 420px;
 }
-.toast-sucesso { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.4); color: #4ade80; }
-.toast-erro    { background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.4); color: #f87171; }
+.toast-sucesso { background: color-mix(in srgb, var(--ok) 15%, transparent); border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok); }
+.toast-erro    { background: color-mix(in srgb, var(--perigo) 15%, transparent); border: 1px solid color-mix(in srgb, var(--perigo) 40%, transparent); color: var(--perigo); }
 
 @media (max-width: 760px) {
   .pagina { padding: 1.5rem 1.2rem 2rem; }

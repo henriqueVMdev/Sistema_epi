@@ -21,7 +21,7 @@ const carregar = async () => {
 
 onMounted(carregar);
 
-const hoje = new Date();
+const hoje = new Date(new Date().toISOString().slice(0, 10)); // meia-noite, mesma base das datas do banco
 const diasAteVencer = (data) => {
   if (!data) return null;
   const d = new Date(String(data).split('T')[0]);
@@ -41,8 +41,9 @@ const totalEstoque = computed(() =>
   epis.value.reduce((s, e) => s + (Number(e.estoque) || 0), 0)
 );
 const totalRetiradas = computed(() => retiradas.value.length);
+const PENDENTES = ['pendente_aprovacao', 'pendente_entrega', 'aprovado'];
 const retiradasPendentes = computed(() =>
-  retiradas.value.filter(r => r.status === 'pendente').length
+  retiradas.value.filter(r => PENDENTES.includes(r.status)).length
 );
 const estoqueBaixoCount = computed(() =>
   epis.value.filter(e => {
@@ -93,7 +94,9 @@ const totalRetiradasSetor = computed(() =>
   retiradasPorSetor.value.reduce((s, x) => s + x.qtd, 0) || 1
 );
 
-const paletteCores =['#F49D25', '#facc15', '#4ade80', '#60a5fa', '#c084fc', '#f87171', '#fb923c', '#34d399'];
+// Paleta categórica do gráfico: são dados, não superfície de UI, por isso ficam
+// literais aqui. Começa na cor da marca e segue por matizes distinguíveis.
+const paletteCores = ['#f49d25', '#facc15', '#4ade80', '#60a5fa', '#c084fc', '#f87171', '#fb923c', '#34d399'];
 
 const donutSegmentos = computed(() => {
   const raio = 70;
@@ -147,15 +150,6 @@ const episEstoqueBaixo = computed(() =>
     .slice(0, 6)
 );
 
-const statusRetiradas = computed(() => {
-  const map = { aprovado: 0, pendente: 0, outro: 0 };
-  for (const r of retiradas.value) {
-    if (r.status === 'aprovado') map.aprovado++;
-    else if (r.status === 'pendente') map.pendente++;
-    else map.outro++;
-  }
-  return map;
-});
 </script>
 
 <template>
@@ -225,7 +219,7 @@ const statusRetiradas = computed(() => {
           <div v-if="retiradasPorSetor.length === 0" class="vazio">Sem dados.</div>
           <div v-else class="donut-wrap">
             <svg viewBox="0 0 200 200" class="donut-svg">
-              <circle cx="100" cy="100" r="70" fill="none" stroke="#2a2520" stroke-width="22" />
+              <circle cx="100" cy="100" r="70" fill="none" stroke="var(--borda)" stroke-width="22" />
               <circle
                 v-for="(seg, i) in donutSegmentos"
                 :key="i"
@@ -322,9 +316,9 @@ const statusRetiradas = computed(() => {
 
 <style scoped>
 .pagina-dashboard {
-  background: #181511;
+  background: var(--superficie-alta);
   min-height: 100vh;
-  color: #fff;
+  color: var(--texto-forte);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding: 2rem 3rem 3rem;
   box-sizing: border-box;
@@ -339,17 +333,17 @@ const statusRetiradas = computed(() => {
   gap: 1.5rem;
   margin-bottom: 2rem;
 }
-.caminho { color: #8b8680; font-size: 0.85rem; margin-bottom: 0.7rem; }
+.caminho { color: var(--texto-suave); font-size: 0.85rem; margin-bottom: 0.7rem; }
 .caminho .separador { margin: 0 0.4rem; }
-.caminho-atual { color: #fff; }
+.caminho-atual { color: var(--texto-forte); }
 .titulo-pagina { font-size: 2.6rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
-.titulo-destaque { color: #F49D25; }
-.subtitulo { color: #8b8680; font-size: 0.95rem; }
+.titulo-destaque { color: var(--marca); }
+.subtitulo { color: var(--texto-suave); font-size: 0.95rem; }
 
 .botao-recarregar {
-  background: rgba(244, 157, 37, 0.12);
-  color: #F49D25;
-  border: 1px solid rgba(244, 157, 37, 0.4);
+  background: color-mix(in srgb, var(--marca) 12%, transparent);
+  color: var(--marca);
+  border: 1px solid color-mix(in srgb, var(--marca) 40%, transparent);
   padding: 0.65rem 1.1rem;
   border-radius: 0.55rem;
   font-size: 0.88rem;
@@ -358,10 +352,10 @@ const statusRetiradas = computed(() => {
   margin-top: 0.5rem;
   transition: background 0.2s;
 }
-.botao-recarregar:hover:not(:disabled) { background: rgba(244, 157, 37, 0.22); }
+.botao-recarregar:hover:not(:disabled) { background: color-mix(in srgb, var(--marca) 22%, transparent); }
 .botao-recarregar:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.estado-carregando { color: #8b8680; }
+.estado-carregando { color: var(--texto-suave); }
 
 .kpi-grid {
   display: grid;
@@ -370,8 +364,8 @@ const statusRetiradas = computed(() => {
   margin-bottom: 1.5rem;
 }
 .kpi-card {
-  background: linear-gradient(180deg, #2d2823 0%, #221e18 100%);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: linear-gradient(180deg, var(--borda) 0%, var(--superficie-elevada) 100%);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   border-radius: 0.85rem;
   padding: 1.2rem 1.3rem;
   display: flex;
@@ -379,20 +373,20 @@ const statusRetiradas = computed(() => {
   gap: 0.35rem;
   transition: border-color 0.2s, transform 0.15s;
 }
-.kpi-card:hover { border-color: rgba(244, 157, 37, 0.3); transform: translateY(-1px); }
+.kpi-card:hover { border-color: color-mix(in srgb, var(--marca) 30%, transparent); transform: translateY(-1px); }
 .kpi-label {
-  color: #F49D25;
+  color: var(--marca);
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-.kpi-valor { color: #fff; font-size: 2.2rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
-.kpi-sub { color: #8b8680; font-size: 0.78rem; margin-top: 0.2rem; }
-.kpi-alerta { border-color: rgba(248, 113, 113, 0.3); }
-.kpi-alerta .kpi-label { color: #f87171; }
-.kpi-aviso { border-color: rgba(250, 204, 21, 0.3); }
-.kpi-aviso .kpi-label { color: #facc15; }
+.kpi-valor { color: var(--texto-forte); font-size: 2.2rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+.kpi-sub { color: var(--texto-suave); font-size: 0.78rem; margin-top: 0.2rem; }
+.kpi-alerta { border-color: color-mix(in srgb, var(--perigo) 30%, transparent); }
+.kpi-alerta .kpi-label { color: var(--perigo); }
+.kpi-aviso { border-color: color-mix(in srgb, var(--aviso) 30%, transparent); }
+.kpi-aviso .kpi-label { color: var(--aviso); }
 
 .grid-2col {
   display: grid;
@@ -402,8 +396,8 @@ const statusRetiradas = computed(() => {
 }
 
 .card-chart {
-  background: #221E18;
-  border: 1px solid rgba(255,255,255,0.05);
+  background: var(--superficie-elevada);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   border-radius: 1rem;
   padding: 1.4rem 1.5rem;
   margin-bottom: 1.5rem;
@@ -415,10 +409,10 @@ const statusRetiradas = computed(() => {
   align-items: center;
   margin-bottom: 1.3rem;
 }
-.chart-header h2 { color: #fff; font-size: 1.05rem; font-weight: 700; }
+.chart-header h2 { color: var(--texto-forte); font-size: 1.05rem; font-weight: 700; }
 .chart-tag {
-  color: #F49D25;
-  background: rgba(244, 157, 37, 0.1);
+  color: var(--marca);
+  background: color-mix(in srgb, var(--marca) 10%, transparent);
   font-size: 0.72rem;
   font-weight: 700;
   padding: 0.25rem 0.7rem;
@@ -426,10 +420,10 @@ const statusRetiradas = computed(() => {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.chart-tag-aviso { color: #facc15; background: rgba(250, 204, 21, 0.12); }
-.chart-tag-alerta { color: #f87171; background: rgba(248, 113, 113, 0.12); }
+.chart-tag-aviso { color: var(--aviso); background: color-mix(in srgb, var(--aviso) 12%, transparent); }
+.chart-tag-alerta { color: var(--perigo); background: color-mix(in srgb, var(--perigo) 12%, transparent); }
 
-.vazio { color: #8b8680; font-size: 0.9rem; padding: 1rem 0; text-align: center; }
+.vazio { color: var(--texto-suave); font-size: 0.9rem; padding: 1rem 0; text-align: center; }
 
 .barras-h { display: flex; flex-direction: column; gap: 0.85rem; }
 .barra-linha {
@@ -439,7 +433,7 @@ const statusRetiradas = computed(() => {
   align-items: center;
 }
 .barra-nome {
-  color: #c5bfb5;
+  color: var(--texto);
   font-size: 0.85rem;
   font-weight: 500;
   white-space: nowrap;
@@ -447,18 +441,20 @@ const statusRetiradas = computed(() => {
   text-overflow: ellipsis;
 }
 .barra-trilho {
-  background: #2a2520;
+  background: var(--borda);
   height: 10px;
   border-radius: 999px;
   overflow: hidden;
 }
 .barra-preenchida {
   height: 100%;
-  background: linear-gradient(90deg, #F49D25, #facc15);
+  background: linear-gradient(90deg, var(--marca), var(--aviso));
   border-radius: 999px;
+  /* barra: anima largura de propósito — scaleX achataria as pontas arredondadas.
+     Dispara uma vez, em no máximo 8 elementos. */
   transition: width 0.4s ease;
 }
-.barra-valor { color: #fff; font-weight: 700; font-size: 0.9rem; text-align: right; }
+.barra-valor { color: var(--texto-forte); font-weight: 700; font-size: 0.9rem; text-align: right; }
 
 .donut-wrap {
   display: grid;
@@ -467,8 +463,8 @@ const statusRetiradas = computed(() => {
   align-items: center;
 }
 .donut-svg { width: 180px; height: 180px; flex-shrink: 0; }
-.donut-num { fill: #fff; font-size: 26px; font-weight: 800; }
-.donut-lbl { fill: #8b8680; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; }
+.donut-num { fill: var(--texto-forte); font-size: 26px; font-weight: 800; }
+.donut-lbl { fill: var(--texto-suave); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; }
 .donut-legend {
   list-style: none;
   padding: 0;
@@ -487,13 +483,13 @@ const statusRetiradas = computed(() => {
 }
 .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .legend-name {
-  color: #c5bfb5;
+  color: var(--texto);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.legend-val { color: #fff; font-weight: 700; }
-.legend-val small { color: #8b8680; font-weight: 500; font-size: 0.75rem; }
+.legend-val { color: var(--texto-forte); font-weight: 700; }
+.legend-val small { color: var(--texto-suave); font-weight: 500; font-size: 0.75rem; }
 
 .barras-estoque {
   display: flex;
@@ -509,7 +505,7 @@ const statusRetiradas = computed(() => {
   align-items: center;
 }
 .barra-est-nome {
-  color: #c5bfb5;
+  color: var(--texto);
   font-size: 0.85rem;
   font-weight: 500;
   white-space: nowrap;
@@ -517,28 +513,30 @@ const statusRetiradas = computed(() => {
   text-overflow: ellipsis;
 }
 .barra-est-trilho {
-  background: #2a2520;
+  background: var(--borda);
   height: 12px;
   border-radius: 999px;
   overflow: hidden;
 }
 .barra-est-preenchida {
   height: 100%;
-  background: linear-gradient(90deg, #4ade80, #34d399);
+  background: linear-gradient(90deg, var(--ok), var(--ok));
   border-radius: 999px;
+  /* barra: anima largura de propósito — scaleX achataria as pontas arredondadas.
+     Dispara uma vez, em no máximo 8 elementos. */
   transition: width 0.4s ease;
 }
 .barra-est-baixo {
-  background: linear-gradient(90deg, #f87171, #fb923c);
+  background: linear-gradient(90deg, var(--perigo), var(--aviso));
 }
 .barra-est-valor {
-  color: #fff;
+  color: var(--texto-forte);
   font-weight: 700;
   font-size: 0.9rem;
   text-align: right;
 }
-.barra-est-valor small { color: #8b8680; font-weight: 500; font-size: 0.72rem; }
-.valor-baixo { color: #f87171; }
+.barra-est-valor small { color: var(--texto-suave); font-weight: 500; font-size: 0.72rem; }
+.valor-baixo { color: var(--perigo); }
 
 .lista-vencimento {
   list-style: none;
@@ -553,21 +551,21 @@ const statusRetiradas = computed(() => {
   justify-content: space-between;
   align-items: center;
   gap: 0.8rem;
-  background: #2a2520;
-  border: 1px solid rgba(255,255,255,0.04);
+  background: var(--borda);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 4%, transparent);
   border-radius: 0.55rem;
   padding: 0.7rem 0.95rem;
 }
 .venc-info { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
 .venc-nome {
-  color: #fff;
+  color: var(--texto-forte);
   font-weight: 700;
   font-size: 0.92rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.venc-meta { color: #8b8680; font-size: 0.75rem; }
+.venc-meta { color: var(--texto-suave); font-size: 0.75rem; }
 .venc-badge {
   font-size: 0.75rem;
   font-weight: 700;
@@ -577,19 +575,19 @@ const statusRetiradas = computed(() => {
   flex-shrink: 0;
 }
 .badge-critico {
-  background: rgba(248, 113, 113, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: color-mix(in srgb, var(--perigo) 15%, transparent);
+  color: var(--perigo);
+  border: 1px solid color-mix(in srgb, var(--perigo) 35%, transparent);
 }
 .badge-alerta {
-  background: rgba(250, 204, 21, 0.12);
-  color: #facc15;
-  border: 1px solid rgba(250, 204, 21, 0.35);
+  background: color-mix(in srgb, var(--aviso) 12%, transparent);
+  color: var(--aviso);
+  border: 1px solid color-mix(in srgb, var(--aviso) 35%, transparent);
 }
 .badge-medio {
-  background: rgba(244, 157, 37, 0.12);
-  color: #F49D25;
-  border: 1px solid rgba(244, 157, 37, 0.3);
+  background: color-mix(in srgb, var(--marca) 12%, transparent);
+  color: var(--marca);
+  border: 1px solid color-mix(in srgb, var(--marca) 30%, transparent);
 }
 
 @media (max-width: 1100px) {

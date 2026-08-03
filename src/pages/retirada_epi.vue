@@ -280,7 +280,7 @@ const labelStatus = (s) => ({
           @click="toggleSelecao(epi)"
         >
           <div class="card-imagem">
-            <img v-if="epi.imagem" :src="epi.imagem" :alt="epi.nome" />
+            <img loading="lazy" decoding="async" v-if="epi.imagem" :src="epi.imagem" :alt="epi.nome" />
             <div v-else class="imagem-placeholder"></div>
           </div>
 
@@ -300,9 +300,9 @@ const labelStatus = (s) => ({
           </div>
 
           <div v-if="selecionados[epi.id] !== undefined" class="card-controles" @click.stop>
-            <button class="btn-qtd" @click="ajustarQtd(epi, -1)">−</button>
+            <button type="button" class="btn-qtd" @click="ajustarQtd(epi, -1)">−</button>
             <span class="qtd-valor">{{ selecionados[epi.id] }}</span>
-            <button class="btn-qtd" @click="ajustarQtd(epi, 1)">+</button>
+            <button type="button" class="btn-qtd" @click="ajustarQtd(epi, 1)">+</button>
           </div>
           <div v-else class="card-marca">
             <span class="circulo-vazio"></span>
@@ -311,11 +311,11 @@ const labelStatus = (s) => ({
       </div>
 
       <div v-if="precisaJustificativa" class="caixa-justificativa">
-        <label>
-          ⚠ Você está pedindo mais do que o limite permitido em
+        <label for="justificativa">
+          <i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Você está pedindo mais do que o limite permitido em
           <strong>{{ itensQueExcedem.length }} item(ns)</strong>. Justifique abaixo para o almoxarife avaliar:
         </label>
-        <textarea v-model="justificativa" placeholder="Ex: bota anterior rasgou em serviço, preciso de outra." rows="3"></textarea>
+        <textarea id="justificativa" v-model="justificativa" placeholder="Ex: bota anterior rasgou em serviço, preciso de outra." rows="3"></textarea>
       </div>
 
       <div class="barra-acao" v-if="totalSelecionados > 0">
@@ -325,7 +325,7 @@ const labelStatus = (s) => ({
             {{ itensQueExcedem.length }} item(ns) acima do limite — aprovação necessária
           </span>
         </div>
-        <button
+        <button type="button"
           class="btn-solicitar"
           :disabled="carregando"
           @click="solicitarRetirada"
@@ -367,9 +367,9 @@ const labelStatus = (s) => ({
 
 <style scoped>
 .pagina-retirada {
-  background: #181511;
+  background: var(--superficie-alta);
   min-height: 100vh;
-  color: #fff;
+  color: var(--texto-forte);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding: 2rem 3rem 3rem;
   box-sizing: border-box;
@@ -378,17 +378,17 @@ const labelStatus = (s) => ({
 .pagina-retirada *, .pagina-retirada *::before, .pagina-retirada *::after { box-sizing: border-box; }
 
 .cabecalho { margin-bottom: 2rem; }
-.caminho { color: #8b8680; font-size: 0.85rem; margin-bottom: 0.7rem; }
+.caminho { color: var(--texto-suave); font-size: 0.85rem; margin-bottom: 0.7rem; }
 .caminho .separador { margin: 0 0.4rem; }
-.caminho-atual { color: #fff; }
+.caminho-atual { color: var(--texto-forte); }
 .titulo-pagina { font-size: 2.6rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
-.titulo-destaque { color: #F49D25; }
-.subtitulo { color: #8b8680; font-size: 0.95rem; }
-.subtitulo strong { color: #fff; }
+.titulo-destaque { color: var(--marca); }
+.subtitulo { color: var(--texto-suave); font-size: 0.95rem; }
+.subtitulo strong { color: var(--texto-forte); }
 
 .cartao {
-  background: #221E18;
-  border: 1px solid rgba(255,255,255,0.05);
+  background: var(--superficie-elevada);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   border-radius: 1rem;
   padding: 1.5rem 1.6rem;
   margin-bottom: 1.5rem;
@@ -397,20 +397,20 @@ const labelStatus = (s) => ({
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
   margin-bottom: 1.3rem;
 }
-.cartao-cabecalho h2 { color: #fff; font-size: 1.05rem; font-weight: 700; }
+.cartao-cabecalho h2 { color: var(--texto-forte); font-size: 1.05rem; font-weight: 700; }
 .contagem {
-  color: #F49D25; font-size: 0.8rem; font-weight: 600;
-  background: rgba(244,157,37,0.1); padding: 0.25rem 0.7rem; border-radius: 999px;
+  color: var(--marca); font-size: 0.8rem; font-weight: 600;
+  background: color-mix(in srgb, var(--marca) 10%, transparent); padding: 0.25rem 0.7rem; border-radius: 999px;
 }
 
-.vazio-cartao { text-align: center; color: #8b8680; }
+.vazio-cartao { text-align: center; color: var(--texto-suave); }
 .vazio-cartao .ajuda { font-size: 0.85rem; margin-top: 0.5rem; }
 
-.legenda { display: flex; flex-wrap: wrap; gap: 1.2rem; margin-bottom: 1rem; font-size: 0.78rem; color: #8b8680; }
+.legenda { display: flex; flex-wrap: wrap; gap: 1.2rem; margin-bottom: 1rem; font-size: 0.78rem; color: var(--texto-suave); }
 .legenda-item { display: inline-flex; align-items: center; gap: 0.4rem; }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.dot-setor { background: #F49D25; }
-.dot-outro { background: #facc15; }
+.dot-setor { background: var(--marca); }
+.dot-outro { background: var(--aviso); }
 
 .grade-epis {
   display: grid;
@@ -421,114 +421,114 @@ const labelStatus = (s) => ({
 .card-epi {
   position: relative;
   display: flex; align-items: center; gap: 0.9rem;
-  background: #2a2520;
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--borda);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 6%, transparent);
   border-radius: 0.75rem;
   padding: 0.85rem;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
-.card-epi:hover { border-color: rgba(244,157,37,0.35); }
-.card-epi.selecionado { border-color: #F49D25; }
-.card-epi.precisa-aprovacao { border-color: #facc15; }
+.card-epi:hover { border-color: color-mix(in srgb, var(--marca) 35%, transparent); }
+.card-epi.selecionado { border-color: var(--marca); }
+.card-epi.precisa-aprovacao { border-color: var(--aviso); }
 
 .info-topo { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
 .badge {
   font-size: 0.72rem; font-weight: 700; padding: 0.18rem 0.5rem; border-radius: 999px;
   text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; flex-shrink: 0;
 }
-.badge-setor { background: rgba(244,157,37,0.18); color: #F49D25; }
-.badge-outro { background: rgba(34,197,94,0.15); color: #4ade80; }
+.badge-setor { background: color-mix(in srgb, var(--marca) 18%, transparent); color: var(--marca); }
+.badge-outro { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
 
 .card-imagem {
-  flex: 0 0 60px; width: 60px; height: 60px; border-radius: 0.5rem; overflow: hidden; background: #3a332b;
+  flex: 0 0 60px; width: 60px; height: 60px; border-radius: 0.5rem; overflow: hidden; background: var(--borda-forte);
 }
 .card-imagem img { width: 100%; height: 100%; object-fit: cover; }
-.imagem-placeholder { width: 100%; height: 100%; background: #3a332b; }
+.imagem-placeholder { width: 100%; height: 100%; background: var(--borda-forte); }
 
 .card-info { flex: 1; min-width: 0; }
-.epi-nome { color: #fff; font-size: 1.05rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
-.epi-meta { color: #8b8680; font-size: 0.85rem; margin-top: 0.25rem; }
-.epi-estoque { color: #F49D25; font-size: 0.82rem; font-weight: 600; margin-top: 0.3rem; }
-.em-uso { color: #facc15; font-weight: 600; }
+.epi-nome { color: var(--texto-forte); font-size: 1.05rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+.epi-meta { color: var(--texto-suave); font-size: 0.85rem; margin-top: 0.25rem; }
+.epi-estoque { color: var(--marca); font-size: 0.82rem; font-weight: 600; margin-top: 0.3rem; }
+.em-uso { color: var(--aviso); font-weight: 600; }
 
 .card-marca { flex: 0 0 auto; }
-.circulo-vazio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #4a4239; display: block; }
+.circulo-vazio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--borda-forte); display: block; }
 
 .card-controles {
   display: flex; align-items: center; gap: 0.4rem;
-  background: #181511; border: 1px solid rgba(244,157,37,0.3);
+  background: var(--superficie-alta); border: 1px solid color-mix(in srgb, var(--marca) 30%, transparent);
   border-radius: 0.5rem; padding: 0.2rem;
 }
 .btn-qtd {
-  background: rgba(244,157,37,0.15); border: none; color: #F49D25;
+  background: color-mix(in srgb, var(--marca) 15%, transparent); border: none; color: var(--marca);
   width: 26px; height: 26px; border-radius: 0.35rem; font-size: 1.1rem; font-weight: 700; cursor: pointer; line-height: 1;
 }
-.btn-qtd:hover { background: rgba(244,157,37,0.28); }
-.qtd-valor { color: #fff; font-weight: 700; font-size: 0.9rem; min-width: 1.5rem; text-align: center; }
+.btn-qtd:hover { background: color-mix(in srgb, var(--marca) 28%, transparent); }
+.qtd-valor { color: var(--texto-forte); font-weight: 700; font-size: 0.9rem; min-width: 1.5rem; text-align: center; }
 
 .caixa-justificativa {
   margin-top: 1.2rem;
-  background: rgba(250,204,21,0.08);
-  border: 1px solid rgba(250,204,21,0.3);
+  background: color-mix(in srgb, var(--aviso) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--aviso) 30%, transparent);
   border-radius: 0.7rem;
   padding: 0.9rem 1.1rem;
 }
-.caixa-justificativa label { color: #facc15; font-size: 0.85rem; display: block; margin-bottom: 0.5rem; }
-.caixa-justificativa label strong { color: #fff; }
+.caixa-justificativa label { color: var(--aviso); font-size: 0.85rem; display: block; margin-bottom: 0.5rem; }
+.caixa-justificativa label strong { color: var(--texto-forte); }
 .caixa-justificativa textarea {
-  width: 100%; background: #131110; border: 1px solid #2a241e; color: #fff;
+  width: 100%; background: var(--superficie); border: 1px solid var(--borda); color: var(--texto-forte);
   border-radius: 0.5rem; padding: 0.6rem 0.8rem; font-size: 0.88rem; outline: none;
   font-family: inherit; resize: vertical;
 }
-.caixa-justificativa textarea:focus { border-color: #F49D25; }
+.caixa-justificativa textarea:focus { border-color: var(--marca); }
 
 .barra-acao {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
   margin-top: 1.3rem; padding: 0.9rem 1.1rem;
-  background: rgba(244,157,37,0.08); border: 1px solid rgba(244,157,37,0.25);
+  background: color-mix(in srgb, var(--marca) 8%, transparent); border: 1px solid color-mix(in srgb, var(--marca) 25%, transparent);
   border-radius: 0.7rem;
 }
 .acao-resumo { display: flex; flex-direction: column; gap: 0.2rem; }
-.acao-info { color: #fff; font-weight: 600; font-size: 0.9rem; }
-.acao-aviso { color: #facc15; font-size: 0.78rem; font-weight: 600; }
+.acao-info { color: var(--texto-forte); font-weight: 600; font-size: 0.9rem; }
+.acao-aviso { color: var(--aviso); font-size: 0.78rem; font-weight: 600; }
 .btn-solicitar {
-  background: #F49D25; color: #1a1410; border: none; padding: 0.7rem 1.4rem;
+  background: var(--marca); color: var(--marca-texto); border: none; padding: 0.7rem 1.4rem;
   border-radius: 0.55rem; font-size: 0.92rem; font-weight: 700; cursor: pointer;
 }
-.btn-solicitar:hover:not(:disabled) { background: #e08c18; }
+.btn-solicitar:hover:not(:disabled) { background: var(--marca-escura); }
 .btn-solicitar:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .lista-historico { display: flex; flex-direction: column; gap: 0.55rem; }
 .item-historico {
   display: flex; align-items: center; gap: 1rem;
-  background: #2a2520; border: 1px solid rgba(255,255,255,0.05);
+  background: var(--borda); border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   border-radius: 0.6rem; padding: 0.8rem 1rem;
 }
 .hist-info { flex: 1; min-width: 0; }
-.hist-nome { color: #fff; font-weight: 700; font-size: 0.95rem; }
-.hist-qtd { color: #F49D25; font-weight: 600; margin-left: 0.3rem; }
-.hist-setor { color: #8b8680; font-size: 0.78rem; margin-top: 0.1rem; }
-.hist-aprovador { color: #4ade80; font-size: 0.78rem; margin-top: 0.1rem; }
-.hist-just { color: #facc15; font-size: 0.78rem; margin-top: 0.2rem; font-style: italic; }
+.hist-nome { color: var(--texto-forte); font-weight: 700; font-size: 0.95rem; }
+.hist-qtd { color: var(--marca); font-weight: 600; margin-left: 0.3rem; }
+.hist-setor { color: var(--texto-suave); font-size: 0.78rem; margin-top: 0.1rem; }
+.hist-aprovador { color: var(--ok); font-size: 0.78rem; margin-top: 0.1rem; }
+.hist-just { color: var(--aviso); font-size: 0.78rem; margin-top: 0.2rem; font-style: italic; }
 
 .hist-status {
   font-size: 0.7rem; font-weight: 700; padding: 0.25rem 0.65rem;
   border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
 }
-.status-pendente_aprovacao { background: rgba(250,204,21,0.12); color: #facc15; border: 1px solid rgba(250,204,21,0.35); }
-.status-pendente_entrega   { background: rgba(96,165,250,0.12); color: #60a5fa; border: 1px solid rgba(96,165,250,0.35); }
-.status-aprovado           { background: rgba(96,165,250,0.12); color: #60a5fa; border: 1px solid rgba(96,165,250,0.35); }
-.status-entregue           { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.35); }
-.status-recusado           { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.35); }
-.status-devolvido          { background: rgba(168,168,168,0.12); color: #a8a8a8; border: 1px solid rgba(168,168,168,0.3); }
+.status-pendente_aprovacao { background: color-mix(in srgb, var(--aviso) 12%, transparent); color: var(--aviso); border: 1px solid color-mix(in srgb, var(--aviso) 35%, transparent); }
+.status-pendente_entrega   { background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); border: 1px solid color-mix(in srgb, var(--info) 35%, transparent); }
+.status-aprovado           { background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); border: 1px solid color-mix(in srgb, var(--info) 35%, transparent); }
+.status-entregue           { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent); }
+.status-recusado           { background: color-mix(in srgb, var(--perigo) 12%, transparent); color: var(--perigo); border: 1px solid color-mix(in srgb, var(--perigo) 35%, transparent); }
+.status-devolvido          { background: rgba(168,168,168,0.12); color: var(--texto-suave); border: 1px solid rgba(168,168,168,0.3); }
 
-.vazio { color: #8b8680; font-size: 0.9rem; padding: 0.5rem 0; }
+.vazio { color: var(--texto-suave); font-size: 0.9rem; padding: 0.5rem 0; }
 
 .toast {
   position: fixed; top: 1.5rem; right: 1.5rem; z-index: 999;
   padding: 0.85rem 1.3rem; border-radius: 0.6rem; font-size: 0.9rem; font-weight: 600;
 }
-.toast-sucesso { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.4); color: #4ade80; }
-.toast-erro    { background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.4); color: #f87171; }
+.toast-sucesso { background: color-mix(in srgb, var(--ok) 15%, transparent); border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok); }
+.toast-erro    { background: color-mix(in srgb, var(--perigo) 15%, transparent); border: 1px solid color-mix(in srgb, var(--perigo) 40%, transparent); color: var(--perigo); }
 </style>

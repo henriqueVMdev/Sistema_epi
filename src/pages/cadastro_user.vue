@@ -17,25 +17,38 @@ const carregarSetores = async () => {
 
 onMounted(carregarSetores);
 
+const enviando = ref(false);
+
 const cadastrar = async () => {
+  if (enviando.value) return;
   error.value = '';
-  if (!form.nome || !form.email || !form.cpf || !senha.value) {
+  const nome = form.nome.trim();
+  const email = form.email.trim().toLowerCase();
+  const cpf = form.cpf.replace(/\D/g, '');
+
+  if (!nome || !email || !cpf || !senha.value) {
     error.value = 'Preencha todos os campos.'; return;
   }
+  if (cpf.length !== 11) { error.value = 'CPF deve ter 11 dígitos.'; return; }
+  if (senha.value.length < 6) { error.value = 'A senha deve ter ao menos 6 caracteres.'; return; }
   if (!form.setor_id) { error.value = 'Selecione um setor.'; return; }
 
-  const { data: existentes, error: checkError } = await supabase
-    .from('funcionarios')
-    .select('cpf, email')
-    .or(`cpf.eq.${form.cpf},email.eq.${form.email}`);
-  if (checkError) {
-    console.error(checkError);
+  enviando.value = true;
+  // duas consultas com .eq: .or() com interpolação quebra em valores com vírgula/aspas
+  const [{ data: porCpf, error: e1 }, { data: porEmail, error: e2 }] = await Promise.all([
+    supabase.from('funcionarios').select('id').eq('cpf', cpf).limit(1),
+    supabase.from('funcionarios').select('id').eq('email', email).limit(1),
+  ]);
+  if (e1 || e2) {
+    console.error(e1 || e2);
+    enviando.value = false;
     error.value = 'Erro ao validar os dados. Tente novamente.';
     return;
   }
-  if (existentes && existentes.length > 0) {
-    const cpfExiste = existentes.some(e => e.cpf === form.cpf);
-    const emailExiste = existentes.some(e => e.email === form.email);
+  const cpfExiste = (porCpf || []).length > 0;
+  const emailExiste = (porEmail || []).length > 0;
+  if (cpfExiste || emailExiste) {
+    enviando.value = false;
     if (cpfExiste && emailExiste) error.value = 'CPF e e-mail já cadastrados.';
     else if (cpfExiste) error.value = 'Este CPF já está cadastrado.';
     else error.value = 'Este e-mail já está cadastrado.';
@@ -43,32 +56,39 @@ const cadastrar = async () => {
   }
 
   const { data, error: authError } = await supabase.auth.signUp({
-    email: form.email,
+    email,
     password: senha.value,
   });
   if (authError) {
+    enviando.value = false;
     error.value = authError.code === 'user_already_exists'
       ? 'Este e-mail já possui uma conta. Faça login ou use outro e-mail.'
       : authError.message;
+    return;
+  }
+  if (!data?.user?.id) {
+    enviando.value = false;
+    error.value = 'Não foi possível criar a conta. Tente novamente.';
     return;
   }
 
   const { error: insertError } = await supabase
     .from('funcionarios')
     .insert({
-      nome: form.nome,
-      email: form.email,
-      cpf: form.cpf,
+      nome,
+      email,
+      cpf,
       setor_id: form.setor_id,
       user_id: data.user.id,
       role: 'aluno',
     });
+  enviando.value = false;
   if (insertError) {
     console.error('erro ao cadastrar:', insertError);
     await supabase.auth.signOut();
-    error.value = insertError.code === '23505'
-      ? 'CPF ou e-mail já estão em uso.'
-      : 'Erro ao cadastrar funcionário. Avise o administrador.';
+    if (insertError.code === '23505') error.value = 'CPF ou e-mail já estão em uso.';
+    else if (!data.session) error.value = 'Conta criada, mas o cadastro precisa da confirmação do e-mail. Confirme e avise o administrador.';
+    else error.value = 'Erro ao cadastrar funcionário. Avise o administrador.';
     return;
   }
   router.push('/login');
@@ -88,37 +108,37 @@ const cadastrar = async () => {
       <p class = "mensagem"> Registre-se e desfrute do controle e facilidade</p>
       
       <div class = "campo">
-        <label>Email:</label>
-        <input v-model = "form.email" type="email" placeholder="seuemail@exemplo.com">
+        <label for="cad-email">Email:</label>
+        <input id="cad-email" v-model = "form.email" type="email" placeholder="seuemail@exemplo.com">
       </div>
 
       <div class = "campo">
-        <label>Senha:</label>
-        <input v-model = "senha" type="password" placeholder="Digite sua senha">
+        <label for="cad-senha">Senha:</label>
+        <input id="cad-senha" v-model = "senha" type="password" autocomplete="new-password" placeholder="Digite sua senha">
       </div>
 
       <div class = "campo">
-        <label>nome:</label>
-        <input v-model = "form.nome" type="text" placeholder="Ex: João Silva">
+        <label for="cad-nome">Nome:</label>
+        <input id="cad-nome" v-model = "form.nome" type="text" placeholder="Ex: João Silva">
       </div>
 
       <div class = "campo">
-        <label>CPF:</label>
-        <input v-model="form.cpf" type="text" maxlength="11" inputmode="numeric" placeholder="Ex: 12345678900">
+        <label for="cad-cpf">CPF:</label>
+        <input id="cad-cpf" v-model="form.cpf" type="text" maxlength="11" inputmode="numeric" placeholder="Ex: 12345678900">
       </div>
 
       <div class = "campo">
-        <label>Setor:</label>
-        <select v-model="form.setor_id">
+        <label for="cad-setor">Setor:</label>
+        <select id="cad-setor" v-model="form.setor_id">
           <option :value="null" disabled>Selecione o setor</option>
           <option v-for="s in setores" :key="s.id" :value="s.id">{{ s.nome }}</option>
         </select>
       </div>
 
-      <p class = "error" v-if = "error"> {{ error }} </p>
+      <p class="error" role="alert" v-if="error"> {{ error }} </p>
 
-    <button type="submit" class="btn">
-      Criar Conta
+    <button type="submit" class="btn" :disabled="enviando">
+      {{ enviando ? 'Criando…' : 'Criar Conta' }}
     </button>
 
   </form>
@@ -128,7 +148,7 @@ const cadastrar = async () => {
 
 <style scoped>
 .container{
-  background-image: url(../assets/background.png);
+  background-image: url(../assets/background.webp);
   background-size: 100%;
   background-position: center;
   background-repeat: no-repeat;
@@ -141,6 +161,7 @@ const cadastrar = async () => {
   min-height: 100vh;
   width: 100%;
   position: relative;
+  padding: 1.5rem 1rem;
 }
 .caixa::before {
   content: "";
@@ -150,7 +171,7 @@ const cadastrar = async () => {
   width: 32rem;
   height: 32rem;
   transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(244, 157, 37, 0.7) 0%, rgba(244, 157, 37, 0.28) 40%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--marca) 70%, transparent) 0%, color-mix(in srgb, var(--marca) 28%, transparent) 40%, transparent 70%);
   filter: blur(60px);
   z-index: 0;
   pointer-events: none;
@@ -161,14 +182,14 @@ form {
   width: 90%;
   max-width: 25rem;
   min-height: 40rem;
-  background-color: #131314 !important;
+  background-color: var(--superficie) !important;
   background-position: center;
   display:flex;
   flex-direction: column;
   justify-content: center;
   gap: 5px;
   border-radius: 20px;
-  border: 2px solid #f49e2554;
+  border: 2px solid var(--marca-borda);
 
   padding: 32px;
 }
@@ -176,8 +197,8 @@ form {
 button.btn {
   display: flex;
   justify-content: center;
-  background-color: #F49D25;
-  color: white;
+  background-color: var(--marca);
+  color: var(--marca-texto);
   border: none;
   padding: 0.7rem;
   border-radius: 0.5rem;
@@ -187,7 +208,7 @@ button.btn {
 }
 
 label {
-  color: #ffffff;
+  color: var(--texto-forte);
   font-size: 0.9rem;
   padding-bottom: 3px;
   padding-top: 1.5rem;
@@ -196,12 +217,12 @@ label {
 
 input, select {
   justify-content: center;
-  color: #9CA3AF ;
+  color: var(--texto-forte);
   background-color: rgba(0, 0, 0, 0.6);
   padding: 10px;
   gap: 2px;
   border: none;
-  border: 1px solid #262729;
+  border: 1px solid var(--borda);
   outline: none;
   border-radius: 10px;
 }
@@ -212,7 +233,7 @@ input, select {
 }
 
 .error {
-  color: #dd5e5e;
+  color: var(--perigo);
   font-size: 0.9rem;
 }
 
@@ -223,16 +244,16 @@ h1 {
 }
 
 .amarelo {
-  color: #F49D25;
+  color: var(--marca);
 }
 
 .white {
-  color: #ffffff;
+  color: var(--texto-forte);
 }
 
 .mensagem {
   text-align: center;
-  color: #9CA3AF;
+  color: var(--texto-suave);
   font-size: 1rem;
   padding-bottom: 0.5rem;
    ;
@@ -242,7 +263,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #9CA3AF;
+  color: var(--texto-suave);
   padding-top: 1.5rem;
   font-size: 1.2rem;
 }
@@ -252,14 +273,14 @@ h1 {
   content: "";
   flex: 1;
   height: 1px;
-  background-color: #9CA3AF;
+  background-color: var(--texto-suave);
 }
 
 .link {
   display: block;
   text-align: center;
   text-decoration: none;
-  color:#F49D25;
+  color:var(--marca);
   margin-top: 1.5rem;
   font-size: 1.2rem;
 }

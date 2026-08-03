@@ -9,17 +9,17 @@
       <a href="#empresas" class="nav-link">Empresas que trabalham conosco</a>
       <a href="#" class="nav-link">Peça uma demonstração</a>
       <RouterLink to="/login">
-        <button class="btn-login">Login</button>
+        <button type="button" class="btn-login">Login</button>
       </RouterLink>
     </div>
   </header>
 
   <section class="hero">
     <div class="hero-gradient"></div>
-    <div class="hero-content" style="position:absolute;bottom:7rem;left:4rem;z-index:1;text-align:left;">
-      <h1 class="hero-title" style="text-align:left;display:block;">PROTEJA.</h1>
-      <h1 class="hero-title" style="text-align:left;display:block;">RASTREIE.</h1>
-      <h1 class="hero-title" style="text-align:left;display:block;">CONTROLE.</h1>
+    <div class="hero-content">
+      <h1 class="hero-title">PROTEJA.</h1>
+      <h1 class="hero-title">RASTREIE.</h1>
+      <h1 class="hero-title">CONTROLE.</h1>
       <p class="hero-sub">
         reduza custos aumentando controle e eficiência operacional<br />
         na gestão de EPIs com as diversas utilidades do software omniseg
@@ -70,7 +70,7 @@
   <section class="assinatura-wrap">
     <div class="bio-card">
       <div class="bio-img-side">
-        <img src="../assets/prancheta.svg" alt="Entrega de EPI" />
+        <img src="../assets/prancheta.webp" width="512" height="512" loading="lazy" decoding="async" alt="Colaborador de colete refletivo assinando a retirada de um EPI em um tablet" />
         <span class="bio-badge">✓ Entrega Confirmada</span>
       </div>
       <div class="bio-text-side">
@@ -113,7 +113,7 @@
   <section id="vantagens" class="vantagens">
     <div class="van-left">
       <span class="section-tag">VANTAGENS</span>
-      <h2 class="section-title" style="text-align:left; margin-bottom: 2rem;">Por que escolher OmniSeg?</h2>
+      <h2 class="section-title section-title-esq">Por que escolher OmniSeg?</h2>
       <p class="van-big-text">
         organização total.<br />
         segurança absoluta.<br />
@@ -128,7 +128,7 @@
     <div class="van-cards">
       <div class="van-card">
         <div class="van-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F49D25" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--marca)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
         </div>
@@ -137,7 +137,7 @@
       </div>
       <div class="van-card">
         <div class="van-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F49D25" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--marca)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
             <line x1="8" y1="21" x2="16" y2="21"/>
             <line x1="12" y1="17" x2="12" y2="21"/>
@@ -148,7 +148,7 @@
       </div>
       <div class="van-card">
         <div class="van-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F49D25" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--marca)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
@@ -158,7 +158,7 @@
       </div>
       <div class="van-card">
         <div class="van-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F49D25" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--marca)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="1" x2="12" y2="23"/>
             <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
           </svg>
@@ -174,7 +174,7 @@
     <h2>Empresas que confiam no nosso projeto</h2>
     <p>venha fazer parte você também</p>
     <div class="logos-row">
-      <img src="/senai.svg" alt="SENAI" class="logo-senai" />
+      <img loading="lazy" decoding="async" src="/senai.svg" alt="SENAI" class="logo-senai" />
     </div>
   </section>
 
@@ -184,13 +184,13 @@
     <p>Junte-se ao software que transformou a segurança no trabalho com tecnologia e automação. Teste grátis por 14 dias.</p>
     <div class="cta-form">
       <input type="email" placeholder="Seu e-mail corporativo" />
-      <button class="btn-comecar">Começar grátis</button>
+      <button type="button" class="btn-comecar">Começar grátis</button>
     </div>
   </section>
 
   <footer class="footer">
     <div class="footer-brand">
-      <span class="p-name footer-logo-name"><img src="@/assets/Logo_branco.svg" alt="OmniSeg" class="footer-logo-img" />Omni<span class="logo-accent">Seg</span></span>
+      <span class="p-name footer-logo-name"><img loading="lazy" decoding="async" src="@/assets/Logo_branco.svg" alt="OmniSeg" class="footer-logo-img" />Omni<span class="logo-accent">Seg</span></span>
       <p>Plataforma focada em gestão de EPIs e<br />segurança do trabalho. Tecnologia que<br />salva vidas.</p>
     </div>
     <div class="footer-col">
@@ -270,18 +270,18 @@ html {
   padding: 1.1rem 4rem;
   background: rgba(18, 14, 10, 0.85);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
 }
 
 .logo-name {
   font-size: 1.4rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--texto-forte);
   letter-spacing: -0.02em;
 }
 
 .logo-accent {
-  color: #F49D25;
+  color: var(--marca);
 }
 
 .navbar-right {
@@ -291,19 +291,19 @@ html {
 }
 
 .nav-link {
-  color: #9CA3AF;
+  color: var(--texto-suave);
   text-decoration: none;
   font-size: 0.9rem;
   transition: color 0.2s;
 }
 
 .nav-link:hover {
-  color: #ffffff;
+  color: var(--texto-forte);
 }
 
 .btn-login {
-  background-color: #F49D25;
-  color: #ffffff;
+  background-color: var(--marca);
+  color: var(--marca-texto);
   border: none;
   padding: 0.5rem 1.4rem;
   border-radius: 0.4rem;
@@ -314,14 +314,14 @@ html {
 }
 
 .btn-login:hover {
-  background-color: #e08c18;
+  background-color: var(--marca-escura);
 }
 
 .hero {
   position: relative;
   height: 100vh;
   min-height: 700px;
-  background-image: url("../assets/Operarios.svg");
+  background-image: url("../assets/Operarios.webp");
   background-size: cover;
   background-position: center top;
   overflow: hidden;
@@ -332,7 +332,7 @@ html {
   inset: 0;
   background: linear-gradient(
     to top,
-    #1A1612 0%,
+    var(--superficie-alta) 0%,
     rgba(26, 22, 18, 0.5) 40%,
     rgba(0, 0, 0, 0.15) 100%
   );
@@ -347,9 +347,9 @@ html {
 }
 
 .hero-title {
-  font-size: 6.5rem;
+  font-size: clamp(2.75rem, 9vw, 6.5rem);
   font-weight: 900;
-  color: #ffffff;
+  color: var(--texto-forte);
   line-height: 1;
   margin-bottom: 0.3rem;
   letter-spacing: -0.02em;
@@ -357,14 +357,14 @@ html {
 }
 
 .hero-sub {
-  color: #d1d5db;
+  color: var(--texto);
   font-size: 1.05rem;
   margin-top: 1.2rem;
   line-height: 1.7;
 }
 
 .software {
-  background: #1A1612;
+  background: var(--superficie-alta);
   padding: 6rem 4rem 4rem;
   display: flex;
   flex-direction: column;
@@ -373,14 +373,14 @@ html {
 }
 
 .software-title {
-  font-size: 3rem;
+  font-size: clamp(1.75rem, 5vw, 3rem);
   font-weight: 700;
-  color: #ffffff;
+  color: var(--texto-forte);
   letter-spacing: -0.02em;
 }
 
 .software-sub {
-  color: #F49D25;
+  color: var(--marca);
   font-size: 1.1rem;
   margin-top: 0.5rem;
 }
@@ -394,8 +394,8 @@ html {
 }
 
 .btn-comecar {
-  background-color: #F49D25;
-  color: #ffffff;
+  background-color: var(--marca);
+  color: var(--marca-texto);
   border: none;
   padding: 0.6rem 1.3rem;
   border-radius: 0.4rem;
@@ -408,25 +408,25 @@ html {
 }
 
 .btn-comecar:hover {
-  background-color: #e08c18;
+  background-color: var(--marca-escura);
 }
 
 .video-box {
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: #0c0a08;
+  background: var(--superficie-fundo);
   border-radius: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6b7280;
+  color: var(--texto-fraco);
   font-size: 1.3rem;
-  border: 1px solid rgba(244, 157, 37, 0.4);
-  box-shadow: 0 0 40px rgba(244, 157, 37, 0.08), inset 0 0 60px rgba(0,0,0,0.6);
+  border: 1px solid color-mix(in srgb, var(--marca) 40%, transparent);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--marca) 8%, transparent), inset 0 0 60px rgba(0,0,0,0.6);
 }
 
 .funcionalidades {
-  background: #1A1612;
+  background: var(--superficie-alta);
   padding: 5rem 4rem;
   display: flex;
   flex-direction: column;
@@ -435,14 +435,14 @@ html {
 }
 
 .section-tag {
-  color: #F49D25;
+  color: var(--marca);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.12em;
 }
 
 .section-title {
-  color: #ffffff;
+  color: var(--texto-forte);
   font-size: 2.2rem;
   font-weight: 700;
   margin-top: 0.5rem;
@@ -451,7 +451,7 @@ html {
 }
 
 .section-sub {
-  color: #9CA3AF;
+  color: var(--texto-suave);
   font-size: 0.95rem;
   margin-top: 0.6rem;
   max-width: 560px;
@@ -468,17 +468,17 @@ html {
 }
 
 .feature-card {
-  background: #221c16;
+  background: var(--superficie-elevada);
   border-radius: 1rem;
   padding: 2rem;
   text-align: left;
-  border: 1px solid rgba(255,255,255,0.04);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 4%, transparent);
 }
 
 .icon-wrap {
   width: 2.6rem;
   height: 2.6rem;
-  background: #F49D25;
+  background: var(--marca);
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
@@ -488,30 +488,30 @@ html {
 }
 
 .feature-card h3 {
-  color: #ffffff;
+  color: var(--texto-forte);
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 0.6rem;
 }
 
 .feature-card p {
-  color: #6b7280;
+  color: var(--texto-fraco);
   font-size: 0.875rem;
   line-height: 1.65;
 }
 
 .assinatura-wrap {
-  background: #1A1612;
+  background: var(--superficie-alta);
   padding: 2rem 4rem 4rem;
 }
 
 .bio-card {
-  background: #1f1912;
+  background: var(--superficie-alta);
   border-radius: 1.5rem;
   display: flex;
   align-items: center;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.05);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   padding: 2rem;
   gap: 2rem;
 }
@@ -527,14 +527,16 @@ html {
   width: 100%;
   height: auto;
   display: block;
+  border-radius: var(--raio);
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.65);
 }
 
 .bio-badge {
   position: absolute;
   bottom: 1.2rem;
   left: 1.2rem;
-  background: #F49D25;
-  color: #ffffff;
+  background: var(--marca);
+  color: var(--marca-texto);
   font-size: 0.78rem;
   font-weight: 600;
   padding: 0.35rem 0.9rem;
@@ -551,14 +553,14 @@ html {
 }
 
 .bio-text-side h2 {
-  color: #ffffff;
+  color: var(--texto-forte);
   font-size: 1.75rem;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .bio-text-side > p {
-  color: #9CA3AF;
+  color: var(--texto-suave);
   font-size: 0.9rem;
   line-height: 1.65;
   max-width: 480px;
@@ -575,14 +577,14 @@ html {
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  color: #d1d5db;
+  color: var(--texto);
   font-size: 0.9rem;
 }
 
 .check-icon {
   width: 1.3rem;
   height: 1.3rem;
-  background: #F49D25;
+  background: var(--marca);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -591,7 +593,7 @@ html {
 }
 
 .link-more {
-  color: #F49D25;
+  color: var(--marca);
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
@@ -603,7 +605,7 @@ html {
 }
 
 .vantagens {
-  background: #1A1612;
+  background: var(--superficie-alta);
   padding: 5rem 4rem;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -617,22 +619,24 @@ html {
   gap: 0;
 }
 
+.section-title-esq { text-align: left; margin-bottom: 2rem; }
+
 .van-left .section-tag {
   display: block;
   margin-bottom: 0.5rem;
 }
 
 .van-big-text {
-  font-size: 2.1rem;
+  font-size: clamp(1.5rem, 4vw, 2.1rem);
   font-weight: 700;
-  color: #ffffff;
+  color: var(--texto-forte);
   line-height: 1.25;
   margin-bottom: 1.5rem;
   letter-spacing: -0.02em;
 }
 
 .van-desc {
-  color: #9CA3AF;
+  color: var(--texto-suave);
   font-size: 0.9rem;
   line-height: 1.7;
 }
@@ -644,16 +648,16 @@ html {
 }
 
 .van-card {
-  background: #221c16;
+  background: var(--superficie-elevada);
   border-radius: 1rem;
   padding: 1.5rem;
-  border: 1px solid rgba(255,255,255,0.04);
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 4%, transparent);
 }
 
 .van-icon {
   width: 2.6rem;
   height: 2.6rem;
-  background: rgba(244, 157, 37, 0.12);
+  background: color-mix(in srgb, var(--marca) 12%, transparent);
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
@@ -662,32 +666,32 @@ html {
 }
 
 .van-card h3 {
-  color: #ffffff;
+  color: var(--texto-forte);
   font-size: 0.95rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
 
 .van-card p {
-  color: #6b7280;
+  color: var(--texto-fraco);
   font-size: 0.82rem;
   line-height: 1.55;
 }
 
 .empresas {
-  background: #100e0b;
+  background: var(--superficie-fundo);
   padding: 5rem 4rem;
   text-align: center;
 }
 
 .empresas h2 {
-  color: #ffffff;
+  color: var(--texto-forte);
   font-size: 1.9rem;
   font-weight: 700;
 }
 
 .empresas > p {
-  color: #9CA3AF;
+  color: var(--texto-suave);
   margin-top: 0.5rem;
   font-size: 0.95rem;
 }
@@ -708,20 +712,20 @@ html {
 }
 
 .cta {
-  background: #1A1612;
+  background: var(--superficie-alta);
   padding: 6rem 4rem;
   text-align: center;
 }
 
 .cta h2 {
-  color: #ffffff;
+  color: var(--texto-forte);
   font-size: 2.4rem;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .cta > p {
-  color: #9CA3AF;
+  color: var(--texto-suave);
   font-size: 0.95rem;
   margin-top: 0.8rem;
   line-height: 1.65;
@@ -735,9 +739,9 @@ html {
 }
 
 .cta-form input {
-  background: #221c16;
-  border: 1px solid #3d3530;
-  color: #ffffff;
+  background: var(--superficie-elevada);
+  border: 1px solid var(--borda-forte);
+  color: var(--texto-forte);
   padding: 0.7rem 1.2rem;
   border-radius: 0.4rem;
   font-size: 0.9rem;
@@ -747,21 +751,21 @@ html {
 }
 
 .cta-form input:focus {
-  border-color: #F49D25;
+  border-color: var(--marca);
 }
 
 .cta-form input::placeholder {
-  color: #6b7280;
+  color: var(--texto-fraco);
 }
 
 .footer {
-  background: #0d0b08;
+  background: var(--superficie-fundo);
   padding: 3.5rem 4rem;
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 1fr auto;
   gap: 3rem;
   align-items: start;
-  border-top: 1px solid #2a2520;
+  border-top: 1px solid var(--borda);
 }
 
 .footer-logo-name {
@@ -770,7 +774,7 @@ html {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.8rem;
-  color: #ffffff;
+  color: var(--texto-forte);
 }
 .footer-logo-img {
   width: 1.6rem;
@@ -779,13 +783,13 @@ html {
 }
 
 .footer-brand p {
-  color: #6b7280;
+  color: var(--texto-fraco);
   font-size: 0.82rem;
   line-height: 1.7;
 }
 
 .footer-col h4 {
-  color: #ffffff;
+  color: var(--texto-forte);
   font-size: 0.9rem;
   font-weight: 600;
   margin-bottom: 1rem;
@@ -793,7 +797,7 @@ html {
 
 .footer-col a {
   display: block;
-  color: #6b7280;
+  color: var(--texto-fraco);
   text-decoration: none;
   font-size: 0.82rem;
   margin-bottom: 0.55rem;
@@ -801,7 +805,7 @@ html {
 }
 
 .footer-col a:hover {
-  color: #F49D25;
+  color: var(--marca);
 }
 
 .footer-social {
@@ -812,7 +816,7 @@ html {
 }
 
 .social-icon {
-  color: #6b7280;
+  color: var(--texto-fraco);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -820,6 +824,46 @@ html {
 }
 
 .social-icon:hover {
-  color: #F49D25;
+  color: var(--marca);
+}
+
+/* --- Breakpoints ---
+   A home era desenhada só para desktop: título de 6.5rem, grades de 3 e 5
+   colunas e padding lateral de 4rem fixo. */
+@media (max-width: 900px) {
+  .navbar { padding: 1rem 1.5rem; }
+  .navbar-right { gap: 0.8rem; }
+  .nav-link { display: none; }
+
+  .hero { height: auto; min-height: 560px; }
+  .hero-content { position: static; padding: 9rem 1.5rem 3rem; }
+
+  .software { padding: 4rem 1.5rem 3rem; }
+  .software-inner { width: 100%; }
+
+  .funcionalidades,
+  .vantagens,
+  .empresas,
+  .cta { padding: 3.5rem 1.5rem; }
+
+  .features-grid { grid-template-columns: 1fr; }
+
+  .assinatura-wrap { padding: 2rem 1.5rem 3rem; }
+  .bio-card { flex-direction: column; }
+  .bio-img-side { width: 100%; max-width: 420px; }
+  .bio-text-side { padding: 1rem 0 0; }
+
+  .vantagens { grid-template-columns: 1fr; gap: 2.5rem; }
+  .van-cards { grid-template-columns: 1fr 1fr; }
+
+  .cta-form { flex-direction: column; align-items: stretch; }
+
+  .footer { grid-template-columns: 1fr 1fr; gap: 2rem; padding: 3rem 1.5rem; }
+}
+
+@media (max-width: 520px) {
+  .van-cards { grid-template-columns: 1fr; }
+  .footer { grid-template-columns: 1fr; }
+  .logos-row { flex-wrap: wrap; justify-content: center; }
 }
 </style>

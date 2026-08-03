@@ -48,6 +48,12 @@ supabase.auth.onAuthStateChange((_event, newSession) => {
   })
 })
 
+// rede fora do ar ou storage bloqueado: o listener acima pode nunca disparar e o
+// router ficaria travado esperando. Isto garante que loadingSession termina.
+supabase.auth.getSession().catch(() => {}).finally(() => {
+  setTimeout(() => { loadingSession.value = false }, 5000)
+})
+
 export function useSupabase() {
   return {
     supabase,
