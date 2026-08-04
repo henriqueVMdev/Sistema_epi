@@ -1,14 +1,17 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useSupabase } from '@/composables/useSupabase';
+import { useMensagem } from '@/composables/mensagem';
+import Toast from '@/components/Toast.vue';
 
 const { supabase } = useSupabase();
+const { mensagem, mostrarMensagem } = useMensagem();
+
 const permissoes = ref([]);
 const epis = ref([]);
 const setores = ref([]);
 const carregando = ref(true);
 const salvandoId = ref(null);
-const mensagem = ref(null);
 
 const ROLES_PERMITIDAS = ['professor', 'aluno'];
 
@@ -23,10 +26,6 @@ const novoSetorNome = ref('');
 const editandoSetorId = ref(null);
 const editandoSetorNome = ref('');
 
-const mostrarMensagem = (tipo, texto) => {
-  mensagem.value = { tipo, texto };
-  setTimeout(() => { mensagem.value = null; }, 3500);
-};
 
 const carregar = async () => {
   carregando.value = true;
@@ -169,13 +168,14 @@ onMounted(carregar);
       </div>
     </header>
 
-    <div v-if="mensagem" :class="['toast', 'toast-' + mensagem.tipo]">{{ mensagem.texto }}</div>
+    <Toast :mensagem="mensagem" />
 
     <section class="cartao">
       <h2 class="cartao-titulo">Setores ({{ setores.length }})</h2>
 
       <form class="form-novo-setor" @submit.prevent="criarSetor">
-        <input v-model="novoSetorNome" type="text" placeholder="Nome do novo setor (ex: Mecatronica)" />
+        <label class="sr-only" for="novo-setor">Nome do novo setor</label>
+        <input id="novo-setor" v-model="novoSetorNome" type="text" placeholder="Nome do novo setor (ex: Mecatrônica)" />
         <button type="submit" class="btn-add" :disabled="!novoSetorNome.trim()">+ Adicionar setor</button>
       </form>
 
@@ -186,6 +186,7 @@ onMounted(carregar);
             <input
               v-model="editandoSetorNome"
               class="input-edit"
+              :aria-label="`Novo nome para o setor ${s.nome}`"
               @keyup.enter="salvarSetor(s)"
             />
             <div class="setor-acoes">
@@ -249,13 +250,14 @@ onMounted(carregar);
       <div v-if="carregando" class="vazio">Carregando…</div>
       <div v-else class="tabela-rolagem">
         <table class="tabela">
+        <caption class="sr-only">Permissões de EPI por função e setor, com limite editável</caption>
         <thead>
           <tr>
-            <th>EPI</th>
-            <th>Role</th>
-            <th>Setor</th>
-            <th>Limite</th>
-            <th></th>
+            <th scope="col">EPI</th>
+            <th scope="col">Função</th>
+            <th scope="col">Setor</th>
+            <th scope="col">Limite</th>
+            <th scope="col"><span class="sr-only">Ações</span></th>
           </tr>
         </thead>
         <tbody>
@@ -264,7 +266,13 @@ onMounted(carregar);
             <td><span class="role-tag">{{ p.role }}</span></td>
             <td>{{ p.setor?.nome || '—' }}</td>
             <td>
-              <input class="input-limite" v-model.number="p.limite" type="number" min="0" />
+              <input
+                class="input-limite"
+                v-model.number="p.limite"
+                type="number"
+                min="0"
+                :aria-label="`Limite de ${p.epi?.nome || 'EPI'} para ${p.role} em ${p.setor?.nome || 'setor'}`"
+              />
             </td>
             <td class="acoes">
               <button type="button" class="btn-salvar" :disabled="salvandoId === p.id" @click="salvarLimite(p)">
@@ -293,7 +301,6 @@ onMounted(carregar);
   min-height: 100vh;
   color: var(--texto-forte);
   padding: 2rem 3rem;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .cabecalho { margin-bottom: 2rem; }
@@ -416,17 +423,11 @@ onMounted(carregar);
 
 .vazio { text-align: center; color: var(--texto-suave); padding: 2rem; }
 
-.toast {
-  position: fixed;
-  top: 1.5rem;
-  right: 1.5rem;
-  padding: 0.85rem 1.3rem;
-  border-radius: 0.6rem;
-  font-weight: 600;
-  z-index: 999;
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; border: 0;
 }
-.toast-sucesso { background: color-mix(in srgb, var(--ok) 15%, transparent); border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok); }
-.toast-erro { background: color-mix(in srgb, var(--perigo) 15%, transparent); border: 1px solid color-mix(in srgb, var(--perigo) 40%, transparent); color: var(--perigo); }
 
 @media (max-width: 900px) {
   .grade-form { grid-template-columns: 1fr 1fr; }

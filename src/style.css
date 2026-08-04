@@ -34,6 +34,13 @@
 
   --raio: 12px;
   --raio-sm: 8px;
+  --raio-pill: 999px;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* a home tem navbar fixa; sem isto o link de âncora esconde o próprio título */
+  scroll-padding-top: 5.5rem;
 }
 
 * {
@@ -57,7 +64,27 @@ body {
   border-radius: 3px;
 }
 
-/* Quem pediu menos movimento recebe a mudança de estado, não a viagem até ela. */
+/* Pula a navegação lateral. Só aparece quando recebe foco pelo teclado. */
+.pular-para-conteudo {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.75rem;
+  z-index: 2000;
+  padding: 0.7rem 1.1rem;
+  background: var(--marca);
+  color: var(--marca-texto);
+  border-radius: var(--raio-sm);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(-150%);
+  transition: transform 0.15s;
+}
+.pular-para-conteudo:focus-visible { transform: none; }
+
+/* Quem pediu menos movimento recebe a mudança de estado, não a viagem até ela:
+   nada percorre distância, mas o fade de 1 quadro fica — é ele que avisa que
+   algo novo entrou na tela (toast, modal, painel expandido). */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -65,6 +92,19 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
+  html { scroll-behavior: auto; }
+
+  .toast,
+  .modal,
+  .overlay,
+  [class*="entra"] {
+    animation-duration: 120ms !important;
+    animation-name: aparece-sem-movimento !important;
+  }
+}
+
+@keyframes aparece-sem-movimento {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }

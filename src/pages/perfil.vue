@@ -1,8 +1,11 @@
 <script setup>
 import { ref, reactive, watch, onMounted } from 'vue';
 import { useSupabase } from '@/composables/useSupabase';
+import { useMensagem } from '@/composables/mensagem';
+import Toast from '@/components/Toast.vue';
 
 const { supabase, perfil, session, recarregarPerfil } = useSupabase();
+const { mensagem, mostrarMensagem } = useMensagem();
 
 const form = reactive({ nome: '', email: '', cpf: '' });
 const avatarUrl = ref(null);
@@ -10,12 +13,6 @@ const arquivo = ref(null);
 const previewLocal = ref(null);
 const salvando = ref(false);
 const enviandoFoto = ref(false);
-const mensagem = ref(null);
-
-const mostrarMensagem = (tipo, texto, ms = 4000) => {
-  mensagem.value = { tipo, texto };
-  setTimeout(() => { mensagem.value = null; }, ms);
-};
 
 const preencher = () => {
   if (!perfil.value) return;
@@ -127,7 +124,7 @@ const iniciais = (nome) =>
       </div>
     </header>
 
-    <div v-if="mensagem" :class="['toast', 'toast-' + mensagem.tipo]">{{ mensagem.texto }}</div>
+    <Toast :mensagem="mensagem" />
 
     <div class="grade">
       <section class="cartao cartao-foto">
@@ -191,7 +188,6 @@ const iniciais = (nome) =>
   min-height: 100vh;
   color: var(--texto-forte);
   padding: 2rem 3rem 3rem;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   box-sizing: border-box;
   width: 100%;
 }
@@ -255,12 +251,6 @@ const iniciais = (nome) =>
 .btn-salvar:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-largo { width: 100%; margin-top: 0.4rem; padding: 0.8rem; }
 
-.toast {
-  position: fixed; top: 1.5rem; right: 1.5rem; z-index: 999;
-  padding: 0.85rem 1.3rem; border-radius: 0.6rem; font-weight: 600; max-width: 420px;
-}
-.toast-sucesso { background: color-mix(in srgb, var(--ok) 15%, transparent); border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok); }
-.toast-erro    { background: color-mix(in srgb, var(--perigo) 15%, transparent); border: 1px solid color-mix(in srgb, var(--perigo) 40%, transparent); color: var(--perigo); }
 
 @media (max-width: 760px) {
   .pagina { padding: 1.5rem 1.2rem 2rem; }

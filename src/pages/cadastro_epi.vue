@@ -1,34 +1,32 @@
 <script setup>
-import { reactive, ref, onMounted, onUnmounted } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
 import { useSupabase } from '@/composables/useSupabase';
 import { useRouter } from 'vue-router';
+import { useMensagem } from '@/composables/mensagem';
+import { isoParaBr, brParaIso, formatarData, aplicarMascaraData } from '@/composables/datas';
+import Toast from '@/components/Toast.vue';
+import Modal from '@/components/Modal.vue';
+import MultiSelect from '@/components/MultiSelect.vue';
 
 const { supabase } = useSupabase();
-const epis = ref([]);
-const editandoId = ref(null);
-const funcionarios = ref([]);
-const setorAberto = ref(false);
-const modalAberto = ref(false);
-const form = reactive({
-  nome: '',
-  setor: [],
-  fabricante: '',
-  custo: '',
-  numero_ca: '',
-  data_validade: '',
-  estoque: '',
-  estoque_minimo: '',
-  descricao: '',
-});
-
+const { mensagem, mostrarMensagem } = useMensagem();
 const router = useRouter();
 
-const mensagem = ref(null);
+const epis = ref([]);
+const setores = ref([]);
+const editandoId = ref(null);
+const modalAberto = ref(false);
+const enviando = ref(false);
 
 const imagemArquivo = ref(null);
 const imagemPreview = ref(null);
 const imagemExistente = ref(null);
-const enviando = ref(false);
+
+const VAZIO = {
+  nome: '', setor: [], fabricante: '', custo: '', numero_ca: '',
+  data_validade: '', estoque: '', estoque_minimo: '', descricao: '',
+};
+const form = reactive({ ...VAZIO });
 
 const selecionarImagem = (e) => {
   const f = e.target.files?.[0];
@@ -55,59 +53,30 @@ async function uploadImagem() {
   if (!imagemArquivo.value) return imagemExistente.value || null;
   const ext = imagemArquivo.value.name.split('.').pop().toLowerCase();
   const caminho = `${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase.storage
-    .from('epis')
-    .upload(caminho, imagemArquivo.value, { upsert: false });
+  const { error } = await supabase.storage.from('epis').upload(caminho, imagemArquivo.value, { upsert: false });
   if (error) throw error;
   const { data } = supabase.storage.from('epis').getPublicUrl(caminho);
   return data.publicUrl;
 }
-
-const isoParaBr = (iso) => {
-  if (!iso) return '';
-  const [a, m, d] = String(iso).split('T')[0].split('-');
-  return a && m && d ? `${d}/${m}/${a}` : '';
-};
-const brParaIso = (br) => {
-  if (!br) return null;
-  const m = String(br).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!m) return null;
-  return `${m[3]}-${m[2]}-${m[1]}`;
-};
-const aplicarMascaraData = (e) => {
-  let v = e.target.value.replace(/\D/g, '').slice(0, 8);
-  if (v.length >= 5) v = `${v.slice(0,2)}/${v.slice(2,4)}/${v.slice(4)}`;
-  else if (v.length >= 3) v = `${v.slice(0,2)}/${v.slice(2)}`;
-  e.target.value = v;
-  form.data_validade = v;
-};
-
-const mostrarMensagem = (tipo, texto) => {
-  mensagem.value = { tipo, texto };
-  setTimeout(() => { mensagem.value = null; }, 4000);
-};
 
 const carregar = async () => {
   const { data } = await supabase.from('epis').select('*').order('nome');
   epis.value = data || [];
 };
 
-const salvar = async () => {
-  if (!form.nome.trim()) { mostrarMensagem('erro', 'Informe o nome do EPI.'); return; }
-  if (form.data_validade && !brParaIso(form.data_validade)) {
-    mostrarMensagem('erro', 'Data de validade inválida (use DD/MM/AAAA).'); return;
-  }
-  enviando.value = true;
+const carregarSetores = async () => {
+  const { data, error } = await supabase.from('setores').select('nome').order('nome');
+  if (error) console.error(error);
+  setores.value = (data || []).map(s => s.nome);
+};
 
-  let imagemUrl;
-  try {
-    imagemUrl = await uploadImagem();
-  } catch (e) {
-    enviando.value = false;
-    mostrarMensagem('erro', 'Erro ao enviar a imagem: ' + e.message);
-    return;
-  }
+onMounted(() => {
+  carregar();
+  carregarSetores();
+});
 
+const montarPayload = async () => {
+  const imagemUrl = await uploadImagem();
   const payload = {
     ...form,
     setor: (form.setor || []).join(', '),
@@ -118,38 +87,38 @@ const salvar = async () => {
     data_validade: brParaIso(form.data_validade),
   };
   if (imagemUrl) payload.imagem = imagemUrl;
+  return payload;
+};
 
-  if (editandoId.value) {
-    const { error } = await supabase.from('epis').update(payload).eq('id', editandoId.value);
-    if (error) {
-      enviando.value = false;
-      mostrarMensagem('erro', 'Erro ao atualizar o cadastro: ' + error.message);
-      return;
-    }
-    mostrarMensagem('sucesso', 'EPI atualizado com sucesso!');
-  } else {
-    const { error } = await supabase.from('epis').insert(payload);
-    if (error) {
-      enviando.value = false;
-      mostrarMensagem('erro', 'Erro ao cadastrar o EPI: ' + error.message);
-      return;
-    }
-    mostrarMensagem('sucesso', 'EPI cadastrado com sucesso!');
+const salvar = async () => {
+  if (!form.nome.trim()) { mostrarMensagem('erro', 'Informe o nome do EPI.'); return; }
+  if (form.data_validade && !brParaIso(form.data_validade)) {
+    mostrarMensagem('erro', 'Data de validade inválida (use DD/MM/AAAA).'); return;
   }
+  enviando.value = true;
+
+  let payload;
+  try {
+    payload = await montarPayload();
+  } catch (e) {
+    enviando.value = false;
+    mostrarMensagem('erro', 'Erro ao enviar a imagem: ' + e.message);
+    return;
+  }
+
+  const { error } = editandoId.value
+    ? await supabase.from('epis').update(payload).eq('id', editandoId.value)
+    : await supabase.from('epis').insert(payload);
+
   enviando.value = false;
-  cancelarEdicao();
+  if (error) {
+    mostrarMensagem('erro', `Erro ao ${editandoId.value ? 'atualizar' : 'cadastrar'}: ${error.message}`);
+    return;
+  }
+
+  mostrarMensagem('sucesso', editandoId.value ? 'EPI atualizado com sucesso!' : 'EPI cadastrado com sucesso!');
+  limpar();
   carregar();
-};
-
-const toggleSetor = (nome) => {
-  const idx = form.setor.indexOf(nome);
-  if (idx >= 0) form.setor.splice(idx, 1);
-  else form.setor.push(nome);
-};
-
-const setoresUnicos = () => {
-  const nomes = (funcionarios.value || []).map(f => f.setor).filter(Boolean);
-  return [...new Set(nomes)];
 };
 
 const iniciarEdicao = (epi) => {
@@ -171,55 +140,22 @@ const iniciarEdicao = (epi) => {
   modalAberto.value = true;
 };
 
-const aoTeclar = (e) => {
-  if (e.key === 'Escape' && modalAberto.value) cancelarEdicao();
-};
-onUnmounted(() => window.removeEventListener('keydown', aoTeclar));
-
-const cancelarEdicao = () => {
+const limpar = () => {
   modalAberto.value = false;
   editandoId.value = null;
-  Object.assign(form, {
-   nome: '',
-   setor: [],
-   fabricante: '',
-   custo: '',
-   numero_ca: '',
-   data_validade: '',
-   estoque: '',
-   estoque_minimo: '',
-   descricao: '',
-  });
+  Object.assign(form, VAZIO);
   removerImagem();
 };
-
-const voltar = () => {
-  router.back();
-};
-
-const carregarSetor = async () => {
-  const { data, error } = await supabase
-    .from('setores')
-    .select('id, nome')
-    .order('nome');
-  if (error) console.error(error);
-  funcionarios.value = (data || []).map(s => ({ id: s.id, setor: s.nome }));
-};
-
-onMounted(() => {
-  window.addEventListener('keydown', aoTeclar);
-  carregar();
-  carregarSetor();
-});
 </script>
 
 <template>
   <div class="pagina-cadastro">
+    <Toast :mensagem="mensagem" />
 
     <header class="cabecalho">
       <div class="cabecalho-texto">
         <p class="caminho">
-          Estoque &amp; EPIs <span class="separador">›</span>
+          Estoque &amp; EPIs <span class="separador" aria-hidden="true">›</span>
           <span class="caminho-atual">Cadastro de EPI</span>
         </p>
         <h1 class="titulo-pagina">Novo <span class="titulo-destaque">EPI</span></h1>
@@ -227,167 +163,116 @@ onMounted(() => {
       </div>
 
       <div class="botoes-acao">
-        <button type="button" class="botao botao-cancelar" @click="voltar">Cancelar</button>
-        <button type="button" class="botao botao-salvar" :disabled="enviando" @click="salvar">
+        <button type="button" class="botao botao-cancelar" @click="router.back()">Cancelar</button>
+        <button type="submit" form="form-epi" class="botao botao-salvar" :disabled="enviando">
           {{ enviando ? 'Salvando…' : 'Salvar Cadastro' }}
         </button>
       </div>
     </header>
 
-    <div v-if="mensagem" :class="['toast', 'toast-' + mensagem.tipo]">
-      {{ mensagem.texto }}
-    </div>
-
-    <form class="grade-principal" @submit.prevent="salvar">
-
+    <form id="form-epi" class="grade-principal" @submit.prevent="salvar">
       <div class="coluna-esquerda">
-
         <section class="cartao">
-          <div class="cartao-cabecalho">
-<h2>Informações Básicas</h2>
-          </div>
+          <h2 class="cartao-titulo">Informações Básicas</h2>
 
           <div class="grade-campos">
             <div class="campo">
-              <label for="nome">Nome do EPI</label>
-              <input id="nome" v-model="form.nome" type="text" placeholder="Ex: Bota bico de ferro">
+              <label for="cad-nome">Nome do EPI</label>
+              <input id="cad-nome" v-model="form.nome" type="text" placeholder="Ex: Bota bico de ferro" />
             </div>
 
-            <div class="campo">
-              <label for="setor">Setores de uso</label>
-              <div class="multi-select" :class="{ aberto: setorAberto }">
-                <button
-                  type="button"
-                  class="multi-select-trigger"
-                  @click="setorAberto = !setorAberto"
-                >
-                  <span v-if="form.setor.length === 0" class="ms-placeholder">
-                    Selecione um ou mais setores
-                  </span>
-                  <span v-else class="ms-tags">
-                    <span class="ms-tag" v-for="s in form.setor" :key="s">
-                      {{ s }}
-                      <button type="button" class="ms-tag-x" @click.stop="toggleSetor(s)" :aria-label="`Remover setor ${s}`">×</button>
-                    </span>
-                  </span>
-                  <span class="ms-seta">▾</span>
-                </button>
-
-                <div v-if="setorAberto" class="multi-select-menu">
-                  <label
-                    v-for="nome in setoresUnicos()"
-                    :key="nome"
-                    class="ms-opcao"
-                  >
-                    <input
-                      type="checkbox"
-                      :value="nome"
-                      v-model="form.setor"
-                    />
-                    <span>{{ nome }}</span>
-                  </label>
-                  <p v-if="setoresUnicos().length === 0" class="ms-vazio">
-                    Nenhum setor cadastrado.
-                  </p>
-                </div>
-              </div>
-            </div>
+            <MultiSelect
+              v-model="form.setor"
+              :opcoes="setores"
+              rotulo="Setores de uso"
+              placeholder="Selecione um ou mais setores"
+              vazio="Nenhum setor cadastrado."
+            />
 
             <div class="campo">
               <label for="cad-fabricante">Fabricante</label>
-              <input id="cad-fabricante" v-model="form.fabricante" type="text" placeholder="Ex: MSA Safety">
+              <input id="cad-fabricante" v-model="form.fabricante" type="text" placeholder="Ex: MSA Safety" />
             </div>
 
             <div class="campo">
-              <label for="cad-custo">Custo</label>
-              <input id="cad-custo" v-model="form.custo" type="text" placeholder="Ex: 123456">
-            </div>
-          </div>
-        </section>
-
-        <section class="cartao">
-          <div class="cartao-cabecalho">
-<h2>Certificado de Aprovação (CA)</h2>
-          </div>
-
-          <div class="grade-campos">
-            <div class="campo">
-              <label for="numero_ca">Número do CA</label>
-              <div class="input-com-icone">
-                <span class="prefixo">#</span>
-                <input v-model="form.numero_ca" type="number" placeholder="00000">
-              </div>
-            </div>
-
-            <div class="campo">
-              <label for="data_validade">Data de Validade</label>
-              <div class="input-com-icone">
-                <span class="prefixo">
-                </span>
-                <input :value="form.data_validade" @input="aplicarMascaraData" type="text" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric">
-              </div>
+              <label for="cad-custo">Custo unitário</label>
+              <input id="cad-custo" v-model="form.custo" type="text" inputmode="decimal" placeholder="Ex: 129,90" />
             </div>
           </div>
         </section>
 
         <section class="cartao">
-          <div class="cartao-cabecalho">
-<h2>Controle de Estoque</h2>
-          </div>
+          <h2 class="cartao-titulo">Certificado de Aprovação (CA)</h2>
 
           <div class="grade-campos">
             <div class="campo">
-              <label for="estoque">Quantidade a adicionar ao estoque</label>
-              <input id="estoque" v-model="form.estoque" type="number" placeholder="0">
+              <!-- Estes três rótulos apontavam para ids que não existiam: o
+                   clique não focava nada e o leitor de tela lia campo sem nome. -->
+              <label for="cad-numero-ca">Número do CA</label>
+              <input id="cad-numero-ca" v-model="form.numero_ca" type="number" placeholder="00000" />
             </div>
 
             <div class="campo">
-              <label for="estoque_minimo">Estoque Minimo</label>
-              <div class="select-wrapper">
-                <input id = "estoque_minimo" v-model="form.estoque_minimo" type="number" default ="0">
-              </div>
+              <label for="cad-validade">Data de Validade</label>
+              <input
+                id="cad-validade"
+                :value="form.data_validade"
+                @input="aplicarMascaraData($event, form, 'data_validade')"
+                type="text" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section class="cartao">
+          <h2 class="cartao-titulo">Controle de Estoque</h2>
+
+          <div class="grade-campos">
+            <div class="campo">
+              <label for="cad-estoque">Quantidade inicial</label>
+              <input id="cad-estoque" v-model="form.estoque" type="number" min="0" placeholder="0" />
+            </div>
+
+            <div class="campo">
+              <label for="cad-estoque-minimo">Estoque mínimo</label>
+              <input id="cad-estoque-minimo" v-model="form.estoque_minimo" type="number" min="0" placeholder="0" />
+              <p class="campo-ajuda">Abaixo disso o EPI aparece como “estoque baixo”.</p>
             </div>
           </div>
         </section>
       </div>
 
       <aside class="coluna-direita">
-
         <section class="cartao">
-          <h2 class="titulo-lateral">Imagem do Produto</h2>
+          <h2 class="cartao-titulo">Imagem do Produto</h2>
 
           <div v-if="imagemPreview || imagemExistente" class="preview-imagem">
             <img :src="imagemPreview || imagemExistente" alt="Pré-visualização do EPI" />
             <div class="preview-acoes">
               <label class="btn-trocar">
                 Trocar
-                <input type="file" accept="image/png, image/jpeg, image/svg+xml, image/webp" hidden @change="selecionarImagem">
+                <input type="file" accept="image/png, image/jpeg, image/webp" hidden @change="selecionarImagem" />
               </label>
               <button type="button" class="btn-remover" @click="removerImagem">Remover</button>
             </div>
           </div>
 
           <label v-else class="area-upload">
-            <p class="upload-titulo">Clique para enviar</p>
-            <p class="upload-sub">ou arraste e solte</p>
-            <p class="upload-formatos">PNG, JPG ou WEBP (Max. 5MB)</p>
-            <input type="file" accept="image/png, image/jpeg, image/svg+xml, image/webp" hidden @change="selecionarImagem">
+            <span class="upload-titulo">Clique para enviar</span>
+            <span class="upload-sub">ou arraste e solte</span>
+            <span class="upload-formatos">PNG, JPG ou WEBP (máx. 5 MB)</span>
+            <input type="file" accept="image/png, image/jpeg, image/webp" hidden @change="selecionarImagem" />
           </label>
         </section>
-      
-    
-    
-      
-        <section class = "cartao">
+
+        <section class="cartao">
+          <h2 class="cartao-titulo">Descrição</h2>
           <div class="campo">
-            <h2 class ="titulo-lateral">Descrição</h2>
-            <label for="descricao">insira a descrição do Produto</label>
-            <div class="select-wrapper">
-            <textarea id="descricao" v-model="form.descricao" placeholder="Descreva o epi" rows="5" maxlength="200"></textarea>
-            <span class="contador" :class="{ 'contador-limite': form.descricao.length >= 200 }">
+            <label for="cad-descricao">Descreva o equipamento</label>
+            <textarea id="cad-descricao" v-model="form.descricao" placeholder="Material, tamanhos disponíveis, cuidados de uso…" rows="5" maxlength="200"></textarea>
+            <p class="contador" :class="{ 'contador-limite': form.descricao.length >= 200 }">
               {{ form.descricao.length }}/200
-            </span>
-            </div>
+            </p>
           </div>
         </section>
       </aside>
@@ -395,849 +280,340 @@ onMounted(() => {
 
     <section class="cartao lista-epis">
       <div class="cartao-cabecalho">
-        <h2>EPIs cadastrados</h2>
+        <h2 class="cartao-titulo">EPIs cadastrados</h2>
+        <span class="contagem">{{ epis.length }}</span>
       </div>
-      <div v-if="epis.length === 0" class="vazio-lista">Nenhum EPI cadastrado ainda.</div>
+
+      <p v-if="epis.length === 0" class="vazio-lista">Nenhum EPI cadastrado ainda. O primeiro que você salvar aparece aqui.</p>
+
       <div v-else class="tabela-rolagem">
         <table class="tabela-epis">
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Setor</th>
-            <th>Fabricante</th>
-            <th>CA</th>
-            <th>Estoque</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="epi in epis" :key="epi.id">
-            <td>{{ epi.nome }}</td>
-            <td class="muted">{{ epi.setor }}</td>
-            <td class="muted">{{ epi.fabricante }}</td>
-            <td class="muted">{{ epi.numero_ca }}</td>
-            <td class="muted">{{ epi.estoque }}</td>
-            <td><button type="button" class="btn-editar" @click="iniciarEdicao(epi)">Editar</button></td>
-          </tr>
-        </tbody>
-      </table>
+          <caption class="sr-only">Lista de EPIs cadastrados, com ação de editar</caption>
+          <thead>
+            <tr>
+              <th scope="col">Nome</th>
+              <th scope="col">Setor</th>
+              <th scope="col">Fabricante</th>
+              <th scope="col">CA</th>
+              <th scope="col">Validade</th>
+              <th scope="col">Estoque</th>
+              <th scope="col"><span class="sr-only">Ações</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="epi in epis" :key="epi.id">
+              <td>{{ epi.nome }}</td>
+              <td class="muted">{{ epi.setor || '—' }}</td>
+              <td class="muted">{{ epi.fabricante || '—' }}</td>
+              <td class="muted">{{ epi.numero_ca || '—' }}</td>
+              <td class="muted">{{ formatarData(epi.data_validade) }}</td>
+              <td class="muted">{{ epi.estoque ?? '—' }}</td>
+              <td>
+                <button type="button" class="btn-editar" @click="iniciarEdicao(epi)">
+                  Editar<span class="sr-only"> {{ epi.nome }}</span>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
-    <div v-if="modalAberto" class="modal-overlay" role="dialog" aria-modal="true" @click.self="cancelarEdicao">
-      <div class="modal">
-        <header class="modal-cabecalho">
-          <h2>Editar <span class="titulo-destaque">EPI</span></h2>
-          <button type="button" class="modal-fechar" @click="cancelarEdicao">×</button>
-        </header>
+    <Modal v-if="modalAberto" titulo="Editar EPI" @fechar="limpar">
+      <template #titulo>Editar <span class="titulo-destaque">EPI</span></template>
 
-        <form class="modal-corpo" @submit.prevent="salvar">
-          <div class="modal-grade">
-            <div class="campo">
-              <label for="cad-nome-do-epi">Nome do EPI</label>
-              <input id="cad-nome-do-epi" v-model="form.nome" type="text" />
-            </div>
-
-            <div class="campo">
-              <span class="rotulo-grupo">Setores de uso</span>
-              <div class="multi-select" :class="{ aberto: setorAberto }">
-                <button type="button" class="multi-select-trigger" @click="setorAberto = !setorAberto">
-                  <span v-if="form.setor.length === 0" class="ms-placeholder">Selecione um ou mais setores</span>
-                  <span v-else class="ms-tags">
-                    <span class="ms-tag" v-for="s in form.setor" :key="s">
-                      {{ s }}
-                      <button type="button" class="ms-tag-x" @click.stop="toggleSetor(s)" :aria-label="`Remover setor ${s}`">×</button>
-                    </span>
-                  </span>
-                  <span class="ms-seta">▾</span>
-                </button>
-                <div v-if="setorAberto" class="multi-select-menu">
-                  <label v-for="nome in setoresUnicos()" :key="nome" class="ms-opcao">
-                    <input type="checkbox" :value="nome" v-model="form.setor" />
-                    <span>{{ nome }}</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div class="campo">
-              <label for="cad-fabricante-2">Fabricante</label>
-              <input id="cad-fabricante-2" v-model="form.fabricante" type="text" />
-            </div>
-
-            <div class="campo">
-              <label for="cad-custo-2">Custo</label>
-              <input id="cad-custo-2" v-model="form.custo" type="text" />
-            </div>
-
-            <div class="campo">
-              <label for="cad-numero-do-ca">Número do CA</label>
-              <input id="cad-numero-do-ca" v-model="form.numero_ca" type="number" />
-            </div>
-
-            <div class="campo">
-              <label for="cad-data-de-validade">Data de Validade</label>
-              <input id="cad-data-de-validade" :value="form.data_validade" @input="aplicarMascaraData" type="text" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" />
-            </div>
-
-            <div class="campo">
-              <label for="cad-estoque">Estoque</label>
-              <input id="cad-estoque" v-model="form.estoque" type="number" />
-            </div>
-
-            <div class="campo">
-              <label for="cad-estoque-minimo">Estoque mínimo</label>
-              <input id="cad-estoque-minimo" v-model="form.estoque_minimo" type="number" />
-            </div>
-
-            <div class="campo campo-largo">
-              <label for="cad-descricao">Descrição</label>
-              <textarea id="cad-descricao" v-model="form.descricao" rows="3" maxlength="200"></textarea>
-            </div>
-
-            <div class="campo campo-largo">
-              <span class="rotulo-grupo">Imagem</span>
-              <div v-if="imagemPreview || imagemExistente" class="preview-imagem-modal">
-                <img :src="imagemPreview || imagemExistente" alt="Imagem do EPI" />
-                <div class="preview-acoes">
-                  <label class="btn-trocar">
-                    Trocar
-                    <input type="file" accept="image/png, image/jpeg, image/webp" hidden @change="selecionarImagem" />
-                  </label>
-                  <button type="button" class="btn-remover" @click="removerImagem">Remover</button>
-                </div>
-              </div>
-              <label v-else class="area-upload area-upload-modal">
-                <p class="upload-titulo">Clique para enviar imagem</p>
-                <input type="file" accept="image/png, image/jpeg, image/webp" hidden @change="selecionarImagem" />
-              </label>
-            </div>
+      <form class="modal-corpo" @submit.prevent="salvar">
+        <div class="modal-grade">
+          <div class="campo">
+            <label for="mod-nome">Nome do EPI</label>
+            <input id="mod-nome" v-model="form.nome" type="text" />
           </div>
 
-          <footer class="modal-rodape">
-            <button type="button" class="botao botao-cancelar" @click="cancelarEdicao">Cancelar</button>
-            <button type="submit" class="botao botao-salvar" :disabled="enviando">
-              {{ enviando ? 'Salvando…' : 'Salvar alterações' }}
-            </button>
-          </footer>
-        </form>
-      </div>
-    </div>
+          <MultiSelect
+            v-model="form.setor"
+            :opcoes="setores"
+            rotulo="Setores de uso"
+            placeholder="Selecione um ou mais setores"
+            vazio="Nenhum setor cadastrado."
+          />
 
-    <footer class="rodape">
-      <div class="rodape-marca">
-        <span class="logo-nome">
-          <img src="@/assets/Logo_branco.svg" alt="OmniSeg" class="logo-icone" />
-          Omni<span class="logo-destaque">Seg</span>
-        </span>
-        <p>Plataforma Focada em gestão de EPIs e segurança do trabalho. Tecnologia que salva vidas.</p>
-      </div>
+          <div class="campo">
+            <label for="mod-fabricante">Fabricante</label>
+            <input id="mod-fabricante" v-model="form.fabricante" type="text" />
+          </div>
 
-      <div class="rodape-coluna">
-        <h4>Produto</h4>
-        <a href="#">Funcionalidades</a>
-        <a href="#">Integrações</a>
-        <a href="#">Preços</a>
-        <a href="#">Atualizações</a>
-      </div>
+          <div class="campo">
+            <label for="mod-custo">Custo</label>
+            <input id="mod-custo" v-model="form.custo" type="text" inputmode="decimal" />
+          </div>
 
-      <div class="rodape-coluna">
-        <h4>Empresa</h4>
-        <a href="#">Sobre Nós</a>
-        <a href="#">Carreiras</a>
-        <a href="#">Blog</a>
-        <a href="#">Contato</a>
-      </div>
+          <div class="campo">
+            <label for="mod-ca">Número do CA</label>
+            <input id="mod-ca" v-model="form.numero_ca" type="number" />
+          </div>
 
-      <div class="rodape-coluna">
-        <h4>Legal</h4>
-        <a href="#">Privacidade</a>
-        <a href="#">Termos de Uso</a>
-        <a href="#">Segurança</a>
-      </div>
-    </footer>
+          <div class="campo">
+            <label for="mod-validade">Data de Validade</label>
+            <input
+              id="mod-validade"
+              :value="form.data_validade"
+              @input="aplicarMascaraData($event, form, 'data_validade')"
+              type="text" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric"
+            />
+          </div>
+
+          <div class="campo">
+            <label for="mod-estoque">Estoque</label>
+            <input id="mod-estoque" v-model="form.estoque" type="number" />
+          </div>
+
+          <div class="campo">
+            <label for="mod-estoque-minimo">Estoque mínimo</label>
+            <input id="mod-estoque-minimo" v-model="form.estoque_minimo" type="number" />
+          </div>
+
+          <div class="campo campo-largo">
+            <label for="mod-descricao">Descrição</label>
+            <textarea id="mod-descricao" v-model="form.descricao" rows="3" maxlength="200"></textarea>
+          </div>
+
+          <div class="campo campo-largo">
+            <span class="rotulo-grupo">Imagem</span>
+            <div v-if="imagemPreview || imagemExistente" class="preview-imagem">
+              <img :src="imagemPreview || imagemExistente" alt="Imagem do EPI" />
+              <div class="preview-acoes">
+                <label class="btn-trocar">
+                  Trocar
+                  <input type="file" accept="image/png, image/jpeg, image/webp" hidden @change="selecionarImagem" />
+                </label>
+                <button type="button" class="btn-remover" @click="removerImagem">Remover</button>
+              </div>
+            </div>
+            <label v-else class="area-upload area-upload-compacta">
+              <span class="upload-titulo">Clique para enviar imagem</span>
+              <input type="file" accept="image/png, image/jpeg, image/webp" hidden @change="selecionarImagem" />
+            </label>
+          </div>
+        </div>
+
+        <footer class="modal-rodape">
+          <button type="button" class="botao botao-cancelar" @click="limpar">Cancelar</button>
+          <button type="submit" class="botao botao-salvar" :disabled="enviando">
+            {{ enviando ? 'Salvando…' : 'Salvar alterações' }}
+          </button>
+        </footer>
+      </form>
+    </Modal>
   </div>
 </template>
 
 <style scoped>
-/* tabela larga não pode empurrar a página no celular */
-.tabela-rolagem { overflow-x: auto; }
-.tabela-rolagem table { min-width: 640px; }
-
 .pagina-cadastro {
   background: var(--superficie-alta);
   min-height: 100vh;
+  min-height: 100dvh;
   color: var(--texto-forte);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  box-sizing: border-box;
   width: 100%;
-  padding: 2rem 3rem 0;
-  overflow-x: hidden;
+  padding: 2rem 3rem 3rem;
 }
-.pagina-cadastro *,
-.pagina-cadastro *::before,
-.pagina-cadastro *::after { box-sizing: border-box; }
-.pagina-cadastro .rodape { margin-left: -3rem; margin-right: -3rem; width: calc(100% + 6rem); }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; border: 0;
+}
 
 .cabecalho {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
   gap: 2rem;
 }
 
-.caminho {
-  color: var(--texto-suave);
-  font-size: 0.85rem;
-  margin-bottom: 0.7rem;
-}
+.caminho { color: var(--texto-suave); font-size: 0.85rem; margin-bottom: 0.7rem; }
 .caminho .separador { margin: 0 0.4rem; }
 .caminho-atual { color: var(--texto-forte); }
 
 .titulo-pagina {
-  font-size: 2.6rem;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
   font-weight: 800;
-  color: var(--texto-forte);
   letter-spacing: -0.02em;
   margin-bottom: 0.4rem;
 }
 .titulo-destaque { color: var(--marca); }
+.subtitulo { color: var(--texto-suave); font-size: 0.95rem; }
 
-.subtitulo {
-  color: var(--texto-suave);
-  font-size: 0.95rem;
-}
-
-.botoes-acao {
-  display: flex;
-  gap: 0.7rem;
-  margin-top: 0.5rem;
-}
+.botoes-acao { display: flex; gap: 0.7rem; flex-shrink: 0; margin-top: 0.5rem; }
 
 .botao {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
+  min-height: 2.75rem;
   border: none;
-  padding: 0.65rem 1.2rem;
-  border-radius: 0.55rem;
-  font-size: 0.9rem;
-  font-weight: 600;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--raio-sm);
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-family: inherit;
   cursor: pointer;
-  transition: background 0.2s, opacity 0.2s;
+  white-space: nowrap;
+  transition: background 0.2s;
 }
-.botao-cancelar {
-  background: var(--borda);
-  color: var(--texto-forte);
-  border: 1px solid var(--borda-forte);
-}
+.botao-cancelar { background: var(--borda); color: var(--texto-forte); border: 1px solid var(--borda-forte); }
 .botao-cancelar:hover { background: var(--borda-forte); }
-.botao-salvar {
-  background: var(--marca);
-  color: var(--marca-texto);
-}
-.botao-salvar:hover { background: var(--marca-escura); }
+.botao-salvar { background: var(--marca); color: var(--marca-texto); }
+.botao-salvar:hover:not(:disabled) { background: var(--marca-escura); }
+.botao-salvar:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .grade-principal {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 1.5rem;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  border: 0;
+  display: grid;
+  grid-template-columns: 1fr 22rem;
+  gap: 1.2rem;
+  align-items: start;
+  margin-bottom: 1.5rem;
 }
-
-.coluna-esquerda {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.coluna-direita {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  flex: 0 0 340px;
-  width: 340px;
-  min-width: 0;
-}
-
-.cartao { min-width: 0; width: 100%; }
-
-.cabecalho,
-.rodape { width: 100%; }
+.coluna-esquerda, .coluna-direita { display: flex; flex-direction: column; gap: 1.2rem; }
 
 .cartao {
   background: var(--superficie-elevada);
-  border: 1px solid color-mix(in srgb, var(--texto-forte) 4%, transparent);
-  border-radius: 1rem;
-  padding: 1.5rem 1.6rem;
+  border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
+  border-radius: var(--raio);
+  padding: 1.5rem;
+}
+.cartao-titulo { color: var(--texto-forte); font-size: 1.05rem; font-weight: 700; margin-bottom: 1.2rem; }
+.cartao-cabecalho { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.cartao-cabecalho .cartao-titulo { margin-bottom: 0; }
+.contagem {
+  color: var(--marca); font-size: 0.8rem; font-weight: 700;
+  background: color-mix(in srgb, var(--marca) 10%, transparent);
+  padding: 0.25rem 0.7rem; border-radius: var(--raio-pill);
 }
 
-.cartao-cabecalho {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  margin-bottom: 1.5rem;
-}
-.cartao-cabecalho h2 {
-  color: var(--texto-forte);
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-.icone-cartao {
-  width: 2rem;
-  height: 2rem;
-  background: color-mix(in srgb, var(--marca) 12%, transparent);
-  color: var(--marca);
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+.grade-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.2rem; }
 
-.grade-campos {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.2rem 1.4rem;
-}
-
-.campo {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-.campo label, .campo .rotulo-grupo {
-  color: var(--texto);
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-.campo input,
-.campo select {
+.campo { display: flex; flex-direction: column; gap: 0.4rem; }
+.campo label, .rotulo-grupo { color: var(--texto); font-size: 0.82rem; font-weight: 500; }
+.campo input, .campo textarea {
   background: var(--superficie);
   border: 1px solid var(--borda);
-  border-radius: 0.5rem;
-  padding: 0.75rem 0.9rem;
+  border-radius: var(--raio-sm);
+  padding: 0.7rem 0.85rem;
   color: var(--texto-forte);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
+  font-family: inherit;
   outline: none;
   width: 100%;
   transition: border-color 0.2s;
-  appearance: none;
-  font-family: inherit;
 }
-.campo input::placeholder { color: var(--texto-fraco); }
-.campo input:focus,
-.campo select:focus { border-color: var(--marca); }
+.campo input:focus, .campo textarea:focus { border-color: var(--marca); }
+.campo input::placeholder, .campo textarea::placeholder { color: var(--texto-fraco); }
+.campo textarea { resize: vertical; }
+.campo-ajuda { color: var(--texto-fraco); font-size: 0.75rem; }
 
-.ajuda {
-  color: var(--texto-fraco);
-  font-size: 0.75rem;
+.contador { color: var(--texto-fraco); font-size: 0.75rem; text-align: right; }
+.contador-limite { color: var(--aviso); font-weight: 600; }
+
+.preview-imagem { display: flex; flex-direction: column; gap: 0.6rem; }
+.preview-imagem img {
+  width: 100%; max-height: 200px; object-fit: cover;
+  border-radius: var(--raio-sm); border: 1px solid var(--borda);
 }
+.preview-acoes { display: flex; gap: 0.5rem; }
 
-.multi-select { position: relative; width: 100%; }
-
-.multi-select-trigger {
-  width: 100%;
-  min-height: 2.85rem;
-  background: var(--superficie);
-  border: 1px solid var(--borda);
-  border-radius: 0.5rem;
-  padding: 0.4rem 2.2rem 0.4rem 0.7rem;
-  color: var(--texto-forte);
-  font-size: 0.9rem;
-  text-align: left;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  position: relative;
-  font-family: inherit;
-  transition: border-color 0.2s;
-}
-.multi-select.aberto .multi-select-trigger,
-.multi-select-trigger:hover { border-color: var(--marca); }
-
-.ms-placeholder { color: var(--texto-fraco); font-size: 0.9rem; }
-
-.ms-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
+.btn-trocar, .btn-remover {
   flex: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--raio-sm);
+  font-size: 0.82rem; font-weight: 600; font-family: inherit; cursor: pointer;
 }
-
-.ms-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  background: color-mix(in srgb, var(--marca) 15%, transparent);
-  color: var(--marca);
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 0.2rem 0.5rem;
-  border-radius: 0.4rem;
+.btn-trocar {
+  background: color-mix(in srgb, var(--marca) 12%, transparent); color: var(--marca);
+  border: 1px solid color-mix(in srgb, var(--marca) 40%, transparent);
 }
-.ms-tag-x {
-  cursor: pointer;
-  background: none;
-  border: none;
-  font-size: inherit;
-  color: var(--marca);
-  font-weight: 700;
-  line-height: 1;
-  padding: 0 0.15rem;
-  border-radius: 0.2rem;
+.btn-trocar:hover { background: color-mix(in srgb, var(--marca) 22%, transparent); }
+.btn-remover {
+  background: color-mix(in srgb, var(--perigo) 12%, transparent); color: var(--perigo);
+  border: 1px solid color-mix(in srgb, var(--perigo) 30%, transparent);
 }
-.ms-tag-x:hover { background: color-mix(in srgb, var(--marca) 30%, transparent); }
-
-.ms-seta {
-  position: absolute;
-  right: 0.9rem;
-  color: var(--texto-suave);
-  transition: transform 0.2s;
-}
-.multi-select.aberto .ms-seta { transform: rotate(180deg); }
-
-.multi-select-menu {
-  position: absolute;
-  top: calc(100% + 0.3rem);
-  left: 0;
-  right: 0;
-  background: var(--superficie-alta);
-  border: 1px solid var(--borda);
-  border-radius: 0.5rem;
-  padding: 0.4rem;
-  max-height: 220px;
-  overflow-y: auto;
-  z-index: 50;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-}
-
-.ms-opcao {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.5rem 0.6rem;
-  border-radius: 0.35rem;
-  cursor: pointer;
-  color: var(--texto);
-  font-size: 0.88rem;
-  transition: background 0.15s;
-}
-.ms-opcao:hover { background: color-mix(in srgb, var(--marca) 8%, transparent); }
-.ms-opcao input[type="checkbox"] {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 1.05rem;
-  height: 1.05rem;
-  border: 1.5px solid var(--texto-fraco);
-  border-radius: 0.25rem;
-  background: transparent;
-  cursor: pointer;
-  position: relative;
-  flex-shrink: 0;
-  margin: 0;
-  transition: background 0.15s, border-color 0.15s;
-}
-.ms-opcao input[type="checkbox"]:hover { border-color: var(--marca); }
-.ms-opcao input[type="checkbox"]:checked {
-  background: var(--marca);
-  border-color: var(--marca);
-}
-
-.ms-vazio {
-  padding: 0.6rem;
-  color: var(--texto-suave);
-  font-size: 0.85rem;
-  text-align: center;
-}
-
-.select-wrapper {
-  position: relative;
-}
-.select-wrapper select { padding-right: 2.2rem; color: var(--texto-suave); }
-.icone-seta {
-  position: absolute;
-  right: 0.9rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--texto-suave);
-  pointer-events: none;
-}
-
-.input-com-icone {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.input-com-icone .prefixo {
-  position: absolute;
-  left: 0.85rem;
-  color: var(--texto-suave);
-  display: flex;
-  align-items: center;
-}
-.input-com-icone input {
-  padding-left: 2.2rem;
-}
-
-.titulo-lateral {
-  color: var(--texto-forte);
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 1.2rem;
-}
+.btn-remover:hover { background: color-mix(in srgb, var(--perigo) 22%, transparent); }
 
 .area-upload {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.25rem;
   text-align: center;
+  padding: 2rem 1.2rem;
   border: 2px dashed var(--borda-forte);
-  border-radius: 0.75rem;
-  padding: 2rem 1rem;
-  cursor: pointer;
+  border-radius: var(--raio-sm);
   background: var(--superficie-alta);
-  transition: border-color 0.2s;
+  cursor: pointer;
+  transition: border-color 0.15s;
 }
 .area-upload:hover { border-color: var(--marca); }
+.area-upload-compacta { padding: 1.4rem 1.2rem; }
+.upload-titulo { color: var(--texto-forte); font-size: 0.9rem; font-weight: 600; }
+.upload-sub { color: var(--texto-suave); font-size: 0.82rem; }
+.upload-formatos { color: var(--texto-fraco); font-size: 0.75rem; margin-top: 0.3rem; }
 
-.preview-imagem {
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-}
-.preview-imagem img {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 0.75rem;
-  border: 1px solid var(--borda);
-  background: var(--superficie-alta);
-}
-.preview-acoes {
-  display: flex;
-  gap: 0.6rem;
-}
-.btn-trocar,
-.btn-remover {
-  flex: 1;
-  text-align: center;
-  padding: 0.55rem 0.8rem;
-  border-radius: 0.5rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.btn-trocar {
-  background: color-mix(in srgb, var(--marca) 12%, transparent);
-  color: var(--marca);
-  border: 1px solid color-mix(in srgb, var(--marca) 40%, transparent);
-}
-.btn-trocar:hover { background: color-mix(in srgb, var(--marca) 22%, transparent); }
-.btn-remover {
-  background: color-mix(in srgb, var(--perigo) 12%, transparent);
-  color: var(--perigo);
-  border: 1px solid color-mix(in srgb, var(--perigo) 30%, transparent);
-}
-.btn-remover:hover { background: color-mix(in srgb, var(--perigo) 22%, transparent); }
-
-.botao-salvar:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.icone-upload {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 50%;
-  background: var(--borda);
-  color: var(--texto);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 0.9rem;
-}
-.upload-titulo {
-  color: var(--texto-forte);
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-.upload-sub {
-  color: var(--texto-suave);
-  font-size: 0.8rem;
-  margin-top: 0.2rem;
-}
-.upload-formatos {
-  color: var(--texto-fraco);
-  font-size: 0.75rem;
-  margin-top: 1rem;
-}
-
-.cartao-dica {
-  background: color-mix(in srgb, var(--marca) 6%, transparent);
-  border: 1px solid color-mix(in srgb, var(--marca) 35%, transparent);
-  border-radius: 1rem;
-  padding: 1.2rem 1.3rem;
-}
-.dica-cabecalho {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.6rem;
-}
-.dica-cabecalho h3 {
-  color: var(--texto-forte);
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-.cartao-dica p {
-  color: var(--texto);
-  font-size: 0.82rem;
-  line-height: 1.6;
-}
-
-.rodape {
-  margin-top: 4rem;
-  padding: 3rem 4rem 2rem;
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 3rem;
-  border-top: 1px solid var(--borda);
-  background: var(--superficie-alta);
-  width: 100%;
-}
-
-.rodape-marca .logo-nome {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--texto-forte);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 0.8rem;
-}
-.logo-icone {
-  width: 1.5rem;
-  height: 1.5rem;
-  object-fit: contain;
-  vertical-align: middle;
-}
-.logo-destaque { color: var(--marca); }
-
-.rodape-marca p {
-  color: var(--texto-fraco);
-  font-size: 0.82rem;
-  line-height: 1.7;
-  margin-top: 0.5rem;
-}
-
-.rodape-coluna h4 {
-  color: var(--texto-forte);
-  font-size: 0.9rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
-}
-.rodape-coluna a {
-  display: block;
-  color: var(--texto-fraco);
-  text-decoration: none;
-  font-size: 0.82rem;
-  margin-bottom: 0.55rem;
-  transition: color 0.2s;
-}
-.rodape-coluna a:hover { color: var(--marca); }
-
-.rodape-redes {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: flex-end;
-  gap: 1.2rem;
-  color: var(--texto-fraco);
-  padding-top: 1rem;
-  border-top: 1px solid var(--borda);
-}
-.rodape-redes a {
-  color: var(--texto-fraco);
-  transition: color 0.2s;
-}
-.rodape-redes a:hover { color: var(--marca); }
-
-.campo textarea { 
-  background: var(--superficie);
-  border: 1px solid var(--borda);
-  border-radius: 0.5rem;
-  padding: 0.75rem 0.9rem;
-  color: var(--texto-forte);
-  font-size: 0.9rem;
-  outline: none;
-  width: 100%;
-  transition: border-color 0.2s;
-  appearance: none;
-  font-family: inherit;
-  resize: none;
-}
-
-.toast {
-  position: fixed;
-  top: 1.5rem;
-  right: 1.5rem;
-  z-index: 999;
-  padding: 0.85rem 1.3rem;
-  border-radius: 0.6rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  animation: fadeIn 0.2s ease;
-}
-.toast-sucesso {
-  background: color-mix(in srgb, var(--ok) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent);
-  color: var(--ok);
-}
-.toast-erro {
-  background: color-mix(in srgb, var(--perigo) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--perigo) 40%, transparent);
-  color: var(--perigo);
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.contador {
-  display: block;
-  text-align: right;
-  font-size: 0.75rem;
-  color: var(--texto-fraco);
-  margin-top: 0.3rem;
-}
-.contador-limite {
-  color: var(--perigo);
-}
-
-.lista-epis { margin-top: 1.5rem; }
-.lista-epis .cartao-cabecalho { margin-bottom: 1rem; }
-.tabela-epis { width: 100%; border-collapse: collapse; }
+/* tabela larga não pode empurrar a página no celular */
+.tabela-rolagem { overflow-x: auto; }
+.tabela-epis { width: 100%; min-width: 640px; border-collapse: collapse; }
 .tabela-epis th, .tabela-epis td {
   text-align: left;
-  padding: 0.75rem 0.8rem;
+  padding: 0.7rem 0.8rem;
   border-bottom: 1px solid var(--borda);
-  font-size: 0.88rem;
+  font-size: 0.86rem;
 }
 .tabela-epis th {
   color: var(--texto-suave);
-  font-weight: 600;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
 }
-.tabela-epis .muted { color: var(--texto-suave); }
-.vazio-lista { color: var(--texto-suave); padding: 1rem; text-align: center; }
+.tabela-epis td { color: var(--texto-forte); }
+.tabela-epis td.muted { color: var(--texto-suave); }
+.tabela-epis tbody tr:last-child td { border-bottom: none; }
+.tabela-epis tbody tr:hover { background: color-mix(in srgb, var(--marca) 5%, transparent); }
 
 .btn-editar {
+  min-height: 2.4rem;
   background: color-mix(in srgb, var(--marca) 12%, transparent);
   color: var(--marca);
-  border: 1px solid color-mix(in srgb, var(--marca) 40%, transparent);
-  padding: 0.45rem 0.9rem;
-  border-radius: 0.45rem;
-  font-weight: 600;
-  font-size: 0.82rem;
-  cursor: pointer;
-  font-family: inherit;
+  border: none;
+  border-radius: var(--raio-sm);
+  padding: 0.4rem 0.9rem;
+  font-size: 0.8rem; font-weight: 600; font-family: inherit; cursor: pointer;
+  transition: background 0.15s;
 }
 .btn-editar:hover { background: color-mix(in srgb, var(--marca) 22%, transparent); }
 
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1.5rem;
-  animation: fadeIn 0.15s ease;
-}
-.modal {
-  background: var(--superficie-elevada);
-  border: 1px solid color-mix(in srgb, var(--texto-forte) 6%, transparent);
-  border-radius: 1rem;
-  width: 100%;
-  max-width: 720px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.modal-cabecalho {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.2rem 1.5rem;
-  border-bottom: 1px solid var(--borda);
-}
-.modal-cabecalho h2 { font-size: 1.25rem; font-weight: 700; color: var(--texto-forte); }
-.modal-fechar {
-  background: transparent;
-  border: none;
-  color: var(--texto-suave);
-  font-size: 1.6rem;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0 0.3rem;
-}
-.modal-fechar:hover { color: var(--texto-forte); }
-.modal-corpo {
-  padding: 1.2rem 1.5rem;
-  overflow-y: auto;
-  flex: 1;
-}
-.modal-grade {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem 1.2rem;
-}
+.vazio-lista { color: var(--texto-suave); font-size: 0.9rem; padding: 1rem 0; }
+
+.modal-corpo { padding: 1.2rem 1.5rem; overflow-y: auto; flex: 1; }
+.modal-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.2rem; }
 .campo-largo { grid-column: 1 / -1; }
 .modal-rodape {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.7rem;
+  display: flex; justify-content: flex-end; gap: 0.7rem;
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--borda);
   background: var(--superficie-alta);
-}
-.preview-imagem-modal img {
-  width: 100%;
-  max-height: 180px;
-  object-fit: cover;
-  border-radius: 0.6rem;
-  border: 1px solid var(--borda);
-}
-.area-upload-modal { padding: 1.2rem; }
-
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  appearance: none;
-  margin: 0;
-}
-input[type="number"] {
-  -moz-appearance: textfield;
-  appearance: textfield;
+  position: sticky;
+  bottom: 0;
 }
 
-@media (max-width: 960px) {
-  .modal-grade { grid-template-columns: 1fr; }
-  .grade-principal { flex-direction: column; }
-  .coluna-direita { flex: 1 1 auto; width: 100%; }
-  .grade-campos { grid-template-columns: 1fr; }
-  .cabecalho { flex-direction: column; }
-  .rodape { grid-template-columns: 1fr 1fr; }
+@media (max-width: 1000px) {
+  .grade-principal { grid-template-columns: 1fr; }
+}
 
+@media (max-width: 700px) {
+  .pagina-cadastro { padding: 1.5rem 1.2rem 2rem; }
+  .cabecalho { flex-direction: column; gap: 1.2rem; }
+  .botoes-acao { width: 100%; margin-top: 0; }
+  .botoes-acao .botao { flex: 1; }
+  .grade-campos, .modal-grade { grid-template-columns: 1fr; }
 }
 </style>

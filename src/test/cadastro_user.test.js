@@ -4,6 +4,7 @@ import { mount } from '@vue/test-utils'
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn() }),
+  RouterLink: { template: '<a><slot /></a>' },
 }))
 
 vi.mock('../composables/useSupabase', () => ({
@@ -21,42 +22,44 @@ vi.mock('../composables/useSupabase', () => ({
 
 import CadastroUser from '../pages/cadastro_user.vue'
 
+const montar = () => mount(CadastroUser, {
+  global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } },
+})
+
 describe('Página cadastro_user', () => {
-  it('renderiza o título "Omni Seg"', () => {
-    const wrapper = mount(CadastroUser)
-    expect(wrapper.text()).toContain('Omni')
-    expect(wrapper.text()).toContain('Seg')
+  it('renderiza a marca OmniSeg', () => {
+    expect(montar().text()).toContain('OmniSeg')
   })
 
   it('exibe a mensagem de boas-vindas', () => {
-    const wrapper = mount(CadastroUser)
-    expect(wrapper.text()).toContain('Registre-se e desfrute do controle e facilidade')
+    expect(montar().text()).toContain('Registre-se e desfrute do controle e facilidade')
   })
 
-  it('renderiza os campos Email, Senha, nome e CPF', () => {
-    const wrapper = mount(CadastroUser)
-    const labels = wrapper.findAll('label').map(l => l.text())
-    expect(labels).toContain('Email:')
-    expect(labels).toContain('Senha:')
-    expect(labels).toContain('nome:')
-    expect(labels).toContain('CPF:')
+  it('rotula todos os campos do formulário', () => {
+    const labels = montar().findAll('label').map(l => l.text())
+    expect(labels).toEqual(
+      expect.arrayContaining(['Email', 'Senha', 'Nome', 'CPF', 'Setor'])
+    )
   })
 
-  it('possui input de senha do tipo password', () => {
-    const wrapper = mount(CadastroUser)
-    const senhaInput = wrapper.find('input[type="password"]')
-    expect(senhaInput.exists()).toBe(true)
+  // Cada rótulo tem que apontar para um campo que existe. Era exatamente esse
+  // o defeito no cadastro_epi: `for` órfão, clique no rótulo não focava nada.
+  it('liga cada rótulo a um campo real', () => {
+    const w = montar()
+    for (const label of w.findAll('label')) {
+      const alvo = label.attributes('for')
+      expect(alvo, `label "${label.text()}" sem atributo for`).toBeTruthy()
+      expect(w.find(`#${alvo}`).exists(), `nenhum campo com id="${alvo}"`).toBe(true)
+    }
   })
 
-  it('renderiza o botão "Criar Conta"', () => {
-    const wrapper = mount(CadastroUser)
-    const botao = wrapper.find('button.btn')
-    expect(botao.exists()).toBe(true)
-    expect(botao.text()).toContain('Criar Conta')
+  it('usa input do tipo password para a senha', () => {
+    expect(montar().find('input[type="password"]').exists()).toBe(true)
   })
 
-  it('possui um formulário que reage ao submit', () => {
-    const wrapper = mount(CadastroUser)
-    expect(wrapper.find('form').exists()).toBe(true)
+  it('renderiza o botão "Criar Conta" dentro de um formulário', () => {
+    const w = montar()
+    expect(w.find('form').exists()).toBe(true)
+    expect(w.find('button.btn').text()).toContain('Criar Conta')
   })
 })

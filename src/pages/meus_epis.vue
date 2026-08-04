@@ -1,18 +1,12 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useSupabase } from '@/composables/useSupabase';
+import { formatarData, diasAte } from '@/composables/datas';
 
 const { supabase, perfil } = useSupabase();
 
 const carregando = ref(true);
 const registros = ref([]);
-
-const formatarData = (data) => {
-  if (!data) return '—';
-  const d = new Date(data);
-  if (isNaN(d.getTime())) return data;
-  return d.toLocaleDateString('pt-BR');
-};
 
 const labelStatus = (s) => ({
   pendente_aprovacao: 'Aguardando aprovação',
@@ -44,32 +38,39 @@ const carregar = async () => {
 onMounted(() => { if (perfil.value) carregar(); });
 watch(() => perfil.value?.id, (v) => { if (v) carregar(); });
 
-const hoje = new Date().toISOString().slice(0, 10);
-const venceEm = (data) => {
-  if (!data) return null;
-  const d = new Date(data);
-  if (isNaN(d.getTime())) return null;
-  return Math.ceil((d - new Date(hoje)) / (1000 * 60 * 60 * 24));
-};
+// `dias` resolvido uma vez por registro. No template ele era chamado 8x por
+// linha (cinco classes + três v-if), reparseando a mesma data a cada render.
+const comValidade = computed(() =>
+  registros.value.map(r => {
+    const dias = diasAte(r.data_validade);
+    return {
+      ...r,
+      dias,
+      nivel: dias === null ? 'ok' : dias < 0 ? 'critico' : dias <= 30 ? 'alerta' : 'ok',
+      rotuloValidade:
+        dias === null ? 'Sem validade'
+        : dias < 0 ? 'Vencido'
+        : dias === 0 ? 'Vence hoje'
+        : `${dias} dias`,
+    };
+  })
+);
 
 const emUso = computed(() =>
-  registros.value.filter(r => r.status === 'entregue' && !r.data_devolucao)
+  comValidade.value.filter(r => r.status === 'entregue' && !r.data_devolucao)
 );
 const pendentes = computed(() =>
-  registros.value.filter(r => ['pendente_aprovacao', 'pendente_entrega', 'aprovado'].includes(r.status))
+  comValidade.value.filter(r => ['pendente_aprovacao', 'pendente_entrega', 'aprovado'].includes(r.status))
 );
 const historico = computed(() =>
-  registros.value.filter(r => ['devolvido', 'recusado'].includes(r.status))
+  comValidade.value.filter(r => ['devolvido', 'recusado'].includes(r.status))
 );
 
 const totalEmUso = computed(() =>
   emUso.value.reduce((s, r) => s + (Number(r.quantidade) || 1), 0)
 );
 const totalVencendo = computed(() =>
-  emUso.value.filter(r => {
-    const d = venceEm(r.data_validade);
-    return d !== null && d <= 30;
-  }).length
+  emUso.value.filter(r => r.dias !== null && r.dias <= 30).length
 );
 </script>
 
@@ -124,16 +125,7 @@ const totalVencendo = computed(() =>
               <p class="item-sub">CA #{{ r.epi?.numero_ca || '—' }} · entregue em {{ formatarData(r.data_entrega) }}</p>
             </div>
             <div class="item-validade">
-              <span class="venc-badge" :class="{
-                'badge-critico': venceEm(r.data_validade) !== null && venceEm(r.data_validade) < 0,
-                'badge-alerta': venceEm(r.data_validade) !== null && venceEm(r.data_validade) >= 0 && venceEm(r.data_validade) <= 30,
-                'badge-ok': venceEm(r.data_validade) === null || venceEm(r.data_validade) > 30,
-              }">
-                <template v-if="venceEm(r.data_validade) === null">Sem validade</template>
-                <template v-else-if="venceEm(r.data_validade) < 0">Vencido</template>
-                <template v-else-if="venceEm(r.data_validade) === 0">Vence hoje</template>
-                <template v-else>{{ venceEm(r.data_validade) }} dias</template>
-              </span>
+              <span class="venc-badge" :class="`badge-${r.nivel}`">{{ r.rotuloValidade }}</span>
               <span class="item-sub">val. {{ formatarData(r.data_validade) }}</span>
             </div>
           </article>
@@ -186,7 +178,6 @@ const totalVencendo = computed(() =>
   min-height: 100vh;
   color: var(--texto-forte);
   padding: 2rem 3rem 3rem;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   box-sizing: border-box;
   width: 100%;
 }

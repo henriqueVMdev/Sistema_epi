@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useSupabase } from '../composables/useSupabase';
+import { formatarData, diasAte } from '../composables/datas';
 
 const { supabase } = useSupabase();
 
@@ -21,20 +22,7 @@ const carregar = async () => {
 
 onMounted(carregar);
 
-const hoje = new Date(new Date().toISOString().slice(0, 10)); // meia-noite, mesma base das datas do banco
-const diasAteVencer = (data) => {
-  if (!data) return null;
-  const d = new Date(String(data).split('T')[0]);
-  if (isNaN(d.getTime())) return null;
-  return Math.ceil((d - hoje) / (1000 * 60 * 60 * 24));
-};
-
-const formatarData = (data) => {
-  if (!data) return '—';
-  const [ano, mes, dia] = String(data).split('T')[0].split('-');
-  if (!ano || !mes || !dia) return data;
-  return `${dia}/${mes}/${ano}`;
-};
+const diasAteVencer = diasAte;
 
 const totalEpis = computed(() => epis.value.length);
 const totalEstoque = computed(() =>
@@ -117,6 +105,9 @@ const donutSegmentos = computed(() => {
   });
 });
 
+// 12 itens: a barra anima `width` (ver comentário no CSS), e o painel já tem
+// altura máxima com rolagem — passar disso só custava layout fora da tela.
+const LIMITE_BARRAS = 12;
 const estoquePorEpi = computed(() =>
   epis.value
     .map(e => ({
@@ -126,7 +117,9 @@ const estoquePorEpi = computed(() =>
       baixo: (Number(e.estoque_minimo) || 0) > 0 && (Number(e.estoque) || 0) <= (Number(e.estoque_minimo) || 0),
     }))
     .sort((a, b) => b.estoque - a.estoque)
+    .slice(0, LIMITE_BARRAS)
 );
+const epiOcultos = computed(() => Math.max(0, epis.value.length - LIMITE_BARRAS));
 const maxEstoque = computed(() =>
   estoquePorEpi.value.reduce((m, e) => Math.max(m, e.estoque), 0) || 1
 );
@@ -168,7 +161,7 @@ const episEstoqueBaixo = computed(() =>
       </button>
     </header>
 
-    <p v-if="carregando" class="estado-carregando">Carregando dados...</p>
+    <p v-if="carregando" class="estado-carregando" role="status">Carregando dados…</p>
 
     <template v-else>
       <section class="kpi-grid">
@@ -218,7 +211,9 @@ const episEstoqueBaixo = computed(() =>
           </div>
           <div v-if="retiradasPorSetor.length === 0" class="vazio">Sem dados.</div>
           <div v-else class="donut-wrap">
-            <svg viewBox="0 0 200 200" class="donut-svg">
+            <!-- a legenda ao lado já traz setor, quantidade e percentual em
+                 texto, então o desenho é redundante para leitor de tela -->
+            <svg viewBox="0 0 200 200" class="donut-svg" aria-hidden="true">
               <circle cx="100" cy="100" r="70" fill="none" stroke="var(--borda)" stroke-width="22" />
               <circle
                 v-for="(seg, i) in donutSegmentos"
@@ -250,6 +245,9 @@ const episEstoqueBaixo = computed(() =>
           <h2>Estoque atual por EPI</h2>
           <span class="chart-tag">{{ totalEstoque }} un. no total</span>
         </div>
+        <p v-if="epiOcultos > 0" class="chart-nota">
+          Mostrando os {{ estoquePorEpi.length }} maiores · mais {{ epiOcultos }} EPI(s) no estoque.
+        </p>
         <div v-if="estoquePorEpi.length === 0" class="vazio">Nenhum EPI cadastrado.</div>
         <div v-else class="barras-estoque">
           <div v-for="item in estoquePorEpi" :key="item.nome" class="barra-est-linha">
@@ -319,7 +317,6 @@ const episEstoqueBaixo = computed(() =>
   background: var(--superficie-alta);
   min-height: 100vh;
   color: var(--texto-forte);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding: 2rem 3rem 3rem;
   box-sizing: border-box;
   width: 100%;
@@ -341,16 +338,26 @@ const episEstoqueBaixo = computed(() =>
 .subtitulo { color: var(--texto-suave); font-size: 0.95rem; }
 
 .botao-recarregar {
+  min-height: 2.75rem;
   background: color-mix(in srgb, var(--marca) 12%, transparent);
   color: var(--marca);
   border: 1px solid color-mix(in srgb, var(--marca) 40%, transparent);
   padding: 0.65rem 1.1rem;
-  border-radius: 0.55rem;
+  border-radius: var(--raio-sm);
   font-size: 0.88rem;
   font-weight: 700;
+  font-family: inherit;
   cursor: pointer;
   margin-top: 0.5rem;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: background 0.2s;
+}
+
+.chart-nota {
+  color: var(--texto-fraco);
+  font-size: 0.78rem;
+  margin: -0.7rem 0 1rem;
 }
 .botao-recarregar:hover:not(:disabled) { background: color-mix(in srgb, var(--marca) 22%, transparent); }
 .botao-recarregar:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -451,7 +458,7 @@ const episEstoqueBaixo = computed(() =>
   background: linear-gradient(90deg, var(--marca), var(--aviso));
   border-radius: 999px;
   /* barra: anima largura de propósito — scaleX achataria as pontas arredondadas.
-     Dispara uma vez, em no máximo 8 elementos. */
+     Dispara uma vez, e as listas são fatiadas para no máximo 12 elementos. */
   transition: width 0.4s ease;
 }
 .barra-valor { color: var(--texto-forte); font-weight: 700; font-size: 0.9rem; text-align: right; }
@@ -523,7 +530,7 @@ const episEstoqueBaixo = computed(() =>
   background: linear-gradient(90deg, var(--ok), var(--ok));
   border-radius: 999px;
   /* barra: anima largura de propósito — scaleX achataria as pontas arredondadas.
-     Dispara uma vez, em no máximo 8 elementos. */
+     Dispara uma vez, e as listas são fatiadas para no máximo 12 elementos. */
   transition: width 0.4s ease;
 }
 .barra-est-baixo {

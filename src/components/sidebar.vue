@@ -1,34 +1,63 @@
 <template>
   <div class="shell">
-    <aside class="sidebar">
+    <a class="pular-para-conteudo" href="#conteudo">Pular para o conteúdo</a>
+
+    <!-- Barra mobile: abaixo de 900px a lateral vira gaveta. Antes ela só virava
+         estática e empilhava o menu inteiro em cima de toda página. -->
+    <header class="barra-mobile">
+      <button
+        type="button"
+        class="btn-menu"
+        :aria-expanded="menuAberto"
+        aria-controls="menu-lateral"
+        :aria-label="menuAberto ? 'Fechar menu' : 'Abrir menu'"
+        @click="menuAberto = !menuAberto"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <template v-if="menuAberto">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </template>
+          <template v-else>
+            <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+          </template>
+        </svg>
+      </button>
+      <span class="logo-nome">Omni<span class="logo-destaque">Seg</span></span>
+      <RouterLink v-if="perfil" to="/perfil" class="avatar-mobile" :aria-label="`Perfil de ${perfil.nome}`">
+        <img v-if="perfil.avatar_url" loading="lazy" decoding="async" :src="perfil.avatar_url" alt="" />
+        <span v-else>{{ iniciais(perfil.nome) }}</span>
+      </RouterLink>
+    </header>
+
+    <div v-if="menuAberto" class="veu" @click="menuAberto = false"></div>
+
+    <aside id="menu-lateral" class="sidebar" :class="{ aberta: menuAberto }">
       <header class="sidebar-header">
-        <img src="@/assets/Logo_branco.svg" alt="OmniSeg" class="logo-img" />
+        <img src="@/assets/Logo_branco.svg" alt="" class="logo-img" />
         <div class="logo-texto">
           <span class="logo-nome">Omni<span class="logo-destaque">Seg</span></span>
           <span class="logo-sub">{{ rotuloPainel }}</span>
         </div>
       </header>
 
-      <nav class="menu">
+      <nav class="menu" aria-label="Navegação principal">
         <div v-for="grupo in gruposVisiveis" :key="grupo.titulo" class="grupo">
-          <p class="grupo-titulo">{{ grupo.titulo }}</p>
-          <RouterLink
-            v-for="item in grupo.itens"
-            :key="item.to"
-            :to="item.to"
-            class="menu-item"
-            active-class="active"
-          >
-            <i :class="item.icone"></i>
-            <span>{{ item.label }}</span>
-          </RouterLink>
+          <p :id="`grupo-${slug(grupo.titulo)}`" class="grupo-titulo">{{ grupo.titulo }}</p>
+          <ul class="grupo-itens" :aria-labelledby="`grupo-${slug(grupo.titulo)}`">
+            <li v-for="item in grupo.itens" :key="item.to">
+              <RouterLink :to="item.to" class="menu-item" active-class="active">
+                <Icone :nome="item.icone" :tamanho="18" />
+                <span>{{ item.label }}</span>
+              </RouterLink>
+            </li>
+          </ul>
         </div>
       </nav>
 
       <div class="base">
         <RouterLink v-if="perfil" to="/perfil" class="perfil-card" active-class="perfil-card-ativo">
           <div class="perfil-avatar">
-            <img loading="lazy" decoding="async" v-if="perfil.avatar_url" :src="perfil.avatar_url" :alt="perfil.nome" />
+            <img loading="lazy" decoding="async" v-if="perfil.avatar_url" :src="perfil.avatar_url" alt="" />
             <span v-else class="perfil-iniciais">{{ iniciais(perfil.nome) }}</span>
           </div>
           <div class="perfil-texto">
@@ -37,14 +66,14 @@
           </div>
         </RouterLink>
 
-        <button type="button" @click="sair" class="botao-sair">
-          <i class="fas fa-sign-out-alt"></i>
+        <button type="button" class="botao-sair" @click="sair">
+          <Icone nome="sair" :tamanho="16" />
           <span>Sair</span>
         </button>
       </div>
     </aside>
 
-    <main class="conteudo">
+    <main id="conteudo" class="conteudo" tabindex="-1">
       <RouterView />
     </main>
   </div>
@@ -52,8 +81,9 @@
 
 <script setup>
 import { useSupabase } from '@/composables/useSupabase'
-import { useRouter, RouterLink, RouterView } from 'vue-router'
-import { computed } from 'vue'
+import { useRouter, useRoute, RouterLink, RouterView } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import Icone from '@/components/Icone.vue'
 
 const { supabase, perfil } = useSupabase()
 
@@ -61,29 +91,29 @@ const GRUPOS = [
   {
     titulo: 'Estoque & EPIs',
     itens: [
-      { to: '/estoque',      label: 'Estoque',         icone: 'fas fa-boxes',        roles: ['admin','almoxarife','professor','aluno'] },
-      { to: '/cadastro_epi', label: 'Cadastro de EPI', icone: 'fas fa-plus-circle',  roles: ['admin','almoxarife'] },
+      { to: '/estoque',      label: 'Estoque',         icone: 'estoque',    roles: ['admin','almoxarife','professor','aluno'] },
+      { to: '/cadastro_epi', label: 'Cadastro de EPI', icone: 'adicionar',  roles: ['admin','almoxarife'] },
     ],
   },
   {
     titulo: 'Operações',
     itens: [
-      { to: '/retirada_epi', label: 'Retirada de EPIs', icone: 'fas fa-hand-holding',     roles: ['admin','almoxarife','professor','aluno'] },
-      { to: '/meus_epis',    label: 'Meus EPIs',        icone: 'fas fa-hard-hat',         roles: ['admin','almoxarife','professor','aluno'] },
-      { to: '/aprovacoes',   label: 'Aprovações',       icone: 'fas fa-clipboard-check',  roles: ['admin','almoxarife'] },
+      { to: '/retirada_epi', label: 'Retirada de EPIs', icone: 'retirada',   roles: ['admin','almoxarife','professor','aluno'] },
+      { to: '/meus_epis',    label: 'Meus EPIs',        icone: 'capacete',   roles: ['admin','almoxarife','professor','aluno'] },
+      { to: '/aprovacoes',   label: 'Aprovações',       icone: 'aprovacoes', roles: ['admin','almoxarife'] },
     ],
   },
   {
     titulo: 'Análise',
     itens: [
-      { to: '/dashboard', label: 'Dashboard', icone: 'fas fa-chart-line', roles: ['admin','almoxarife'] },
+      { to: '/dashboard', label: 'Dashboard', icone: 'grafico', roles: ['admin','almoxarife'] },
     ],
   },
   {
     titulo: 'Administração',
     itens: [
-      { to: '/admin/usuarios',   label: 'Gerenciar Usuários', icone: 'fas fa-user-shield', roles: ['admin'] },
-      { to: '/admin/permissoes', label: 'Permissões de EPI',  icone: 'fas fa-lock',        roles: ['admin'] },
+      { to: '/admin/usuarios',   label: 'Gerenciar Usuários', icone: 'usuarios', roles: ['admin'] },
+      { to: '/admin/permissoes', label: 'Permissões de EPI',  icone: 'cadeado',  roles: ['admin'] },
     ],
   },
 ]
@@ -96,17 +126,21 @@ const gruposVisiveis = computed(() => {
     .filter(g => g.itens.length > 0)
 })
 
-const rotuloPainel = computed(() => {
-  const r = perfil.value?.role
-  if (r === 'admin') return 'Admin Panel'
-  if (r === 'almoxarife') return 'Almoxarifado'
-  if (r === 'professor') return 'Professor'
-  if (r === 'aluno') return 'Aluno'
-  return 'Sistema EPI'
-})
+const rotuloPainel = computed(() => ({
+  admin: 'Admin Panel',
+  almoxarife: 'Almoxarifado',
+  professor: 'Professor',
+  aluno: 'Aluno',
+}[perfil.value?.role] || 'Sistema EPI'))
 
 const iniciais = (nome) =>
   (nome || '?').trim().split(/\s+/).slice(0, 2).map(p => p[0]?.toUpperCase()).join('')
+
+const slug = (t) => t.toLowerCase().replace(/[^a-z]+/g, '-')
+
+const menuAberto = ref(false)
+const route = useRoute()
+watch(() => route.fullPath, () => { menuAberto.value = false })
 
 const router = useRouter()
 
@@ -121,12 +155,11 @@ async function sair() {
 </script>
 
 <style scoped>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
 .shell {
   display: grid;
   grid-template-columns: 260px 1fr;
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
 }
 
@@ -139,10 +172,10 @@ async function sair() {
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100dvh;
   z-index: 1000;
   overflow-y: auto;
   align-self: start;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .sidebar-header {
@@ -153,25 +186,15 @@ async function sair() {
   border-bottom: 1px solid color-mix(in srgb, var(--texto-forte) 4%, transparent);
   margin-bottom: 1.2rem;
 }
-.logo-img {
-  width: 2.4rem;
-  height: 2.4rem;
-  object-fit: contain;
-  flex-shrink: 0;
-}
+.logo-img { width: 2.4rem; height: 2.4rem; object-fit: contain; flex-shrink: 0; }
 .logo-texto { display: flex; flex-direction: column; line-height: 1.2; }
 .logo-nome { color: var(--texto-forte); font-size: 1.05rem; font-weight: 800; letter-spacing: -0.01em; }
 .logo-destaque { color: var(--marca); }
 .logo-sub { color: var(--texto-suave); font-size: 0.72rem; font-weight: 500; margin-top: 0.1rem; }
 
-.menu {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-  overflow-y: auto;
-}
+.menu { flex-grow: 1; display: flex; flex-direction: column; gap: 1.1rem; }
 .grupo { display: flex; flex-direction: column; gap: 0.25rem; }
+.grupo-itens { list-style: none; display: flex; flex-direction: column; gap: 0.15rem; }
 .grupo-titulo {
   color: var(--texto-fraco);
   font-size: 0.65rem;
@@ -185,25 +208,25 @@ async function sair() {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.65rem 0.8rem;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.8rem;
   color: var(--texto);
   text-decoration: none;
-  border-radius: 0.5rem;
+  border-radius: var(--raio-sm);
   font-size: 0.88rem;
   font-weight: 500;
-  cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 .menu-item:hover { background: color-mix(in srgb, var(--texto-forte) 4%, transparent); color: var(--texto-forte); }
-.menu-item i { font-size: 0.95rem; width: 1.1rem; text-align: center; color: var(--texto-suave); transition: color 0.15s; }
-.menu-item:hover i { color: var(--marca); }
+.menu-item :deep(.icone) { color: var(--texto-suave); transition: color 0.15s; }
+.menu-item:hover :deep(.icone) { color: var(--marca); }
 
 .menu-item.active {
   background: color-mix(in srgb, var(--marca) 12%, transparent);
   color: var(--marca);
   font-weight: 600;
 }
-.menu-item.active i { color: var(--marca); }
+.menu-item.active :deep(.icone) { color: var(--marca); }
 
 .base {
   display: flex;
@@ -221,7 +244,7 @@ async function sair() {
   text-decoration: none;
   background: color-mix(in srgb, var(--texto-forte) 3%, transparent);
   border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
-  border-radius: 0.6rem;
+  border-radius: var(--raio-sm);
   padding: 0.6rem 0.7rem;
   transition: background 0.2s, border-color 0.2s;
 }
@@ -264,11 +287,12 @@ async function sair() {
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
+  min-height: 2.75rem;
   background: transparent;
   color: var(--texto-suave);
   border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
   padding: 0.6rem 0.8rem;
-  border-radius: 0.5rem;
+  border-radius: var(--raio-sm);
   cursor: pointer;
   font-size: 0.82rem;
   font-weight: 600;
@@ -281,20 +305,83 @@ async function sair() {
   color: var(--perigo);
   border-color: color-mix(in srgb, var(--perigo) 30%, transparent);
 }
-.botao-sair i { font-size: 0.85rem; }
 
-.conteudo {
-  min-width: 0;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
+.conteudo { min-width: 0; overflow-x: hidden; }
+.conteudo:focus { outline: none; }
 
-@media (max-width: 768px) {
-  .shell { grid-template-columns: 220px 1fr; }
-  .menu-item { padding: 0.55rem 0.7rem; font-size: 0.82rem; }
-}
-@media (max-width: 480px) {
+/* --- Mobile --- */
+.barra-mobile { display: none; }
+.veu { display: none; }
+
+@media (max-width: 900px) {
   .shell { grid-template-columns: 1fr; }
-  .sidebar { position: static; height: auto; width: 100%; }
+
+  .barra-mobile {
+    position: sticky;
+    top: 0;
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.9rem;
+    background: var(--superficie-elevada);
+    border-bottom: 1px solid var(--borda);
+  }
+  .barra-mobile .logo-nome { flex: 1; font-size: 1.1rem; }
+
+  .btn-menu {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    background: transparent;
+    border: 1px solid var(--borda);
+    border-radius: var(--raio-sm);
+    color: var(--texto-forte);
+    cursor: pointer;
+  }
+
+  .avatar-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--borda-forte);
+    color: var(--marca);
+    font-weight: 800;
+    font-size: 0.8rem;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+  .avatar-mobile img { width: 100%; height: 100%; object-fit: cover; }
+
+  .veu {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgb(0 0 0 / 0.55);
+    z-index: 1002;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(19rem, 84vw);
+    height: auto;
+    z-index: 1003;
+    transform: translateX(-100%);
+    /* visibility tira a gaveta fechada da ordem de tabulação — só o transform
+       deixaria 10 links focáveis fora da tela. */
+    visibility: hidden;
+    transition: transform 0.22s ease, visibility 0.22s;
+    border-right: 1px solid var(--borda);
+  }
+  .sidebar.aberta { transform: none; visibility: visible; }
 }
 </style>

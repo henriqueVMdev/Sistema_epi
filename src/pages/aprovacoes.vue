@@ -2,26 +2,18 @@
 import { ref, computed, onMounted } from 'vue';
 import { useSupabase } from '@/composables/useSupabase';
 import { ajustarEstoque } from '@/composables/estoque';
+import { useMensagem } from '@/composables/mensagem';
+import { formatarData, formatarDataHora } from '@/composables/datas';
+import Toast from '@/components/Toast.vue';
+import Icone from '@/components/Icone.vue';
 
 const { supabase, perfil } = useSupabase();
+const { mensagem, mostrarMensagem } = useMensagem();
 
 const carregando = ref(true);
 const entregas = ref([]);
-const mensagem = ref(null);
 const acaoEmAndamento = ref(null);
 const filtro = ref('pendente_aprovacao');
-
-const mostrarMensagem = (tipo, texto, ms = 3500) => {
-  mensagem.value = { tipo, texto };
-  setTimeout(() => { mensagem.value = null; }, ms);
-};
-
-const formatarData = (data) => {
-  if (!data) return '—';
-  const d = new Date(data);
-  if (isNaN(d.getTime())) return data;
-  return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-};
 
 const labelStatus = (s) => ({
   pendente_aprovacao: 'Aguardando aprovação',
@@ -183,29 +175,30 @@ onMounted(carregar);
       </div>
     </header>
 
-    <div v-if="mensagem" :class="['toast', 'toast-' + mensagem.tipo]">{{ mensagem.texto }}</div>
+    <Toast :mensagem="mensagem" />
 
-    <nav class="tabs">
+    <div class="tabs" role="group" aria-label="Filtrar pedidos por situação">
       <button type="button"
         v-for="t in tabs"
         :key="t.key"
         :class="['tab', { ativa: filtro === t.key }]"
+        :aria-pressed="filtro === t.key"
         @click="filtro = t.key"
       >
         {{ t.label }}
         <span v-if="contadores[t.key]" class="tab-contador">{{ contadores[t.key] }}</span>
       </button>
-    </nav>
+    </div>
 
     <section class="cartao">
-      <div v-if="carregando" class="vazio">Carregando…</div>
+      <p v-if="carregando" class="vazio" role="status">Carregando…</p>
       <div v-else-if="filtradas.length === 0" class="vazio">Nada por aqui.</div>
 
       <div v-else class="lista">
         <article v-for="r in filtradas" :key="r.id" class="item">
           <div class="item-img">
             <img loading="lazy" decoding="async" v-if="r.epi?.imagem" :src="r.epi.imagem" :alt="r.epi?.nome" />
-            <div v-else class="img-placeholder"><i class="fas fa-hard-hat"></i></div>
+            <div v-else class="img-placeholder"><Icone nome="capacete" :tamanho="26" /></div>
           </div>
 
           <div class="item-corpo">
@@ -229,11 +222,11 @@ onMounted(carregar);
               </div>
               <div class="meta-item">
                 <span class="meta-label">Pedido em</span>
-                <span class="meta-valor">{{ formatarData(r.data_retirada) }}</span>
+                <span class="meta-valor">{{ formatarDataHora(r.data_retirada) }}</span>
               </div>
               <div v-if="r.data_entrega" class="meta-item">
                 <span class="meta-label">Entregue em</span>
-                <span class="meta-valor">{{ formatarData(r.data_entrega) }}</span>
+                <span class="meta-valor">{{ formatarDataHora(r.data_entrega) }}</span>
               </div>
               <div v-if="r.data_validade" class="meta-item">
                 <span class="meta-label">Validade</span>
@@ -242,7 +235,8 @@ onMounted(carregar);
             </div>
 
             <p v-if="r.justificativa" class="item-justificativa">
-              <i class="fas fa-quote-left"></i> {{ r.justificativa }}
+              <Icone nome="aspas" :tamanho="14" />
+              <span>{{ r.justificativa }}</span>
             </p>
 
             <div class="acoes">
@@ -281,7 +275,6 @@ onMounted(carregar);
   min-height: 100vh;
   color: var(--texto-forte);
   padding: 2rem 3rem;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .cabecalho { margin-bottom: 1.6rem; }
@@ -295,8 +288,11 @@ onMounted(carregar);
 .tabs { display: flex; gap: 0.4rem; margin-bottom: 1rem; flex-wrap: wrap; }
 .tab {
   background: var(--superficie-elevada); border: 1px solid color-mix(in srgb, var(--texto-forte) 6%, transparent); color: var(--texto);
-  padding: 0.55rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.86rem;
+  min-height: 2.75rem;
+  padding: 0.55rem 1rem; border-radius: var(--raio-sm); cursor: pointer; font-size: 0.86rem;
   display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
 }
 .tab:hover { border-color: color-mix(in srgb, var(--marca) 40%, transparent); }
 .tab.ativa { background: color-mix(in srgb, var(--marca) 12%, transparent); border-color: var(--marca); color: var(--marca); }
@@ -379,33 +375,37 @@ onMounted(carregar);
 .status-aprovado           { background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); border: 1px solid color-mix(in srgb, var(--info) 35%, transparent); }
 .status-entregue           { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent); }
 .status-recusado           { background: color-mix(in srgb, var(--perigo) 12%, transparent); color: var(--perigo); border: 1px solid color-mix(in srgb, var(--perigo) 35%, transparent); }
-.status-devolvido          { background: rgba(168,168,168,0.12); color: var(--texto-suave); border: 1px solid rgba(168,168,168,0.3); }
+.status-devolvido          { background: color-mix(in srgb, var(--texto-fraco) 12%, transparent); color: var(--texto-suave); border: 1px solid color-mix(in srgb, var(--texto-fraco) 30%, transparent); }
+
+.item-justificativa { display: flex; align-items: flex-start; gap: 0.45rem; }
 
 .acoes {
   display: flex; gap: 0.55rem; align-items: center; flex-wrap: wrap;
   padding-top: 0.9rem; margin-top: 0.1rem;
   border-top: 1px solid color-mix(in srgb, var(--texto-forte) 6%, transparent);
 }
+.btn-aprovar, .btn-recusar {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--raio-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
 .btn-aprovar {
   background: var(--marca); color: var(--marca-texto); border: none;
-  padding: 0.5rem 1rem; border-radius: 0.45rem; font-weight: 700; cursor: pointer; font-size: 0.85rem;
+  font-weight: 700; font-size: 0.85rem;
 }
 .btn-aprovar:hover:not(:disabled) { background: var(--marca-escura); }
-.btn-aprovar:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-aprovar:disabled, .btn-recusar:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-recusar {
   background: color-mix(in srgb, var(--perigo) 12%, transparent); color: var(--perigo);
   border: 1px solid color-mix(in srgb, var(--perigo) 30%, transparent);
-  padding: 0.45rem 0.9rem; border-radius: 0.45rem; font-weight: 600; cursor: pointer; font-size: 0.82rem;
+  font-weight: 600; font-size: 0.82rem;
 }
 .btn-recusar:hover:not(:disabled) { background: color-mix(in srgb, var(--perigo) 22%, transparent); }
-
-.toast {
-  position: fixed; top: 1.5rem; right: 1.5rem; z-index: 999;
-  padding: 0.85rem 1.3rem; border-radius: 0.6rem; font-weight: 600;
-}
-.toast-sucesso { background: color-mix(in srgb, var(--ok) 15%, transparent); border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok); }
-.toast-erro    { background: color-mix(in srgb, var(--perigo) 15%, transparent); border: 1px solid color-mix(in srgb, var(--perigo) 40%, transparent); color: var(--perigo); }
 
 @media (max-width: 700px) {
   .pagina { padding: 1.5rem 1.2rem; }

@@ -1,21 +1,19 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useSupabase } from '@/composables/useSupabase';
+import { useMensagem } from '@/composables/mensagem';
+import Toast from '@/components/Toast.vue';
 
 const { supabase } = useSupabase();
+const { mensagem, mostrarMensagem } = useMensagem();
+
 const usuarios = ref([]);
 const setores = ref([]);
 const carregando = ref(true);
-const mensagem = ref(null);
 const salvandoId = ref(null);
 const excluindoId = ref(null);
 
 const ROLES = ['admin', 'almoxarife', 'professor', 'aluno'];
-
-const mostrarMensagem = (tipo, texto) => {
-  mensagem.value = { tipo, texto };
-  setTimeout(() => { mensagem.value = null; }, 3500);
-};
 
 const carregar = async () => {
   carregando.value = true;
@@ -100,20 +98,21 @@ onMounted(carregar);
       </div>
     </header>
 
-    <div v-if="mensagem" :class="['toast', 'toast-' + mensagem.tipo]">{{ mensagem.texto }}</div>
+    <Toast :mensagem="mensagem" />
 
     <section class="cartao">
       <div v-if="carregando" class="vazio">Carregando…</div>
       <div v-else class="tabela-rolagem">
         <table class="tabela">
+        <caption class="sr-only">Usuários cadastrados, com função e setor editáveis</caption>
         <thead>
           <tr>
-            <th>Nome</th>
-            <th>Email</th>
-            <th>CPF</th>
-            <th>Role</th>
-            <th>Setor</th>
-            <th></th>
+            <th scope="col">Nome</th>
+            <th scope="col">Email</th>
+            <th scope="col">CPF</th>
+            <th scope="col">Função</th>
+            <th scope="col">Setor</th>
+            <th scope="col"><span class="sr-only">Ações</span></th>
           </tr>
         </thead>
         <tbody>
@@ -122,18 +121,24 @@ onMounted(carregar);
             <td class="muted">{{ u.email }}</td>
             <td class="muted">{{ u.cpf }}</td>
             <td>
-              <select v-model="u.role">
+              <select v-model="u.role" :aria-label="`Função de ${u.nome}`">
                 <option v-for="r in ROLES" :key="r" :value="r">{{ r }}</option>
               </select>
             </td>
             <td>
               <div class="setor-cell">
-                <select v-model="u.setor_id">
+                <select v-model="u.setor_id" :aria-label="`Setor principal de ${u.nome}`">
                   <option :value="null">—</option>
                   <option v-for="s in setores" :key="s.id" :value="s.id">{{ s.nome }}</option>
                 </select>
                 <div v-if="u.role === 'professor'" class="multi-setor">
-                  <button type="button" class="btn-mais-setor" @click="u.setorMenuAberto = !u.setorMenuAberto">
+                  <button
+                    type="button"
+                    class="btn-mais-setor"
+                    :aria-expanded="u.setorMenuAberto"
+                    :aria-label="`Setores adicionais de ${u.nome}`"
+                    @click="u.setorMenuAberto = !u.setorMenuAberto"
+                  >
                     + {{ u.setores_extra.filter(id => id !== u.setor_id).length }} setor(es)
                   </button>
                   <div v-if="u.setorMenuAberto" class="multi-menu">
@@ -179,7 +184,6 @@ onMounted(carregar);
   min-height: 100vh;
   color: var(--texto-forte);
   padding: 2rem 3rem;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .cabecalho { margin-bottom: 2rem; }
@@ -260,17 +264,11 @@ onMounted(carregar);
   padding: 2rem;
 }
 
-.toast {
-  position: fixed;
-  top: 1.5rem;
-  right: 1.5rem;
-  padding: 0.85rem 1.3rem;
-  border-radius: 0.6rem;
-  font-weight: 600;
-  z-index: 999;
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; border: 0;
 }
-.toast-sucesso { background: color-mix(in srgb, var(--ok) 15%, transparent); border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok); }
-.toast-erro { background: color-mix(in srgb, var(--perigo) 15%, transparent); border: 1px solid color-mix(in srgb, var(--perigo) 40%, transparent); color: var(--perigo); }
 
 .setor-cell { display: flex; align-items: center; gap: 0.4rem; position: relative; }
 .btn-mais-setor {

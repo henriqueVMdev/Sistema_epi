@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSupabase } from '../composables/useSupabase';
+import { formatarData } from '../composables/datas';
 
 const { supabase } = useSupabase();
 const route = useRoute();
@@ -11,13 +12,6 @@ const epi = ref(null);
 const carregando = ref(true);
 const erro = ref(null);
 const entregas = ref([]);
-
-const formatarData = (data) => {
-  if (!data) return '—';
-  const [ano, mes, dia] = String(data).split('T')[0].split('-');
-  if (!ano || !mes || !dia) return data;
-  return `${dia}/${mes}/${ano}`;
-};
 
 const entregasAprovadas = computed(() =>
   entregas.value.filter(e => (e.status || 'aprovado') === 'aprovado')
@@ -37,6 +31,10 @@ const totalSetores = computed(() =>
   new Set(entregasAprovadas.value.map(e => e.setor_retirada).filter(Boolean)).size
 );
 
+// 12 barras: cada uma anima `width` (ver comentário no CSS). O corte é o que
+// mantém essa escolha barata — sem ele, um EPI usado por 80 pessoas animava 80.
+const LIMITE_BARRAS = 12;
+
 const agruparPor = (chave) => {
   const mapa = {};
   for (const e of entregasAprovadas.value) {
@@ -46,7 +44,8 @@ const agruparPor = (chave) => {
   const total = Object.values(mapa).reduce((s, n) => s + n, 0) || 1;
   return Object.entries(mapa)
     .map(([nome, qtd]) => ({ nome, qtd, pct: Math.round((qtd / total) * 100) }))
-    .sort((a, b) => b.qtd - a.qtd);
+    .sort((a, b) => b.qtd - a.qtd)
+    .slice(0, LIMITE_BARRAS);
 };
 
 const porSetor = computed(() => agruparPor('setor_retirada'));
@@ -244,7 +243,6 @@ onMounted(carregar);
   background: var(--superficie-alta);
   min-height: 100vh;
   color: var(--texto-forte);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding: 2rem 3rem;
   box-sizing: border-box;
   width: 100%;

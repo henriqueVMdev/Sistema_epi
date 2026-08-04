@@ -1,31 +1,24 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useSupabase } from '../composables/useSupabase';
+import { useMensagem } from '../composables/mensagem';
+import { formatarData, formatarDataHora } from '../composables/datas';
+import Toast from '../components/Toast.vue';
+import Icone from '../components/Icone.vue';
 
 const { supabase, perfil } = useSupabase();
+const { mensagem, mostrarMensagem } = useMensagem();
 
 const epis = ref([]);
 const meuHistorico = ref([]);
 const selecionados = ref({});
 const justificativa = ref('');
 const carregando = ref(false);
-const mensagem = ref(null);
+const enviando = ref(false);
 
 const podeAdministrar = computed(() => ['admin', 'almoxarife'].includes(perfil.value?.role));
 
 const LIMITE_PADRAO = { aluno: 1, professor: 30 };
-
-const mostrarMensagem = (tipo, texto, ms = 4000) => {
-  mensagem.value = { tipo, texto };
-  setTimeout(() => { mensagem.value = null; }, ms);
-};
-
-const formatarData = (data) => {
-  if (!data) return '—';
-  const d = new Date(data);
-  if (isNaN(d.getTime())) return data;
-  return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-};
 
 async function carregarEmUso() {
   const hoje = new Date().toISOString().slice(0, 10);
@@ -85,8 +78,7 @@ async function carregar() {
 
     for (const e of (todos || [])) {
       const setoresDoEpi = String(e.setor || '').split(',').map(s => s.trim()).filter(Boolean);
-      const intersecao = setoresDoEpi.some(s => meusSetores.includes(s));
-      if (!intersecao) continue;
+      if (!setoresDoEpi.some(s => meusSetores.includes(s))) continue;
       baseEpis.push(e);
       limitePorEpi.set(e.id, overrideMap.has(e.id) ? overrideMap.get(e.id) : limitePadrao);
     }
@@ -129,8 +121,10 @@ async function carregar() {
 onMounted(() => { if (perfil.value) carregar(); });
 watch(() => perfil.value?.id, (v) => { if (v) carregar(); });
 
+const estaSelecionado = (epi) => selecionados.value[epi.id] !== undefined;
+
 const toggleSelecao = (epi) => {
-  if (selecionados.value[epi.id] !== undefined) {
+  if (estaSelecionado(epi)) {
     const { [epi.id]: _, ...resto } = selecionados.value;
     selecionados.value = resto;
   } else {
@@ -139,16 +133,15 @@ const toggleSelecao = (epi) => {
 };
 
 const ajustarQtd = (epi, delta) => {
-  const atual = selecionados.value[epi.id] || 0;
   const maxEstoque = Number(epi.estoque) || 0;
-  const novo = Math.max(1, Math.min(maxEstoque, atual + delta));
+  if (maxEstoque < 1) return;
+  const novo = Math.max(1, Math.min(maxEstoque, (selecionados.value[epi.id] || 0) + delta));
   selecionados.value = { ...selecionados.value, [epi.id]: novo };
 };
 
 const excedeLimite = (epi) => {
-  const qtd = selecionados.value[epi.id] || 0;
-  if (epi.disponivel === Infinity) return false;
-  return qtd > epi.disponivel;
+  if (!epi || epi.disponivel === Infinity) return false;
+  return (selecionados.value[epi.id] || 0) > epi.disponivel;
 };
 
 const totalSelecionados = computed(() => Object.keys(selecionados.value).length);
@@ -172,52 +165,45 @@ const solicitarRetirada = async () => {
     return;
   }
 
-  carregando.value = true;
+  enviando.value = true;
   const agora = new Date().toISOString();
 
-  let pedidos = 0;
-  let aprovacoes = 0;
-  let erro = null;
-
-  for (const id of ids) {
+  // Um insert só. Antes era um await por item dentro de um for: se o quarto
+  // falhava, os três primeiros já estavam gravados e o usuário via só "erro".
+  const linhas = ids.map(id => {
     const epi = epis.value.find(e => String(e.id) === String(id));
-    const qtd = selecionados.value[id];
     const excede = excedeLimite(epi);
-    const status = excede ? 'pendente_aprovacao' : 'pendente_entrega';
-
-    const { error } = await supabase.from('entrega_epi').insert({
+    return {
       funcionario_id: perfil.value.id,
       epi_id: epi.id,
       nome_epi: epi.nome,
       nome_retirada: perfil.value.nome,
       setor_retirada: perfil.value.setor?.nome || null,
-      quantidade: qtd,
-      status,
+      quantidade: selecionados.value[id],
+      status: excede ? 'pendente_aprovacao' : 'pendente_entrega',
       justificativa: excede ? justificativa.value.trim() : null,
       data_retirada: agora,
-    });
-    if (error) { erro = error; break; }
+    };
+  });
 
-    pedidos++;
-    if (excede) aprovacoes++;
-  }
-
-  if (erro) {
-    console.error(erro);
-    mostrarMensagem('erro', 'Erro ao registrar pedido: ' + erro.message);
-    carregando.value = false;
+  const { error } = await supabase.from('entrega_epi').insert(linhas);
+  if (error) {
+    console.error(error);
+    enviando.value = false;
+    mostrarMensagem('erro', 'Nenhum pedido foi criado: ' + error.message, 7000);
     return;
   }
 
+  const aprovacoes = linhas.filter(l => l.status === 'pendente_aprovacao').length;
   selecionados.value = {};
   justificativa.value = '';
   await carregar();
-  carregando.value = false;
+  enviando.value = false;
 
-  const partes = [`${pedidos} pedido(s) criado(s)`];
-  if (aprovacoes) partes.push(`${aprovacoes} aguardando aprovação do almoxarife`);
-  else partes.push('aguardando entrega');
-  mostrarMensagem('sucesso', partes.join(' · '));
+  mostrarMensagem('sucesso', [
+    `${linhas.length} pedido(s) criado(s)`,
+    aprovacoes ? `${aprovacoes} aguardando aprovação do almoxarife` : 'aguardando entrega',
+  ].join(' · '));
 };
 
 const labelStatus = (s) => ({
@@ -232,23 +218,19 @@ const labelStatus = (s) => ({
 
 <template>
   <div class="pagina-retirada">
-    <header class="cabecalho">
-      <div>
-        <p class="caminho">
-          Operações <span class="separador">›</span>
-          <span class="caminho-atual">Retirada de EPIs</span>
-        </p>
-        <h1 class="titulo-pagina">Retirada de <span class="titulo-destaque">EPIs</span></h1>
-        <p class="subtitulo" v-if="perfil">
-          Olá, <strong>{{ perfil.nome }}</strong> ({{ perfil.role }}, setor {{ perfil.setor?.nome || '—' }}).
-          Solicite os EPIs que precisa abaixo.
-        </p>
-      </div>
-    </header>
+    <Toast :mensagem="mensagem" />
 
-    <div v-if="mensagem" :class="['toast', 'toast-' + mensagem.tipo]">
-      {{ mensagem.texto }}
-    </div>
+    <header class="cabecalho">
+      <p class="caminho">
+        Operações <span class="separador" aria-hidden="true">›</span>
+        <span class="caminho-atual">Retirada de EPIs</span>
+      </p>
+      <h1 class="titulo-pagina">Retirada de <span class="titulo-destaque">EPIs</span></h1>
+      <p class="subtitulo" v-if="perfil">
+        Olá, <strong>{{ perfil.nome }}</strong> ({{ perfil.role }}, setor {{ perfil.setor?.nome || '—' }}).
+        Solicite os EPIs que precisa abaixo.
+      </p>
+    </header>
 
     <section v-if="!carregando && epis.length === 0" class="cartao vazio-cartao">
       <p>Nenhum EPI disponível para você no momento.</p>
@@ -261,12 +243,12 @@ const labelStatus = (s) => ({
         <span class="contagem">{{ epis.length }} item(ns)</span>
       </div>
 
-      <div class="legenda">
-        <span class="legenda-item"><span class="dot dot-setor"></span> Dentro do limite (entrega direta)</span>
-        <span class="legenda-item"><span class="dot dot-outro"></span> Acima do limite (precisa justificar/aprovação)</span>
-      </div>
+      <p class="legenda">
+        Marque os EPIs que precisa. Pedidos <strong>dentro do limite</strong> vão direto para entrega;
+        <strong class="legenda-aviso">acima do limite</strong> exigem justificativa e aprovação do almoxarife.
+      </p>
 
-      <div v-if="carregando" class="vazio">Carregando…</div>
+      <p v-if="carregando" class="vazio">Carregando…</p>
 
       <div v-else class="grade-epis">
         <div
@@ -274,46 +256,77 @@ const labelStatus = (s) => ({
           :key="epi.id"
           class="card-epi"
           :class="{
-            selecionado: selecionados[epi.id] !== undefined,
-            'precisa-aprovacao': selecionados[epi.id] !== undefined && excedeLimite(epi)
+            selecionado: estaSelecionado(epi),
+            'precisa-aprovacao': estaSelecionado(epi) && excedeLimite(epi)
           }"
-          @click="toggleSelecao(epi)"
         >
-          <div class="card-imagem">
-            <img loading="lazy" decoding="async" v-if="epi.imagem" :src="epi.imagem" :alt="epi.nome" />
-            <div v-else class="imagem-placeholder"></div>
-          </div>
+          <!-- O card inteiro é o rótulo de um checkbox real: clique funciona em
+               qualquer ponto e Tab/Espaço também. Antes era um <div @click>, e
+               quem usava teclado simplesmente não conseguia pedir EPI. -->
+          <label class="card-alvo">
+            <input
+              type="checkbox"
+              class="card-check"
+              :checked="estaSelecionado(epi)"
+              @change="toggleSelecao(epi)"
+            />
 
-          <div class="card-info">
-            <div class="info-topo">
-              <p class="epi-nome">{{ epi.nome }}</p>
-              <span v-if="epi.limite != null" class="badge badge-setor">
-                Limite: {{ epi.disponivel }} / {{ epi.limite }}
+            <span class="card-imagem">
+              <img loading="lazy" decoding="async" v-if="epi.imagem" :src="epi.imagem" alt="" />
+            </span>
+
+            <span class="card-info">
+              <span class="info-topo">
+                <span class="epi-nome">{{ epi.nome }}</span>
+                <span v-if="epi.limite != null" class="badge badge-limite">
+                  Limite: {{ epi.disponivel }} / {{ epi.limite }}
+                </span>
+                <span v-else class="badge badge-sem-limite">Sem limite</span>
               </span>
-              <span v-else class="badge badge-outro">Sem limite</span>
-            </div>
-            <p class="epi-meta">{{ epi.fabricante || '—' }} · CA #{{ epi.numero_ca || '—' }}</p>
-            <p class="epi-estoque">
-              {{ epi.estoque }} em estoque
-              <span v-if="epi.em_uso > 0" class="em-uso"> · você já usa {{ epi.em_uso }}</span>
-            </p>
-          </div>
+              <span class="epi-meta">{{ epi.fabricante || '—' }} · CA #{{ epi.numero_ca || '—' }}</span>
+              <span class="epi-estoque">
+                {{ epi.estoque || 0 }} em estoque
+                <span v-if="epi.em_uso > 0" class="em-uso"> · você já usa {{ epi.em_uso }}</span>
+              </span>
+            </span>
 
-          <div v-if="selecionados[epi.id] !== undefined" class="card-controles" @click.stop>
-            <button type="button" class="btn-qtd" @click="ajustarQtd(epi, -1)">−</button>
-            <span class="qtd-valor">{{ selecionados[epi.id] }}</span>
-            <button type="button" class="btn-qtd" @click="ajustarQtd(epi, 1)">+</button>
-          </div>
-          <div v-else class="card-marca">
-            <span class="circulo-vazio"></span>
+            <span class="card-marca" aria-hidden="true">
+              <svg v-if="estaSelecionado(epi)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </span>
+          </label>
+
+          <div v-if="estaSelecionado(epi)" class="card-controles">
+            <button
+              type="button"
+              class="btn-qtd"
+              :aria-label="`Diminuir quantidade de ${epi.nome}`"
+              :disabled="selecionados[epi.id] <= 1"
+              @click="ajustarQtd(epi, -1)"
+            >−</button>
+            <span class="qtd-valor">
+              <span class="qtd-numero">{{ selecionados[epi.id] }}</span>
+              <span class="qtd-unidade">un.</span>
+            </span>
+            <button
+              type="button"
+              class="btn-qtd"
+              :aria-label="`Aumentar quantidade de ${epi.nome}`"
+              :disabled="selecionados[epi.id] >= (Number(epi.estoque) || 0)"
+              @click="ajustarQtd(epi, 1)"
+            >+</button>
           </div>
         </div>
       </div>
 
       <div v-if="precisaJustificativa" class="caixa-justificativa">
-        <label for="justificativa">
-          <i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Você está pedindo mais do que o limite permitido em
-          <strong>{{ itensQueExcedem.length }} item(ns)</strong>. Justifique abaixo para o almoxarife avaliar:
+        <label for="justificativa" class="just-rotulo">
+          <Icone nome="alerta" :tamanho="16" />
+          <span>
+            Você está pedindo mais do que o limite permitido em
+            <strong>{{ itensQueExcedem.length }} item(ns)</strong>. Justifique abaixo para o almoxarife avaliar:
+          </span>
         </label>
         <textarea id="justificativa" v-model="justificativa" placeholder="Ex: bota anterior rasgou em serviço, preciso de outra." rows="3"></textarea>
       </div>
@@ -325,12 +338,8 @@ const labelStatus = (s) => ({
             {{ itensQueExcedem.length }} item(ns) acima do limite — aprovação necessária
           </span>
         </div>
-        <button type="button"
-          class="btn-solicitar"
-          :disabled="carregando"
-          @click="solicitarRetirada"
-        >
-          {{ carregando ? 'Enviando...' : 'Solicitar Retirada' }}
+        <button type="button" class="btn-solicitar" :disabled="enviando" @click="solicitarRetirada">
+          {{ enviando ? 'Enviando…' : 'Solicitar Retirada' }}
         </button>
       </div>
     </section>
@@ -343,24 +352,24 @@ const labelStatus = (s) => ({
 
       <p v-if="meuHistorico.length === 0" class="vazio">Você ainda não fez pedidos.</p>
 
-      <div v-else class="lista-historico">
-        <div v-for="r in meuHistorico" :key="r.id" class="item-historico">
+      <ul v-else class="lista-historico">
+        <li v-for="r in meuHistorico" :key="r.id" class="item-historico">
           <div class="hist-info">
             <p class="hist-nome">{{ r.nome_epi || '—' }} <span class="hist-qtd">× {{ r.quantidade || 1 }}</span></p>
             <p class="hist-setor">
-              Pedido em {{ formatarData(r.data_retirada) }}
-              <span v-if="r.data_entrega"> · entregue em {{ formatarData(r.data_entrega) }}</span>
+              Pedido em {{ formatarDataHora(r.data_retirada) }}
+              <span v-if="r.data_entrega"> · entregue em {{ formatarDataHora(r.data_entrega) }}</span>
               <span v-if="r.data_validade"> · validade {{ formatarData(r.data_validade) }}</span>
             </p>
             <p v-if="r.aprovado_por_nome" class="hist-aprovador">
               Aprovado por {{ r.aprovado_por_nome }}
-              <span v-if="r.aprovado_em"> em {{ formatarData(r.aprovado_em) }}</span>
+              <span v-if="r.aprovado_em"> em {{ formatarDataHora(r.aprovado_em) }}</span>
             </p>
             <p v-if="r.justificativa" class="hist-just">"{{ r.justificativa }}"</p>
           </div>
           <span class="hist-status" :class="'status-' + r.status">{{ labelStatus(r.status) }}</span>
-        </div>
-      </div>
+        </li>
+      </ul>
     </section>
   </div>
 </template>
@@ -369,19 +378,17 @@ const labelStatus = (s) => ({
 .pagina-retirada {
   background: var(--superficie-alta);
   min-height: 100vh;
+  min-height: 100dvh;
   color: var(--texto-forte);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding: 2rem 3rem 3rem;
-  box-sizing: border-box;
   width: 100%;
 }
-.pagina-retirada *, .pagina-retirada *::before, .pagina-retirada *::after { box-sizing: border-box; }
 
 .cabecalho { margin-bottom: 2rem; }
 .caminho { color: var(--texto-suave); font-size: 0.85rem; margin-bottom: 0.7rem; }
 .caminho .separador { margin: 0 0.4rem; }
 .caminho-atual { color: var(--texto-forte); }
-.titulo-pagina { font-size: 2.6rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+.titulo-pagina { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
 .titulo-destaque { color: var(--marca); }
 .subtitulo { color: var(--texto-suave); font-size: 0.95rem; }
 .subtitulo strong { color: var(--texto-forte); }
@@ -389,7 +396,7 @@ const labelStatus = (s) => ({
 .cartao {
   background: var(--superficie-elevada);
   border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
-  border-radius: 1rem;
+  border-radius: var(--raio);
   padding: 1.5rem 1.6rem;
   margin-bottom: 1.5rem;
 }
@@ -400,17 +407,23 @@ const labelStatus = (s) => ({
 .cartao-cabecalho h2 { color: var(--texto-forte); font-size: 1.05rem; font-weight: 700; }
 .contagem {
   color: var(--marca); font-size: 0.8rem; font-weight: 600;
-  background: color-mix(in srgb, var(--marca) 10%, transparent); padding: 0.25rem 0.7rem; border-radius: 999px;
+  background: color-mix(in srgb, var(--marca) 10%, transparent);
+  padding: 0.25rem 0.7rem; border-radius: var(--raio-pill);
 }
 
 .vazio-cartao { text-align: center; color: var(--texto-suave); }
 .vazio-cartao .ajuda { font-size: 0.85rem; margin-top: 0.5rem; }
 
-.legenda { display: flex; flex-wrap: wrap; gap: 1.2rem; margin-bottom: 1rem; font-size: 0.78rem; color: var(--texto-suave); }
-.legenda-item { display: inline-flex; align-items: center; gap: 0.4rem; }
-.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.dot-setor { background: var(--marca); }
-.dot-outro { background: var(--aviso); }
+/* A legenda antiga prometia duas bolinhas coloridas que não correspondiam aos
+   badges reais. Frase única, sem código de cor para decorar. */
+.legenda {
+  color: var(--texto-suave);
+  font-size: 0.83rem;
+  line-height: 1.6;
+  margin-bottom: 1.1rem;
+}
+.legenda strong { color: var(--texto-forte); font-weight: 600; }
+.legenda .legenda-aviso { color: var(--aviso); }
 
 .grade-epis {
   display: grid;
@@ -419,66 +432,113 @@ const labelStatus = (s) => ({
 }
 
 .card-epi {
-  position: relative;
-  display: flex; align-items: center; gap: 0.9rem;
   background: var(--borda);
   border: 1px solid color-mix(in srgb, var(--texto-forte) 6%, transparent);
-  border-radius: 0.75rem;
-  padding: 0.85rem;
-  cursor: pointer;
+  border-radius: var(--raio-sm);
   transition: border-color 0.15s, background 0.15s;
 }
 .card-epi:hover { border-color: color-mix(in srgb, var(--marca) 35%, transparent); }
-.card-epi.selecionado { border-color: var(--marca); }
-.card-epi.precisa-aprovacao { border-color: var(--aviso); }
+.card-epi:has(.card-check:focus-visible) { outline: 2px solid var(--marca); outline-offset: 2px; }
+.card-epi.selecionado { border-color: var(--marca); background: color-mix(in srgb, var(--marca) 7%, var(--borda)); }
+.card-epi.precisa-aprovacao { border-color: var(--aviso); background: color-mix(in srgb, var(--aviso) 7%, var(--borda)); }
 
-.info-topo { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
-.badge {
-  font-size: 0.72rem; font-weight: 700; padding: 0.18rem 0.5rem; border-radius: 999px;
-  text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; flex-shrink: 0;
+.card-alvo {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.85rem;
+  cursor: pointer;
 }
-.badge-setor { background: color-mix(in srgb, var(--marca) 18%, transparent); color: var(--marca); }
-.badge-outro { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+
+/* Fora da tela mas ainda focável e operável por Espaço. */
+.card-check {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
 
 .card-imagem {
-  flex: 0 0 60px; width: 60px; height: 60px; border-radius: 0.5rem; overflow: hidden; background: var(--borda-forte);
+  flex: 0 0 60px; width: 60px; height: 60px;
+  border-radius: var(--raio-sm); overflow: hidden;
+  background: var(--borda-forte);
+  display: block;
 }
 .card-imagem img { width: 100%; height: 100%; object-fit: cover; }
-.imagem-placeholder { width: 100%; height: 100%; background: var(--borda-forte); }
 
-.card-info { flex: 1; min-width: 0; }
-.epi-nome { color: var(--texto-forte); font-size: 1.05rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
-.epi-meta { color: var(--texto-suave); font-size: 0.85rem; margin-top: 0.25rem; }
-.epi-estoque { color: var(--marca); font-size: 0.82rem; font-weight: 600; margin-top: 0.3rem; }
+.card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.info-topo { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
+.epi-nome {
+  color: var(--texto-forte); font-size: 1.05rem; font-weight: 700;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.epi-meta { color: var(--texto-suave); font-size: 0.85rem; }
+.epi-estoque { color: var(--marca); font-size: 0.82rem; font-weight: 600; }
 .em-uso { color: var(--aviso); font-weight: 600; }
 
-.card-marca { flex: 0 0 auto; }
-.circulo-vazio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--borda-forte); display: block; }
+.badge {
+  font-size: 0.72rem; font-weight: 700; padding: 0.18rem 0.5rem;
+  border-radius: var(--raio-pill);
+  text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; flex-shrink: 0;
+}
+.badge-limite { background: color-mix(in srgb, var(--marca) 18%, transparent); color: var(--marca); }
+.badge-sem-limite { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+
+.card-marca {
+  flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--borda-forte);
+  color: var(--marca-texto);
+  transition: background 0.15s, border-color 0.15s;
+}
+.selecionado .card-marca { background: var(--marca); border-color: var(--marca); }
+.precisa-aprovacao .card-marca { background: var(--aviso); border-color: var(--aviso); }
 
 .card-controles {
-  display: flex; align-items: center; gap: 0.4rem;
-  background: var(--superficie-alta); border: 1px solid color-mix(in srgb, var(--marca) 30%, transparent);
-  border-radius: 0.5rem; padding: 0.2rem;
+  display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;
+  padding: 0 0.85rem 0.85rem;
 }
 .btn-qtd {
-  background: color-mix(in srgb, var(--marca) 15%, transparent); border: none; color: var(--marca);
-  width: 26px; height: 26px; border-radius: 0.35rem; font-size: 1.1rem; font-weight: 700; cursor: pointer; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  width: 2.75rem; height: 2.75rem;
+  background: color-mix(in srgb, var(--marca) 15%, transparent);
+  border: none; border-radius: var(--raio-sm);
+  color: var(--marca);
+  font-size: 1.25rem; font-weight: 700; line-height: 1; cursor: pointer;
+  transition: background 0.15s;
 }
-.btn-qtd:hover { background: color-mix(in srgb, var(--marca) 28%, transparent); }
-.qtd-valor { color: var(--texto-forte); font-weight: 700; font-size: 0.9rem; min-width: 1.5rem; text-align: center; }
+.btn-qtd:hover:not(:disabled) { background: color-mix(in srgb, var(--marca) 28%, transparent); }
+.btn-qtd:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.qtd-valor {
+  display: flex; align-items: baseline; gap: 0.25rem;
+  min-width: 3.5rem; justify-content: center;
+}
+.qtd-numero { color: var(--texto-forte); font-weight: 800; font-size: 1.1rem; }
+.qtd-unidade { color: var(--texto-suave); font-size: 0.75rem; }
 
 .caixa-justificativa {
   margin-top: 1.2rem;
   background: color-mix(in srgb, var(--aviso) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--aviso) 30%, transparent);
-  border-radius: 0.7rem;
+  border-radius: var(--raio-sm);
   padding: 0.9rem 1.1rem;
 }
-.caixa-justificativa label { color: var(--aviso); font-size: 0.85rem; display: block; margin-bottom: 0.5rem; }
-.caixa-justificativa label strong { color: var(--texto-forte); }
+.just-rotulo {
+  display: flex; align-items: flex-start; gap: 0.5rem;
+  color: var(--aviso); font-size: 0.85rem; margin-bottom: 0.6rem;
+}
+.just-rotulo strong { color: var(--texto-forte); }
 .caixa-justificativa textarea {
   width: 100%; background: var(--superficie); border: 1px solid var(--borda); color: var(--texto-forte);
-  border-radius: 0.5rem; padding: 0.6rem 0.8rem; font-size: 0.88rem; outline: none;
+  border-radius: var(--raio-sm); padding: 0.6rem 0.8rem; font-size: 0.88rem; outline: none;
   font-family: inherit; resize: vertical;
 }
 .caixa-justificativa textarea:focus { border-color: var(--marca); }
@@ -486,24 +546,28 @@ const labelStatus = (s) => ({
 .barra-acao {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
   margin-top: 1.3rem; padding: 0.9rem 1.1rem;
-  background: color-mix(in srgb, var(--marca) 8%, transparent); border: 1px solid color-mix(in srgb, var(--marca) 25%, transparent);
-  border-radius: 0.7rem;
+  background: color-mix(in srgb, var(--marca) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--marca) 25%, transparent);
+  border-radius: var(--raio-sm);
 }
 .acao-resumo { display: flex; flex-direction: column; gap: 0.2rem; }
 .acao-info { color: var(--texto-forte); font-weight: 600; font-size: 0.9rem; }
 .acao-aviso { color: var(--aviso); font-size: 0.78rem; font-weight: 600; }
 .btn-solicitar {
+  min-height: 2.75rem;
   background: var(--marca); color: var(--marca-texto); border: none; padding: 0.7rem 1.4rem;
-  border-radius: 0.55rem; font-size: 0.92rem; font-weight: 700; cursor: pointer;
+  border-radius: var(--raio-sm); font-size: 0.92rem; font-weight: 700; cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s;
 }
 .btn-solicitar:hover:not(:disabled) { background: var(--marca-escura); }
 .btn-solicitar:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.lista-historico { display: flex; flex-direction: column; gap: 0.55rem; }
+.lista-historico { list-style: none; display: flex; flex-direction: column; gap: 0.55rem; }
 .item-historico {
   display: flex; align-items: center; gap: 1rem;
   background: var(--borda); border: 1px solid color-mix(in srgb, var(--texto-forte) 5%, transparent);
-  border-radius: 0.6rem; padding: 0.8rem 1rem;
+  border-radius: var(--raio-sm); padding: 0.8rem 1rem;
 }
 .hist-info { flex: 1; min-width: 0; }
 .hist-nome { color: var(--texto-forte); font-weight: 700; font-size: 0.95rem; }
@@ -514,21 +578,22 @@ const labelStatus = (s) => ({
 
 .hist-status {
   font-size: 0.7rem; font-weight: 700; padding: 0.25rem 0.65rem;
-  border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+  border-radius: var(--raio-pill); text-transform: uppercase; letter-spacing: 0.04em;
+  white-space: nowrap; flex-shrink: 0;
 }
 .status-pendente_aprovacao { background: color-mix(in srgb, var(--aviso) 12%, transparent); color: var(--aviso); border: 1px solid color-mix(in srgb, var(--aviso) 35%, transparent); }
 .status-pendente_entrega   { background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); border: 1px solid color-mix(in srgb, var(--info) 35%, transparent); }
 .status-aprovado           { background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); border: 1px solid color-mix(in srgb, var(--info) 35%, transparent); }
 .status-entregue           { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent); }
 .status-recusado           { background: color-mix(in srgb, var(--perigo) 12%, transparent); color: var(--perigo); border: 1px solid color-mix(in srgb, var(--perigo) 35%, transparent); }
-.status-devolvido          { background: rgba(168,168,168,0.12); color: var(--texto-suave); border: 1px solid rgba(168,168,168,0.3); }
+.status-devolvido          { background: color-mix(in srgb, var(--texto-fraco) 12%, transparent); color: var(--texto-suave); border: 1px solid color-mix(in srgb, var(--texto-fraco) 30%, transparent); }
 
 .vazio { color: var(--texto-suave); font-size: 0.9rem; padding: 0.5rem 0; }
 
-.toast {
-  position: fixed; top: 1.5rem; right: 1.5rem; z-index: 999;
-  padding: 0.85rem 1.3rem; border-radius: 0.6rem; font-size: 0.9rem; font-weight: 600;
+@media (max-width: 700px) {
+  .pagina-retirada { padding: 1.5rem 1.2rem 2rem; }
+  .grade-epis { grid-template-columns: 1fr; }
+  .barra-acao { flex-direction: column; align-items: stretch; }
+  .btn-solicitar { width: 100%; }
 }
-.toast-sucesso { background: color-mix(in srgb, var(--ok) 15%, transparent); border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok); }
-.toast-erro    { background: color-mix(in srgb, var(--perigo) 15%, transparent); border: 1px solid color-mix(in srgb, var(--perigo) 40%, transparent); color: var(--perigo); }
 </style>
